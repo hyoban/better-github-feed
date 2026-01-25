@@ -1,0 +1,60 @@
+import type { FilterGroup } from "@fn-sphere/filter";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { serializeFilterGroup } from "@/lib/filter-schema";
+import { orpc } from "@/utils/orpc";
+
+export type UserFilterRule = {
+  id: string;
+  name: string;
+  filterRule: FilterGroup;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export function useFilters() {
+  return useQuery(orpc.filter.list.queryOptions());
+}
+
+function invalidateFeedQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries(orpc.filter.list.queryOptions());
+  queryClient.invalidateQueries({ queryKey: orpc.feed.list.key() });
+}
+
+export function useCreateFilter() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...orpc.filter.create.mutationOptions(),
+    onSuccess: () => invalidateFeedQueries(queryClient),
+  });
+}
+
+export function useUpdateFilter() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...orpc.filter.update.mutationOptions(),
+    onSuccess: () => invalidateFeedQueries(queryClient),
+  });
+}
+
+export function useDeleteFilter() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    ...orpc.filter.delete.mutationOptions(),
+    onSuccess: () => invalidateFeedQueries(queryClient),
+  });
+}
+
+/**
+ * Helper to prepare filter data for API calls
+ */
+export function prepareFilterPayload(name: string, filterRule: FilterGroup) {
+  return {
+    name,
+    filterRule: serializeFilterGroup(filterRule),
+  };
+}

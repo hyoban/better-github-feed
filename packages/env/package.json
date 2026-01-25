@@ -1,0 +1,21 @@
+{
+  "name": "@better-github-feed/env",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./server": "./src/server.ts",
+    "./web": "./src/web.ts"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "^0.13.10",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@better-github-feed/config": "workspace:*",
+    "@better-github-feed/infra": "workspace:*",
+    "@types/node": "^25.0.10",
+    "typescript": "^5.9.3"
+  }
+}

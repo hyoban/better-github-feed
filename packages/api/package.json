@@ -1,0 +1,31 @@
+{
+  "name": "@better-github-feed/api",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@better-github-feed/auth": "workspace:*",
+    "@better-github-feed/db": "workspace:*",
+    "@better-github-feed/env": "workspace:*",
+    "@fn-sphere/filter": "^1.2.0",
+    "@orpc/client": "catalog:",
+    "@orpc/openapi": "catalog:",
+    "@orpc/server": "catalog:",
+    "@orpc/zod": "catalog:",
+    "dotenv": "catalog:",
+    "drizzle-orm": "^0.45.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@better-github-feed/config": "workspace:*",
+    "hono": "catalog:",
+    "typescript": "^5.9.3"
+  }
+}

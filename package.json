@@ -1,0 +1,39 @@
+{
+  "name": "better-github-feed",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "nr -C packages/infra dev",
+    "build": "pnpm -r build",
+    "check-types": "pnpm -r check-types",
+    "dev:native": "pnpm --filter native dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:server": "pnpm --filter server dev",
+    "db:push": "pnpm --filter @better-github-feed/db db:push",
+    "db:generate": "pnpm --filter @better-github-feed/db db:generate",
+    "deploy": "pnpm --filter @better-github-feed/infra deploy",
+    "destroy": "pnpm --filter @better-github-feed/infra destroy",
+    "check": "oxlint && oxfmt --write",
+    "prepare": "lefthook install"
+  },
+  "dependencies": {
+    "@better-github-feed/env": "workspace:*",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@antfu/ni": "^28.2.0",
+    "@better-github-feed/config": "workspace:*",
+    "@cloudflare/workers-types": "catalog:",
+    "@types/node": "^25.0.10",
+    "lefthook": "^2.0.15",
+    "oxfmt": "^0.26.0",
+    "oxlint": "^1.41.0",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@10.28.1"
+}

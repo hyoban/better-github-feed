@@ -1,0 +1,11 @@
+{
+  "ignorePatterns": [],
+  "experimentalSortImports": {},
+  "experimentalSortPackageJson": true,
+  "experimentalTailwindcss": {
+    "stylesheet": "./apps/web/src/index.css",
+    "attributes": ["class", "className"],
+    "functions": ["clsx", "cn"],
+    "preserveWhitespace": true
+  }
+}

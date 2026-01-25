@@ -1,0 +1,19 @@
+{
+  "name": "@better-github-feed/infra",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_ENV=development alchemy dev",
+    "deploy": "NODE_ENV=production alchemy deploy --stage prod",
+    "destroy": "NODE_ENV=production alchemy destroy --stage prod"
+  },
+  "dependencies": {
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@better-github-feed/config": "workspace:*",
+    "alchemy": "catalog:",
+    "typescript": "^5.9.3"
+  }
+}

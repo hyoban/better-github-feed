@@ -1,0 +1,1 @@
+ALTER TABLE `feed_item` ADD `hidden` integer DEFAULT false NOT NULL;
