@@ -17,33 +17,7 @@ export const feedItemFilterSchema = z.object({
 
 export type FeedItemFilterSchema = z.infer<typeof feedItemFilterSchema>;
 
-/**
- * Filter function list (subset of fn-sphere presets)
- * Prioritized for common use cases
- */
-const filterPriority = [
-  "contains",
-  "notContains",
-  "equals",
-  "notEqual",
-  "startsWith",
-  "isEmpty",
-  "isNotEmpty",
-  "before",
-  "after",
-];
-
-export const filterFnList: FnSchema[] = presetFilter
-  .filter(
-    (fn) =>
-      // Exclude less useful filters for this use case
-      fn.name !== "endsWith" && fn.name !== "enumEquals" && fn.name !== "enumNotEqual",
-  )
-  .sort((a, b) => {
-    const indexA = filterPriority.indexOf(a.name);
-    const indexB = filterPriority.indexOf(b.name);
-    return (indexA === -1 ? Infinity : indexA) - (indexB === -1 ? Infinity : indexB);
-  });
+export const filterFnList: FnSchema[] = presetFilter;
 
 /**
  * Empty filter group for creating new user filters
