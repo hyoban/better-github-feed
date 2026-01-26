@@ -1,9 +1,15 @@
 import { db } from "@better-github-feed/db";
-import { feedItem, githubUser, subscription } from "@better-github-feed/db/schema/github";
+import {
+  feedItem,
+  githubUser,
+  subscription,
+  userFilter,
+} from "@better-github-feed/db/schema/github";
 import { ORPCError } from "@orpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import { deserializeFilterGroup, filterRuleToDrizzleWhere } from "../filter/drizzle-transform";
 import { protectedProcedure } from "../index";
 import { chunkArray, normalizeLogin } from "./utils";
 
@@ -54,6 +60,26 @@ export const subscriptionRouter = {
 
     // Get item counts and latest entry time for subscribed github users
     const githubUserLogins = rows.map((r) => r.githubUserLogin);
+
+    // Load user's filter rules and build conditions
+    const userFilters = await db.select().from(userFilter).where(eq(userFilter.userId, userId));
+    const filterConditions = [];
+    for (const uf of userFilters) {
+      try {
+        const rule = deserializeFilterGroup(uf.filterRule);
+        const where = filterRuleToDrizzleWhere(rule);
+        if (where) filterConditions.push(where);
+      } catch {
+        // Skip invalid rules
+      }
+    }
+
+    // Build stats conditions including user filters
+    const statsConditions = [eq(subscription.userId, userId), eq(feedItem.hidden, false)];
+    if (filterConditions.length > 0) {
+      statsConditions.push(and(...filterConditions)!);
+    }
+
     const stats =
       githubUserLogins.length > 0
         ? await db
@@ -64,7 +90,7 @@ export const subscriptionRouter = {
             })
             .from(feedItem)
             .innerJoin(subscription, eq(feedItem.githubUserLogin, subscription.githubUserLogin))
-            .where(and(eq(subscription.userId, userId), eq(feedItem.hidden, false)))
+            .where(and(...statsConditions))
             .groupBy(feedItem.githubUserLogin)
         : [];
 
