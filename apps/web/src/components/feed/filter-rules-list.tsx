@@ -130,6 +130,7 @@ export function FilterRulesList() {
 
       {/* Edit Filter Dialog */}
       <FilterBuilderDialog
+        key={editingFilter?.id}
         open={!!editingFilter}
         onOpenChange={(open) => !open && setEditingFilter(null)}
         editingFilter={editingFilter}

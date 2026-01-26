@@ -94,8 +94,7 @@ export function ActivityList() {
   useEffect(() => {
     if (prevFocusedPanel.current !== "feed" && focusedPanel === "feed") {
       // Switched to feed - only select first item if there's no valid selection
-      const hasValidSelection =
-        activeId && items.some((item) => item.id === activeId);
+      const hasValidSelection = activeId && items.some((item) => item.id === activeId);
       if (items.length > 0 && !hasValidSelection) {
         void setActiveId(items[0].id);
         virtualizer.scrollToIndex(0, { align: "start" });

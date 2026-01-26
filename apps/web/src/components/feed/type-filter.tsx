@@ -25,10 +25,6 @@ export function TypeFilter() {
     return activeTypes.filter((type) => available.has(type));
   }, [types, activeTypes]);
 
-  if (types.length === 0) {
-    return null;
-  }
-
   const sortedTypes = [...types].sort(
     (a, b) => (typeCounts.get(b) ?? 0) - (typeCounts.get(a) ?? 0),
   );
