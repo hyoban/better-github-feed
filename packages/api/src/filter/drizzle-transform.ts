@@ -66,6 +66,11 @@ function transformSingleFilter(filter: SingleFilter): SQL | null {
       return like(column as typeof feedItem.title, `${escapeLike(value)}%`);
     }
 
+    case "endsWith": {
+      if (value === undefined || value === null || typeof value !== "string") return null;
+      return like(column as typeof feedItem.title, `%${escapeLike(value)}`);
+    }
+
     case "isEmpty": {
       // For nullable strings: value is null OR value is empty string
       return or(isNull(column), eq(column as typeof feedItem.title, "")) ?? null;
