@@ -1,5 +1,39 @@
-import { createFilterGroup, type FnSchema, presetFilter } from "@fn-sphere/filter";
+import { createFilterGroup, defineTypedFn, type FnSchema, presetFilter } from "@fn-sphere/filter";
 import { z } from "zod";
+
+/**
+ * Custom filter: not starts with
+ */
+const notStartsWith = defineTypedFn({
+  name: "notStartsWith",
+  define: z.function({
+    input: [z.string(), z.coerce.string()],
+    output: z.boolean(),
+  }),
+  implement: (value, target) => {
+    if (!target) return true;
+    if (typeof value !== "string") return false;
+    return !value.toLowerCase().startsWith(target.toLowerCase());
+  },
+});
+
+/**
+ * Custom filter: not ends with
+ */
+const notEndsWith = defineTypedFn({
+  name: "notEndsWith",
+  define: z.function({
+    input: [z.string(), z.coerce.string()],
+    output: z.boolean(),
+  }),
+  implement: (value, target) => {
+    if (!target) return true;
+    if (typeof value !== "string") return false;
+    return !value.toLowerCase().endsWith(target.toLowerCase());
+  },
+});
+
+const customFilters = [notStartsWith, notEndsWith];
 
 /**
  * Zod schema for feedItem fields (for fn-sphere validation)
@@ -17,33 +51,7 @@ export const feedItemFilterSchema = z.object({
 
 export type FeedItemFilterSchema = z.infer<typeof feedItemFilterSchema>;
 
-/**
- * Filter function list (subset of fn-sphere presets)
- * Prioritized for common use cases
- */
-const filterPriority = [
-  "contains",
-  "notContains",
-  "equals",
-  "notEqual",
-  "startsWith",
-  "isEmpty",
-  "isNotEmpty",
-  "before",
-  "after",
-];
-
-export const filterFnList: FnSchema[] = presetFilter
-  .filter(
-    (fn) =>
-      // Exclude less useful filters for this use case
-      fn.name !== "endsWith" && fn.name !== "enumEquals" && fn.name !== "enumNotEqual",
-  )
-  .sort((a, b) => {
-    const indexA = filterPriority.indexOf(a.name);
-    const indexB = filterPriority.indexOf(b.name);
-    return (indexA === -1 ? Infinity : indexA) - (indexB === -1 ? Infinity : indexB);
-  });
+export const filterFnList: FnSchema[] = [...presetFilter, ...customFilters];
 
 /**
  * Empty filter group for creating new user filters
