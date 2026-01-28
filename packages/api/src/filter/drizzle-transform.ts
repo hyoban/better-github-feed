@@ -1,4 +1,4 @@
-import type { FilterGroup, SingleFilter } from "@fn-sphere/filter";
+import type { FilterGroup, SingleFilter } from "@better-github-feed/shared";
 
 import { feedItem } from "@better-github-feed/db/schema/github";
 import { type SQL, and, eq, gt, isNotNull, isNull, like, lt, ne, not, or, sql } from "drizzle-orm";

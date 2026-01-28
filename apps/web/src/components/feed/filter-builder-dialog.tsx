@@ -1,5 +1,9 @@
-import type { FilterGroup } from "@fn-sphere/filter";
-
+import {
+  emptyFilterGroup,
+  feedItemFilterSchema,
+  filterFnList,
+  type FilterGroup,
+} from "@better-github-feed/shared";
 import { FilterBuilder, FilterSphereProvider, useFilterSphere } from "@fn-sphere/filter";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,7 +20,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateFilter, useUpdateFilter, prepareFilterPayload } from "@/hooks/use-filters";
-import { feedItemFilterSchema, filterFnList, emptyFilterGroup } from "@/lib/filter-schema";
 import { filterTheme } from "@/lib/filter-theme";
 
 interface FilterBuilderDialogProps {

@@ -1,13 +1,16 @@
-import type { FilterGroup } from "@fn-sphere/filter";
-
 import { db } from "@better-github-feed/db";
 import { userFilter } from "@better-github-feed/db/schema/github";
+import {
+  emptyFilterGroup,
+  feedItemFilterSchema,
+  filterFnList,
+  type FilterGroup,
+} from "@better-github-feed/shared";
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { deserializeFilterGroup } from "../filter/drizzle-transform";
-import { emptyFilterGroup, feedItemFilterSchema, filterFnList } from "../filter/schema";
 import { protectedProcedure } from "../index";
 
 function generateId() {

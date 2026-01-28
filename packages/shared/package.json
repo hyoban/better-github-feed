@@ -1,0 +1,21 @@
+{
+  "name": "@better-github-feed/shared",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@fn-sphere/filter": "^1.2.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@better-github-feed/config": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

@@ -14,7 +14,7 @@
     "@better-github-feed/auth": "workspace:*",
     "@better-github-feed/db": "workspace:*",
     "@better-github-feed/env": "workspace:*",
-    "@fn-sphere/filter": "^1.2.0",
+    "@better-github-feed/shared": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",

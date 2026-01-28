@@ -1,5 +1,14 @@
-import { createFilterGroup, defineTypedFn, type FnSchema, presetFilter } from "@fn-sphere/filter";
+import {
+  createFilterGroup,
+  defineTypedFn,
+  type FilterGroup,
+  type FnSchema,
+  presetFilter,
+  type SingleFilter,
+} from "@fn-sphere/filter";
 import { z } from "zod";
+
+export type { FilterGroup, SingleFilter };
 
 /**
  * Custom filter: not starts with
@@ -56,7 +65,7 @@ export const filterFnList: FnSchema[] = [...presetFilter, ...customFilters];
 /**
  * Empty filter group for creating new user filters
  */
-export const emptyFilterGroup = createFilterGroup({
+export const emptyFilterGroup: FilterGroup = createFilterGroup({
   op: "and",
   conditions: [],
 });

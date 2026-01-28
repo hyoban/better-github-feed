@@ -154,6 +154,9 @@ importers:
       '@better-github-feed/env':
         specifier: workspace:*
         version: link:../../packages/env
+      '@better-github-feed/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@fn-sphere/filter':
         specifier: ^1.2.0
         version: 1.2.0(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod@4.3.6)
@@ -407,9 +410,9 @@ importers:
       '@better-github-feed/env':
         specifier: workspace:*
         version: link:../env
-      '@fn-sphere/filter':
-        specifier: ^1.2.0
-        version: 1.2.0(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod@4.3.6)
+      '@better-github-feed/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@orpc/client':
         specifier: 'catalog:'
         version: 1.13.4
@@ -540,6 +543,22 @@ importers:
       alchemy:
         specifier: 'catalog:'
         version: 0.83.1(@libsql/client@0.15.15)(kysely@0.28.10)(vite@7.3.1(@types/node@25.0.10)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2))(workerd@1.20260120.0)(wrangler@4.60.0(@cloudflare/workers-types@4.20260123.0))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/shared:
+    dependencies:
+      '@fn-sphere/filter':
+        specifier: ^1.2.0
+        version: 1.2.0(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod@4.3.6)
+      zod:
+        specifier: 'catalog:'
+        version: 4.3.6
+    devDependencies:
+      '@better-github-feed/config':
+        specifier: workspace:*
+        version: link:../config
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

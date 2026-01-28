@@ -1,8 +1,6 @@
-import type { FilterGroup } from "@fn-sphere/filter";
-
+import { serializeFilterGroup, type FilterGroup } from "@better-github-feed/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { serializeFilterGroup } from "@/lib/filter-schema";
 import { orpc } from "@/utils/orpc";
 
 export type UserFilterRule = {
