@@ -6,7 +6,7 @@ import { SortToggle } from "./sort-toggle";
 
 export function Sidebar() {
   return (
-    <aside className="flex h-full min-h-0 flex-col border-r bg-sidebar text-sidebar-foreground">
+    <aside className="hidden h-full min-h-0 flex-col border-r bg-sidebar text-sidebar-foreground md:flex">
       <div className="flex items-center border-b">
         <SortToggle />
       </div>
