@@ -39,7 +39,7 @@ export const server = await Worker("server", {
     BETTER_AUTH_GITHUB_CLIENT_ID: alchemy.env.BETTER_AUTH_GITHUB_CLIENT_ID!,
     BETTER_AUTH_GITHUB_CLIENT_SECRET: alchemy.secret.env.BETTER_AUTH_GITHUB_CLIENT_SECRET!,
   },
-  crons: ["*/5 * * * *"], // Run every 5 minutes
+  crons: ["*/20 * * * *"], // Run every 20 minutes
   dev: {
     port: 3000,
   },
