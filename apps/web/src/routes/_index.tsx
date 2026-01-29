@@ -17,8 +17,8 @@ export default function Home() {
         <Sidebar />
 
         {/* Main Content */}
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="border-b">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="min-w-0 border-b">
             <TypeFilter />
           </div>
           <div className="grid min-h-0 flex-1 overflow-hidden xl:grid-cols-[420px_1fr]">
