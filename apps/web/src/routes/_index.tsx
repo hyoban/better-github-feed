@@ -9,7 +9,7 @@ import { FocusedPanelProvider } from "@/hooks/use-keyboard-navigation";
 export default function Home() {
   return (
     <FocusedPanelProvider>
-      <div className="flex h-full min-h-0 flex-col overflow-hidden md:flex-row">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden lg:flex-row">
         {/* Mobile Header */}
         <MobileHeader />
 
@@ -21,8 +21,8 @@ export default function Home() {
           <div className="min-w-0 border-b">
             <TypeFilter />
           </div>
-          <div className="grid min-h-0 flex-1 overflow-hidden xl:grid-cols-[420px_1fr]">
-            <main className="h-full overflow-hidden bg-sidebar text-sidebar-foreground xl:border-r">
+          <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[420px_1fr]">
+            <main className="h-full overflow-hidden bg-sidebar text-sidebar-foreground lg:border-r">
               <ActivityList />
             </main>
             <DetailPanel />

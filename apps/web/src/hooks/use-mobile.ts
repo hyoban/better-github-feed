@@ -1,7 +1,7 @@
 import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;
-const DESKTOP_BREAKPOINT = 1280; // xl breakpoint
+const DESKTOP_BREAKPOINT = 1024; // lg breakpoint
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
