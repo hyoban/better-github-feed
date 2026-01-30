@@ -23,10 +23,10 @@
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",
     "@cloudflare/workers-types": "catalog:",
-    "@types/node": "^25.0.10",
+    "@types/node": "^25.1.0",
     "alchemy": "catalog:",
     "tsdown": "^0.20.1",
     "typescript": "^5.9.3",
-    "wrangler": "^4.60.0"
+    "wrangler": "^4.61.1"
   }
 }
