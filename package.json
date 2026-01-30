@@ -34,7 +34,7 @@
     "@types/node": "^25.1.0",
     "@typescript/native-preview": "7.0.0-dev.20260130.1",
     "eslint": "^9.39.2",
-    "eslint-config-hyoban": "https://pkg.pr.new/hyoban/eslint-config-hyoban@1cf416a",
+    "eslint-config-hyoban": "6.0.0-beta.2",
     "lint-staged": "^16.2.7",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^5.9.3"
