@@ -23,9 +23,8 @@ const loginSchema = z
 function extractGithubAtomLogins(source: string) {
   const matches: string[] = []
   const pattern = /https?:\/\/github\.com\/([A-Z0-9-]+)\.atom\b/gi
-  let match: RegExpExecArray | null
 
-  while ((match = pattern.exec(source)) !== null) {
+  for (const match of source.matchAll(pattern)) {
     if (match[1]) {
       matches.push(match[1])
     }

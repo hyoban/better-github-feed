@@ -1,3 +1,7 @@
+/* eslint-disable no-console */
+/* eslint-disable antfu/no-top-level-await */
+import process from 'node:process'
+
 import alchemy from 'alchemy'
 import { D1Database, Vite, Worker } from 'alchemy/cloudflare'
 import { CloudflareStateStore } from 'alchemy/state'

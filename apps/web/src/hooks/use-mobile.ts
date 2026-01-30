@@ -3,34 +3,38 @@ import * as React from 'react'
 const MOBILE_BREAKPOINT = 768
 const DESKTOP_BREAKPOINT = 1024 // lg breakpoint
 
+function subscribeMobile(callback: () => void) {
+  const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+  mql.addEventListener('change', callback)
+  return () => mql.removeEventListener('change', callback)
+}
+
+function getMobileSnapshot() {
+  return window.innerWidth < MOBILE_BREAKPOINT
+}
+
+function getMobileServerSnapshot() {
+  return false
+}
+
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  return React.useSyncExternalStore(subscribeMobile, getMobileSnapshot, getMobileServerSnapshot)
+}
 
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    mql.addEventListener('change', onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener('change', onChange)
-  }, [])
+function subscribeDesktop(callback: () => void) {
+  const mql = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`)
+  mql.addEventListener('change', callback)
+  return () => mql.removeEventListener('change', callback)
+}
 
-  return !!isMobile
+function getDesktopSnapshot() {
+  return window.innerWidth >= DESKTOP_BREAKPOINT
+}
+
+function getDesktopServerSnapshot() {
+  return true
 }
 
 export function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = React.useState<boolean | undefined>(undefined)
-
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`)
-    const onChange = () => {
-      setIsDesktop(window.innerWidth >= DESKTOP_BREAKPOINT)
-    }
-    mql.addEventListener('change', onChange)
-    setIsDesktop(window.innerWidth >= DESKTOP_BREAKPOINT)
-    return () => mql.removeEventListener('change', onChange)
-  }, [])
-
-  return !!isDesktop
+  return React.useSyncExternalStore(subscribeDesktop, getDesktopSnapshot, getDesktopServerSnapshot)
 }

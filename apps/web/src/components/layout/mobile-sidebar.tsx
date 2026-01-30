@@ -19,14 +19,13 @@ export function MobileSidebar() {
   useEffect(() => {
     const mediaQuery = window.matchMedia(`(min-width: ${LG_BREAKPOINT}px)`)
     const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (e.matches) {
+      if (e.matches && open) {
         setOpen(false)
       }
     }
-    handleChange(mediaQuery)
     mediaQuery.addEventListener('change', handleChange)
     return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [])
+  }, [open])
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

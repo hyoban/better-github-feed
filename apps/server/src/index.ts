@@ -84,10 +84,13 @@ export default {
   async scheduled(event: ScheduledEvent, _env: unknown, ctx: ExecutionContext) {
     ctx.waitUntil(
       (async () => {
+        // eslint-disable-next-line no-console
         console.log(`Cron job triggered at ${new Date().toISOString()}, cron: ${event.cron}`)
         const results = await refreshAllUsersFeeds()
+        // eslint-disable-next-line no-console
         console.log('Refresh completed:', JSON.stringify(results))
         const cleanupResults = await cleanupOldFeedItems()
+        // eslint-disable-next-line no-console
         console.log('Cleanup completed:', JSON.stringify(cleanupResults))
       })(),
     )

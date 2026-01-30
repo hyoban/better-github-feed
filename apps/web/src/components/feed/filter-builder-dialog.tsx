@@ -117,7 +117,7 @@ export function FilterBuilderDialog({
 
       onOpenChange(false)
     }
-    catch (error) {
+    catch {
       toast.error(isEditing ? 'Failed to update filter' : 'Failed to create filter')
     }
   }

@@ -63,5 +63,5 @@ export function formatRelativeTime(date: Date | string | null) {
 export function convertRelativeLinksToAbsolute(html: string) {
   return html
     .replace(/(href|src)=["'](\/)([^"']*)["']/gi, '$1="https://github.com$2$3"')
-    .replace(/<a(?![^>]*\btarget=)/gi, '<a target="_blank" rel="noreferrer"')
+    .replace(/<a(?![^>]*target=)/gi, '<a target="_blank" rel="noreferrer"')
 }
