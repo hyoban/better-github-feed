@@ -1,5 +1,5 @@
 import alchemy from "alchemy";
-import { ReactRouter } from "alchemy/cloudflare";
+import { Vite } from "alchemy/cloudflare";
 import { Worker } from "alchemy/cloudflare";
 import { D1Database } from "alchemy/cloudflare";
 import { CloudflareStateStore } from "alchemy/state";
@@ -20,7 +20,7 @@ const db = await D1Database("database", {
   migrationsDir: "../../packages/db/src/migrations",
 });
 
-export const web = await ReactRouter("web", {
+export const web = await Vite("web", {
   cwd: "../../apps/web",
   bindings: {
     VITE_SERVER_URL: alchemy.env.VITE_SERVER_URL!,

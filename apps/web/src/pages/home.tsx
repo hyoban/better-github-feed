@@ -6,7 +6,7 @@ import { MobileHeader } from "@/components/layout/mobile-header";
 import { Sidebar } from "@/components/sidebar";
 import { FocusedPanelProvider } from "@/hooks/use-keyboard-navigation";
 
-export default function Home() {
+export function Home() {
   return (
     <FocusedPanelProvider>
       <div className="flex h-full min-h-0 flex-col overflow-hidden lg:flex-row">
