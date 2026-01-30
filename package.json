@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "nr -C packages/infra dev",
     "build": "pnpm -r build",
-    "check-types": "pnpm -r check-types",
+    "type-check": "pnpm -r type-check",
     "dev:native": "pnpm --filter native dev",
     "dev:web": "pnpm --filter web dev",
     "dev:server": "pnpm --filter server dev",

@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc"
+    "type-check": "tsc"
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",
