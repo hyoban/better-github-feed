@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "type-check": "tsc"
+    "type-check": "tsgo"
   },
   "dependencies": {
     "@fn-sphere/filter": "^1.2.0",

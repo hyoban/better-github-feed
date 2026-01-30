@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "type-check": "tsc"
+    "type-check": "tsgo"
   },
   "dependencies": {
     "@better-github-feed/db": "workspace:*",

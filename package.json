@@ -30,6 +30,7 @@
     "@better-github-feed/config": "workspace:*",
     "@cloudflare/workers-types": "catalog:",
     "@types/node": "^25.1.0",
+    "@typescript/native-preview": "7.0.0-dev.20260130.1",
     "lefthook": "^2.0.16",
     "oxfmt": "^0.27.0",
     "oxlint": "^1.42.0",

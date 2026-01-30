@@ -8,7 +8,7 @@
     "./web": "./src/web.ts"
   },
   "scripts": {
-    "type-check": "tsc"
+    "type-check": "tsgo"
   },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.10",
