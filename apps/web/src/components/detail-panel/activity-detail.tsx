@@ -10,6 +10,7 @@ interface ActivityItemData {
   content: string | null;
   publishedAt: Date | string | null;
   type: string;
+  repo: string | null;
 }
 
 interface ActivityDetailProps {
@@ -30,15 +31,35 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
             <AvatarFallback>{item.source.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
-            <a
-              href={`https://github.com/${item.source}`}
-              target="_blank"
-              rel="noreferrer"
-              className="font-semibold text-foreground hover:underline"
-            >
-              {item.source}
-            </a>
-            <p className="text-sm text-muted-foreground">{formatRelativeTime(item.publishedAt)}</p>
+            <div className="flex items-center gap-2">
+              <a
+                href={`https://github.com/${item.source}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-foreground hover:underline"
+              >
+                {item.source}
+              </a>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                {item.type}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {item.repo && (
+                <>
+                  <a
+                    href={`https://github.com/${item.repo}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-foreground hover:underline"
+                  >
+                    {item.repo}
+                  </a>
+                  <span>&middot;</span>
+                </>
+              )}
+              <span>{formatRelativeTime(item.publishedAt)}</span>
+            </div>
           </div>
         </div>
       </div>

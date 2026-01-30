@@ -12,6 +12,7 @@ export interface ActivityItemData {
   content: string | null;
   publishedAt: Date | string | null;
   type: string;
+  repo: string | null;
 }
 
 interface ActivitySummaryItemProps {
