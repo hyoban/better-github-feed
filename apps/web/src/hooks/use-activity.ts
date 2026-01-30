@@ -11,7 +11,6 @@ export function useActivity(enabled: boolean, activeUsers: string[], activeTypes
     orpc.feed.list.infiniteOptions({
       input: (cursor: number | undefined) => ({
         cursor,
-        limit: 50,
         users: usersParam,
         types: typesParam,
       }),

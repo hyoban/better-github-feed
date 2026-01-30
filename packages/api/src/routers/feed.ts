@@ -14,7 +14,6 @@ import { adminProcedure, protectedProcedure } from "../index";
 import {
   type ActivityError,
   chunkArray,
-  type FeedItemRow,
   fetchGithubActivity,
   mapFeedItemRow,
   normalizeLogin,
@@ -34,7 +33,7 @@ export const feedRouter = {
       z
         .object({
           cursor: z.number().optional(),
-          limit: z.number().min(1).max(100).default(50),
+          limit: z.number().min(1).max(100).default(20),
           users: z.array(z.string()).optional(),
           types: z.array(z.string()).optional(),
         })
@@ -42,7 +41,7 @@ export const feedRouter = {
     )
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id;
-      const limit = input?.limit ?? 50;
+      const limit = input?.limit ?? 20;
       const cursor = input?.cursor;
       const usersFilter = input?.users ?? [];
       const typeFilter = input?.types ?? [];
