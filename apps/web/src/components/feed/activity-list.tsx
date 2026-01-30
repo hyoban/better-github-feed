@@ -107,16 +107,19 @@ export function ActivityList() {
     return (
       <ScrollArea className="h-full min-h-0 flex-1">
         <div>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex gap-3 border-b px-4 py-3">
-              <div className="size-8 shrink-0 animate-pulse rounded-full bg-muted" />
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-3 w-12" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="border-b border-l border-l-transparent px-4 py-3">
+              <div className="flex gap-3">
+                <Skeleton className="size-8 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    <Skeleton className="h-3.5 w-16" />
+                    <span className="text-muted-foreground">&middot;</span>
+                    <Skeleton className="h-3.5 w-10" />
+                  </div>
+                  <Skeleton className="mt-1.5 h-4 w-full" />
+                  <Skeleton className="mt-1 h-4 w-2/3" />
                 </div>
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
               </div>
             </div>
           ))}
@@ -183,8 +186,19 @@ export function ActivityList() {
               >
                 {isLoaderRow || !item ? (
                   isFetchingNextPage ? (
-                    <div className="flex justify-center py-4">
-                      <Skeleton className="h-24 w-full" />
+                    <div className="border-b border-l border-l-transparent px-4 py-3">
+                      <div className="flex gap-3">
+                        <Skeleton className="size-8 shrink-0 rounded-full" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 text-xs">
+                            <Skeleton className="h-3.5 w-16" />
+                            <span className="text-muted-foreground">&middot;</span>
+                            <Skeleton className="h-3.5 w-10" />
+                          </div>
+                          <Skeleton className="mt-1.5 h-4 w-full" />
+                          <Skeleton className="mt-1 h-4 w-2/3" />
+                        </div>
+                      </div>
                     </div>
                   ) : null
                 ) : (
