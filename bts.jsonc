@@ -18,5 +18,5 @@
   "dbSetup": "d1",
   "api": "orpc",
   "webDeploy": "cloudflare",
-  "serverDeploy": "cloudflare",
+  "serverDeploy": "cloudflare"
 }

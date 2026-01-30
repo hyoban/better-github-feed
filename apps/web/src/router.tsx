@@ -1,11 +1,11 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter } from 'react-router-dom'
 
-import { App, ErrorBoundary } from "./app";
-import { Home } from "./pages/home";
+import { App, ErrorBoundary } from './app'
+import { Home } from './pages/home'
 
 export const router = createBrowserRouter([
   {
-    path: "/",
+    path: '/',
     element: <App />,
     errorElement: <ErrorBoundary />,
     children: [
@@ -15,4 +15,4 @@ export const router = createBrowserRouter([
       },
     ],
   },
-]);
+])

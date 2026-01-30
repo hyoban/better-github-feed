@@ -1,14 +1,14 @@
+import type { FilterGroup } from '@better-github-feed/shared'
 import {
   emptyFilterGroup,
   feedItemFilterSchema,
   filterFnList,
-  type FilterGroup,
-} from "@better-github-feed/shared";
-import { FilterBuilder, FilterSphereProvider, useFilterSphere } from "@fn-sphere/filter";
-import { useState } from "react";
-import { toast } from "sonner";
+} from '@better-github-feed/shared'
+import { FilterBuilder, FilterSphereProvider, useFilterSphere } from '@fn-sphere/filter'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -16,20 +16,20 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useCreateFilter, useUpdateFilter, prepareFilterPayload } from "@/hooks/use-filters";
-import { filterTheme } from "@/lib/filter-theme";
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { prepareFilterPayload, useCreateFilter, useUpdateFilter } from '@/hooks/use-filters'
+import { filterTheme } from '@/lib/filter-theme'
 
-interface FilterBuilderDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+type FilterBuilderDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
   editingFilter?: {
-    id: string;
-    name: string;
-    filterRule: FilterGroup;
-  } | null;
+    id: string
+    name: string
+    filterRule: FilterGroup
+  } | null
 }
 
 function FilterBuilderContent({
@@ -38,19 +38,19 @@ function FilterBuilderContent({
   defaultRule,
   onFilterChange,
 }: {
-  name: string;
-  setName: (name: string) => void;
-  defaultRule: FilterGroup;
-  onFilterChange: (rule: FilterGroup) => void;
+  name: string
+  setName: (name: string) => void
+  defaultRule: FilterGroup
+  onFilterChange: (rule: FilterGroup) => void
 }) {
   const { context } = useFilterSphere({
     schema: feedItemFilterSchema,
     defaultRule,
     filterFnList,
     onRuleChange: ({ filterRule }) => {
-      onFilterChange(filterRule);
+      onFilterChange(filterRule)
     },
-  });
+  })
 
   return (
     <div className="flex flex-col gap-4">
@@ -60,7 +60,7 @@ function FilterBuilderContent({
           id="filter-name"
           placeholder="e.g., Hide bot repos"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={e => setName(e.target.value)}
         />
       </div>
       <div className="flex flex-col gap-2">
@@ -70,7 +70,7 @@ function FilterBuilderContent({
         </FilterSphereProvider>
       </div>
     </div>
-  );
+  )
 }
 
 export function FilterBuilderDialog({
@@ -78,62 +78,64 @@ export function FilterBuilderDialog({
   onOpenChange,
   editingFilter,
 }: FilterBuilderDialogProps) {
-  const [name, setName] = useState(editingFilter?.name ?? "");
+  const [name, setName] = useState(editingFilter?.name ?? '')
   const [filterRule, setFilterRule] = useState<FilterGroup>(
     editingFilter?.filterRule ?? emptyFilterGroup,
-  );
+  )
 
-  const createFilter = useCreateFilter();
-  const updateFilter = useUpdateFilter();
+  const createFilter = useCreateFilter()
+  const updateFilter = useUpdateFilter()
 
-  const isEditing = !!editingFilter;
-  const isPending = createFilter.isPending || updateFilter.isPending;
+  const isEditing = !!editingFilter
+  const isPending = createFilter.isPending || updateFilter.isPending
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error("Please enter a filter name");
-      return;
+      toast.error('Please enter a filter name')
+      return
     }
 
     if (filterRule.conditions.length === 0) {
-      toast.error("Please add at least one filter rule");
-      return;
+      toast.error('Please add at least one filter rule')
+      return
     }
 
     try {
-      const payload = prepareFilterPayload(name.trim(), filterRule);
+      const payload = prepareFilterPayload(name.trim(), filterRule)
 
       if (isEditing) {
         await updateFilter.mutateAsync({
           id: editingFilter.id,
           ...payload,
-        });
-        toast.success("Filter updated");
-      } else {
-        await createFilter.mutateAsync(payload);
-        toast.success("Filter created");
+        })
+        toast.success('Filter updated')
+      }
+      else {
+        await createFilter.mutateAsync(payload)
+        toast.success('Filter created')
       }
 
-      onOpenChange(false);
-    } catch (error) {
-      toast.error(isEditing ? "Failed to update filter" : "Failed to create filter");
+      onOpenChange(false)
     }
-  };
+    catch (error) {
+      toast.error(isEditing ? 'Failed to update filter' : 'Failed to create filter')
+    }
+  }
 
   // Reset state when dialog opens with new/different filter
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
-      setName(editingFilter?.name ?? "");
-      setFilterRule(editingFilter?.filterRule ?? emptyFilterGroup);
+      setName(editingFilter?.name ?? '')
+      setFilterRule(editingFilter?.filterRule ?? emptyFilterGroup)
     }
-    onOpenChange(newOpen);
-  };
+    onOpenChange(newOpen)
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="min-w-xl">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Filter" : "Create Filter"}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit Filter' : 'Create Filter'}</DialogTitle>
           <DialogDescription>
             Create filter rules to hide feed items that match certain criteria. Items matching these
             rules will be hidden from your feed.
@@ -152,10 +154,10 @@ export function FilterBuilderDialog({
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isPending}>
-            {isPending ? "Saving..." : isEditing ? "Update" : "Create"}
+            {isPending ? 'Saving...' : isEditing ? 'Update' : 'Create'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

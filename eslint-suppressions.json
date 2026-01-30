@@ -1,0 +1,48 @@
+{
+  "apps/server/src/index.ts": {
+    "no-console": {
+      "count": 3
+    }
+  },
+  "apps/web/src/components/feed/filter-builder-dialog.tsx": {
+    "unused-imports/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/web/src/components/ui/field.tsx": {
+    "eqeqeq": {
+      "count": 1
+    }
+  },
+  "apps/web/src/components/ui/form.tsx": {
+    "ts/no-use-before-define": {
+      "count": 1
+    }
+  },
+  "apps/web/src/lib/format.ts": {
+    "regexp/no-contradiction-with-assertion": {
+      "count": 1
+    }
+  },
+  "packages/api/src/routers/subscription.ts": {
+    "no-cond-assign": {
+      "count": 1
+    }
+  },
+  "packages/env/src/server.ts": {
+    "ts/ban-ts-comment": {
+      "count": 1
+    }
+  },
+  "packages/infra/alchemy.run.ts": {
+    "antfu/no-top-level-await": {
+      "count": 5
+    },
+    "no-console": {
+      "count": 2
+    },
+    "node/prefer-global/process": {
+      "count": 2
+    }
+  }
+}

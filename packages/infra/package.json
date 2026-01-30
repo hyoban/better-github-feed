@@ -1,7 +1,7 @@
 {
   "name": "@better-github-feed/infra",
-  "private": true,
   "type": "module",
+  "private": true,
   "scripts": {
     "type-check": "tsgo",
     "dev": "NODE_ENV=development alchemy dev",

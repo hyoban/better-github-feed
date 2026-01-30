@@ -3,12 +3,12 @@ packages:
   - packages/*
 
 catalog:
-  "@cloudflare/workers-types": ^4.20260130.0
-  "@libsql/client": 0.17.0
-  "@orpc/client": ^1.13.4
-  "@orpc/openapi": ^1.13.4
-  "@orpc/server": ^1.13.4
-  "@orpc/zod": ^1.13.4
+  '@cloudflare/workers-types': ^4.20260130.0
+  '@libsql/client': 0.17.0
+  '@orpc/client': ^1.13.4
+  '@orpc/openapi': ^1.13.4
+  '@orpc/server': ^1.13.4
+  '@orpc/zod': ^1.13.4
   alchemy: ^0.83.1
   better-auth: ^1.4.18
   dotenv: ^17.2.3

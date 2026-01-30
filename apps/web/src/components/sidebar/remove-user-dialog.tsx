@@ -8,12 +8,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog'
 
-interface RemoveUserDialogProps {
-  username: string;
-  disabled: boolean;
-  onConfirm: () => void;
+type RemoveUserDialogProps = {
+  username: string
+  disabled: boolean
+  onConfirm: () => void
 }
 
 export function RemoveUserDialog({ username, disabled, onConfirm }: RemoveUserDialogProps) {
@@ -27,9 +27,16 @@ export function RemoveUserDialog({ username, disabled, onConfirm }: RemoveUserDi
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove @{username}?</AlertDialogTitle>
+          <AlertDialogTitle>
+            Remove @
+            {username}
+            ?
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            This will remove @{username} from your following list and their activity will no longer
+            This will remove @
+            {username}
+            {' '}
+            from your following list and their activity will no longer
             appear in your feed.
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -41,5 +48,5 @@ export function RemoveUserDialog({ username, disabled, onConfirm }: RemoveUserDi
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
+  )
 }

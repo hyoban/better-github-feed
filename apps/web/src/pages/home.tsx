@@ -1,10 +1,10 @@
-import { DetailPanel } from "@/components/detail-panel";
-import { ActivityList } from "@/components/feed/activity-list";
-import { TypeFilter } from "@/components/feed/type-filter";
-import { MobileDetailDrawer } from "@/components/layout/mobile-detail-drawer";
-import { MobileHeader } from "@/components/layout/mobile-header";
-import { Sidebar } from "@/components/sidebar";
-import { FocusedPanelProvider } from "@/hooks/use-keyboard-navigation";
+import { DetailPanel } from '@/components/detail-panel'
+import { ActivityList } from '@/components/feed/activity-list'
+import { TypeFilter } from '@/components/feed/type-filter'
+import { MobileDetailDrawer } from '@/components/layout/mobile-detail-drawer'
+import { MobileHeader } from '@/components/layout/mobile-header'
+import { Sidebar } from '@/components/sidebar'
+import { FocusedPanelProvider } from '@/hooks/use-keyboard-navigation'
 
 export function Home() {
   return (
@@ -33,5 +33,5 @@ export function Home() {
         <MobileDetailDrawer />
       </div>
     </FocusedPanelProvider>
-  );
+  )
 }

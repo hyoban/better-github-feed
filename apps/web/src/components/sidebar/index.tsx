@@ -1,8 +1,8 @@
-import UserMenu from "@/components/user-menu";
+import UserMenu from '@/components/user-menu'
 
-import { AddDeveloperDialog } from "./add-developer-dialog";
-import { FollowList } from "./follow-list";
-import { SortToggle } from "./sort-toggle";
+import { AddDeveloperDialog } from './add-developer-dialog'
+import { FollowList } from './follow-list'
+import { SortToggle } from './sort-toggle'
 
 export function Sidebar() {
   return (
@@ -16,5 +16,5 @@ export function Sidebar() {
         <AddDeveloperDialog />
       </div>
     </aside>
-  );
+  )
 }

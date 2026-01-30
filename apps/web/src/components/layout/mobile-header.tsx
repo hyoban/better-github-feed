@@ -1,4 +1,4 @@
-import { MobileSidebar } from "./mobile-sidebar";
+import { MobileSidebar } from './mobile-sidebar'
 
 export function MobileHeader() {
   return (
@@ -6,5 +6,5 @@ export function MobileHeader() {
       <MobileSidebar />
       <span className="font-semibold">GitHub Feed</span>
     </header>
-  );
+  )
 }

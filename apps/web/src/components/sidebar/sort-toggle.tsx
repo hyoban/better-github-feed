@@ -1,16 +1,17 @@
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { type SortOption, useActiveId, useActiveUsers, useSortBy } from "@/hooks/use-query-state";
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { SortOption } from '@/hooks/use-query-state'
+import { useActiveId, useActiveUsers, useSortBy } from '@/hooks/use-query-state'
 
 export function SortToggle() {
-  const [sortBy, setSortBy] = useSortBy();
-  const [, setActiveUsers] = useActiveUsers();
-  const [, setActiveId] = useActiveId();
+  const [sortBy, setSortBy] = useSortBy()
+  const [, setActiveUsers] = useActiveUsers()
+  const [, setActiveId] = useActiveId()
 
   const handleSortChange = (value: string) => {
-    void setSortBy(value as SortOption);
-    void setActiveUsers([]);
-    void setActiveId(null);
-  };
+    void setSortBy(value as SortOption)
+    void setActiveUsers([])
+    void setActiveId(null)
+  }
 
   return (
     <Tabs value={sortBy} onValueChange={handleSortChange} className="w-full">
@@ -19,5 +20,5 @@ export function SortToggle() {
         <TabsTrigger value="name">Name</TabsTrigger>
       </TabsList>
     </Tabs>
-  );
+  )
 }

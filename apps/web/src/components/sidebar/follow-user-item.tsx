@@ -1,36 +1,36 @@
-import { memo } from "react";
+import { memo } from 'react'
 
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+} from '@/components/ui/context-menu'
 
-import { FollowUserCard } from "./follow-user-card";
-import { RemoveUserDialog } from "./remove-user-dialog";
+import { FollowUserCard } from './follow-user-card'
+import { RemoveUserDialog } from './remove-user-dialog'
 
-export interface FollowUserData {
-  id: string;
-  githubUserLogin: string;
-  githubUserId: string | null;
-  itemCount: number | null;
-  lastRefreshedAt: Date | string | null;
-  latestEntryAt: Date | string | null;
+export type FollowUserData = {
+  id: string
+  githubUserLogin: string
+  githubUserId: string | null
+  itemCount: number | null
+  lastRefreshedAt: Date | string | null
+  latestEntryAt: Date | string | null
 }
 
-interface FollowUserItemProps {
-  follow: FollowUserData;
-  isActive: boolean;
-  isFocused: boolean;
-  isRemovePending: boolean;
-  onToggle: (login: string, multiSelect: boolean) => void;
-  onFocus: () => void;
-  onRefresh: (login: string) => void;
-  onRemove: (id: string) => void;
+type FollowUserItemProps = {
+  follow: FollowUserData
+  isActive: boolean
+  isFocused: boolean
+  isRemovePending: boolean
+  onToggle: (login: string, multiSelect: boolean) => void
+  onFocus: () => void
+  onRefresh: (login: string) => void
+  onRemove: (id: string) => void
 }
 
-export const FollowUserItem = memo(function FollowUserItem({
+export const FollowUserItem = memo(({
   follow,
   isActive,
   isFocused,
@@ -39,7 +39,7 @@ export const FollowUserItem = memo(function FollowUserItem({
   onFocus,
   onRefresh,
   onRemove,
-}: FollowUserItemProps) {
+}: FollowUserItemProps) => {
   return (
     <ContextMenu>
       <ContextMenuTrigger className="group/follow relative block">
@@ -53,13 +53,13 @@ export const FollowUserItem = memo(function FollowUserItem({
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem
-          render={
+          render={(
             <a
               href={`https://github.com/${follow.githubUserLogin}`}
               target="_blank"
               rel="noreferrer"
             />
-          }
+          )}
         >
           Open GitHub
         </ContextMenuItem>
@@ -71,5 +71,5 @@ export const FollowUserItem = memo(function FollowUserItem({
         />
       </ContextMenuContent>
     </ContextMenu>
-  );
-});
+  )
+})

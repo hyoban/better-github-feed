@@ -1,16 +1,17 @@
+import type { FilterTheme } from '@fn-sphere/filter'
 import {
-  type FilterTheme,
   createFilterTheme,
   presetTheme,
   useFilterGroup,
   useRootRule,
-} from "@fn-sphere/filter";
-import { PlusIcon, TrashIcon } from "lucide-react";
-import { type ChangeEvent, useCallback } from "react";
+} from '@fn-sphere/filter'
+import { PlusIcon, TrashIcon } from 'lucide-react'
+import type { ChangeEvent } from 'react'
+import { useCallback } from 'react'
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 const componentsSpec = {
   Button: ({ children, ...props }) => {
@@ -18,55 +19,55 @@ const componentsSpec = {
       <Button variant="outline" size="sm" {...props}>
         {children}
       </Button>
-    );
+    )
   },
   Input: ({ onChange, value, ...props }) => {
     const handleChange = useCallback(
       (e: ChangeEvent<HTMLInputElement>) => {
-        onChange?.(e.target.value);
+        onChange?.(e.target.value)
       },
       [onChange],
-    );
+    )
     return (
-      <Input className="h-8 min-w-[120px]" onChange={handleChange} value={value ?? ""} {...props} />
-    );
+      <Input className="h-8 min-w-[120px]" onChange={handleChange} value={value ?? ''} {...props} />
+    )
   },
-} satisfies Partial<FilterTheme["components"]>;
+} satisfies Partial<FilterTheme['components']>
 
 const templatesSpec = {
   FilterGroupContainer: ({ rule, children, ...props }) => {
-    const { getLocaleText } = useRootRule();
+    const { getLocaleText } = useRootRule()
     const {
       ruleState: { isRoot, depth },
       toggleGroupOp,
       appendChildRule,
       appendChildGroup,
       removeGroup,
-    } = useFilterGroup(rule);
+    } = useFilterGroup(rule)
 
-    const text = rule.op === "or" ? getLocaleText("operatorOr") : getLocaleText("operatorAnd");
+    const text = rule.op === 'or' ? getLocaleText('operatorOr') : getLocaleText('operatorAnd')
 
     const handleToggleGroupOp = useCallback(() => {
-      toggleGroupOp();
-    }, [toggleGroupOp]);
+      toggleGroupOp()
+    }, [toggleGroupOp])
 
     const handleAddCondition = useCallback(() => {
-      appendChildRule();
-    }, [appendChildRule]);
+      appendChildRule()
+    }, [appendChildRule])
 
     const handleAddGroup = useCallback(() => {
-      appendChildGroup();
-    }, [appendChildGroup]);
+      appendChildGroup()
+    }, [appendChildGroup])
 
     const handleDeleteGroup = useCallback(() => {
-      removeGroup();
-    }, [removeGroup]);
+      removeGroup()
+    }, [removeGroup])
 
     return (
       <div
         className={cn(
-          "relative flex flex-col items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 pt-10",
-          isRoot ? "mt-8" : "mt-6",
+          'relative flex flex-col items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 pt-10',
+          isRoot ? 'mt-8' : 'mt-6',
         )}
         {...props}
       >
@@ -76,30 +77,30 @@ const templatesSpec = {
           </Button>
           <Button variant="outline" size="sm" onClick={handleAddCondition}>
             <PlusIcon className="mr-1 size-4" />
-            {getLocaleText("addRule")}
+            {getLocaleText('addRule')}
           </Button>
           {depth < 3 && (
             <Button variant="outline" size="sm" onClick={handleAddGroup}>
               <PlusIcon className="mr-1 size-4" />
-              {getLocaleText("addGroup")}
+              {getLocaleText('addGroup')}
             </Button>
           )}
           {!isRoot && (
             <Button variant="ghost" size="sm" onClick={handleDeleteGroup}>
               <TrashIcon className="mr-1 size-4" />
-              {getLocaleText("deleteGroup")}
+              {getLocaleText('deleteGroup')}
             </Button>
           )}
         </div>
         {children}
       </div>
-    );
+    )
   },
   FilterSelect: (props) => {
-    const PresetFilterSelect = presetTheme.templates.FilterSelect;
-    return <PresetFilterSelect tryRetainArgs {...props} />;
+    const PresetFilterSelect = presetTheme.templates.FilterSelect
+    return <PresetFilterSelect tryRetainArgs {...props} />
   },
-} satisfies Partial<FilterTheme["templates"]>;
+} satisfies Partial<FilterTheme['templates']>
 
 export const filterTheme = createFilterTheme({
   primitives: {
@@ -107,14 +108,14 @@ export const filterTheme = createFilterTheme({
       return (
         <select
           className={cn(
-            "h-8 min-w-[100px] rounded-md border border-input bg-background px-2 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+            'h-8 min-w-[100px] rounded-md border border-input bg-background px-2 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
             className,
           )}
           {...props}
         />
-      );
+      )
     },
   },
   components: componentsSpec,
   templates: templatesSpec,
-});
+})

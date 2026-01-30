@@ -1,10 +1,10 @@
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { NuqsAdapter } from "nuqs/adapters/react-router";
-import { isRouteErrorResponse, Outlet, useRouteError } from "react-router-dom";
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { NuqsAdapter } from 'nuqs/adapters/react-router'
+import { isRouteErrorResponse, Outlet, useRouteError } from 'react-router-dom'
 
-import { Toaster } from "./components/ui/sonner";
-import { persister, queryClient } from "./utils/orpc";
+import { Toaster } from './components/ui/sonner'
+import { persister, queryClient } from './utils/orpc'
 
 export function App() {
   return (
@@ -15,7 +15,7 @@ export function App() {
         dehydrateOptions: {
           shouldDehydrateQuery: (query) => {
             // Persist all successful queries
-            return query.state.status === "success";
+            return query.state.status === 'success'
           },
         },
       }}
@@ -28,23 +28,24 @@ export function App() {
       <Toaster richColors />
       <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
     </PersistQueryClientProvider>
-  );
+  )
 }
 
 export function ErrorBoundary() {
-  const error = useRouteError();
+  const error = useRouteError()
 
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
-  let stack: string | undefined;
+  let message = 'Oops!'
+  let details = 'An unexpected error occurred.'
+  let stack: string | undefined
 
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
-    details =
-      error.status === 404 ? "The requested page could not be found." : error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
-    details = error.message;
-    stack = error.stack;
+    message = error.status === 404 ? '404' : 'Error'
+    details
+      = error.status === 404 ? 'The requested page could not be found.' : error.statusText || details
+  }
+  else if (import.meta.env.DEV && error && error instanceof Error) {
+    details = error.message
+    stack = error.stack
   }
 
   return (
@@ -57,5 +58,5 @@ export function ErrorBoundary() {
         </pre>
       )}
     </main>
-  );
+  )
 }

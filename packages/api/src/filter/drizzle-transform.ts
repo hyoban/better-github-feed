@@ -1,7 +1,7 @@
-import type { FilterGroup, SingleFilter } from "@better-github-feed/shared";
-
-import { feedItem } from "@better-github-feed/db/schema/github";
-import { type SQL, and, eq, gt, isNotNull, isNull, like, lt, ne, not, or, sql } from "drizzle-orm";
+import { feedItem } from '@better-github-feed/db/schema/github'
+import type { FilterGroup, SingleFilter } from '@better-github-feed/shared'
+import type { SQL } from 'drizzle-orm'
+import { and, eq, gt, isNotNull, isNull, like, lt, ne, not, or, sql } from 'drizzle-orm'
 
 /**
  * Column mapping from filter path to Drizzle column
@@ -14,107 +14,121 @@ const columnMap = {
   content: feedItem.content,
   githubUserLogin: feedItem.githubUserLogin,
   publishedAt: feedItem.publishedAt,
-} as const;
+} as const
 
-type ColumnName = keyof typeof columnMap;
+type ColumnName = keyof typeof columnMap
 
 function getColumn(path: (string | number)[] | undefined) {
-  if (!path || path.length === 0) return null;
-  const columnName = path[0] as ColumnName;
-  return columnMap[columnName] ?? null;
+  if (!path || path.length === 0)
+    return null
+  const columnName = path[0] as ColumnName
+  return columnMap[columnName] ?? null
 }
 
 /**
  * Transform a single filter to Drizzle WHERE clause
  */
 function transformSingleFilter(filter: SingleFilter): SQL | null {
-  const column = getColumn(filter.path);
-  if (!column || !filter.name) return null;
+  const column = getColumn(filter.path)
+  if (!column || !filter.name)
+    return null
 
-  const value = filter.args?.[0];
+  const value = filter.args?.[0]
 
   // Handle operators
   switch (filter.name) {
-    case "equals": {
-      if (value === undefined || value === null) return null;
+    case 'equals': {
+      if (value === undefined || value === null)
+        return null
       if (column === feedItem.publishedAt && value instanceof Date) {
-        return eq(column, value);
+        return eq(column, value)
       }
-      return eq(column as typeof feedItem.title, String(value));
+      return eq(column as typeof feedItem.title, String(value))
     }
 
-    case "notEqual": {
-      if (value === undefined || value === null) return null;
+    case 'notEqual': {
+      if (value === undefined || value === null)
+        return null
       if (column === feedItem.publishedAt && value instanceof Date) {
-        return ne(column, value);
+        return ne(column, value)
       }
-      return ne(column as typeof feedItem.title, String(value));
+      return ne(column as typeof feedItem.title, String(value))
     }
 
-    case "contains": {
-      if (value === undefined || value === null || typeof value !== "string") return null;
-      return like(column as typeof feedItem.title, `%${escapeLike(value)}%`);
+    case 'contains': {
+      if (value === undefined || value === null || typeof value !== 'string')
+        return null
+      return like(column as typeof feedItem.title, `%${escapeLike(value)}%`)
     }
 
-    case "notContains": {
-      if (value === undefined || value === null || typeof value !== "string") return null;
-      return not(like(column as typeof feedItem.title, `%${escapeLike(value)}%`));
+    case 'notContains': {
+      if (value === undefined || value === null || typeof value !== 'string')
+        return null
+      return not(like(column as typeof feedItem.title, `%${escapeLike(value)}%`))
     }
 
-    case "startsWith": {
-      if (value === undefined || value === null || typeof value !== "string") return null;
-      return like(column as typeof feedItem.title, `${escapeLike(value)}%`);
+    case 'startsWith': {
+      if (value === undefined || value === null || typeof value !== 'string')
+        return null
+      return like(column as typeof feedItem.title, `${escapeLike(value)}%`)
     }
 
-    case "endsWith": {
-      if (value === undefined || value === null || typeof value !== "string") return null;
-      return like(column as typeof feedItem.title, `%${escapeLike(value)}`);
+    case 'endsWith': {
+      if (value === undefined || value === null || typeof value !== 'string')
+        return null
+      return like(column as typeof feedItem.title, `%${escapeLike(value)}`)
     }
 
-    case "notStartsWith": {
-      if (value === undefined || value === null || typeof value !== "string") return null;
-      return not(like(column as typeof feedItem.title, `${escapeLike(value)}%`));
+    case 'notStartsWith': {
+      if (value === undefined || value === null || typeof value !== 'string')
+        return null
+      return not(like(column as typeof feedItem.title, `${escapeLike(value)}%`))
     }
 
-    case "notEndsWith": {
-      if (value === undefined || value === null || typeof value !== "string") return null;
-      return not(like(column as typeof feedItem.title, `%${escapeLike(value)}`));
+    case 'notEndsWith': {
+      if (value === undefined || value === null || typeof value !== 'string')
+        return null
+      return not(like(column as typeof feedItem.title, `%${escapeLike(value)}`))
     }
 
-    case "isEmpty": {
+    case 'isEmpty': {
       // For nullable strings: value is null OR value is empty string
-      return or(isNull(column), eq(column as typeof feedItem.title, "")) ?? null;
+      return or(isNull(column), eq(column as typeof feedItem.title, '')) ?? null
     }
 
-    case "isNotEmpty": {
+    case 'isNotEmpty': {
       // For nullable strings: value is not null AND value is not empty string
-      return and(isNotNull(column), ne(column as typeof feedItem.title, "")) ?? null;
+      return and(isNotNull(column), ne(column as typeof feedItem.title, '')) ?? null
     }
 
-    case "before": {
-      if (!(value instanceof Date)) return null;
-      return lt(feedItem.publishedAt, value);
+    case 'before': {
+      if (!(value instanceof Date))
+        return null
+      return lt(feedItem.publishedAt, value)
     }
 
-    case "after": {
-      if (!(value instanceof Date)) return null;
-      return gt(feedItem.publishedAt, value);
+    case 'after': {
+      if (!(value instanceof Date))
+        return null
+      return gt(feedItem.publishedAt, value)
     }
 
-    case "greaterThan": {
-      if (typeof value !== "number") return null;
+    case 'greaterThan': {
+      if (typeof value !== 'number')
+        return null
       // For numeric comparisons on non-date columns
-      return sql`${column} > ${value}`;
+      return sql`${column} > ${value}`
     }
 
-    case "lessThan": {
-      if (typeof value !== "number") return null;
+    case 'lessThan': {
+      if (typeof value !== 'number')
+        return null
       // For numeric comparisons on non-date columns
-      return sql`${column} < ${value}`;
+      return sql`${column} < ${value}`
     }
 
     default:
-      return null;
+      return null
   }
 }
 
@@ -122,7 +136,7 @@ function transformSingleFilter(filter: SingleFilter): SQL | null {
  * Escape special characters in LIKE patterns
  */
 function escapeLike(value: string): string {
-  return value.replace(/%/g, "\\%").replace(/_/g, "\\_");
+  return value.replace(/%/g, '\\%').replace(/_/g, '\\_')
 }
 
 /**
@@ -130,57 +144,60 @@ function escapeLike(value: string): string {
  */
 function transformFilterGroup(filterGroup: FilterGroup): SQL | null {
   if (!filterGroup.conditions || filterGroup.conditions.length === 0) {
-    return null;
+    return null
   }
 
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = []
 
   for (const condition of filterGroup.conditions) {
-    let result: SQL | null = null;
+    let result: SQL | null = null
 
-    if (condition.type === "Filter") {
-      result = transformSingleFilter(condition);
-    } else if (condition.type === "FilterGroup") {
-      result = transformFilterGroup(condition);
+    if (condition.type === 'Filter') {
+      result = transformSingleFilter(condition)
+    }
+    else if (condition.type === 'FilterGroup') {
+      result = transformFilterGroup(condition)
     }
 
     if (result) {
       // Handle invert for individual conditions
       if (condition.invert) {
-        conditions.push(not(result));
-      } else {
-        conditions.push(result);
+        conditions.push(not(result))
+      }
+      else {
+        conditions.push(result)
       }
     }
   }
 
   if (conditions.length === 0) {
-    return null;
+    return null
   }
 
   // Combine conditions with AND or OR
-  let combined: SQL;
-  if (filterGroup.op === "or") {
-    const orResult = or(...conditions);
-    combined = conditions.length === 1 ? conditions[0]! : (orResult ?? conditions[0]!);
-  } else {
-    const andResult = and(...conditions);
-    combined = conditions.length === 1 ? conditions[0]! : (andResult ?? conditions[0]!);
+  let combined: SQL
+  if (filterGroup.op === 'or') {
+    const orResult = or(...conditions)
+    combined = conditions.length === 1 ? conditions[0]! : (orResult ?? conditions[0]!)
+  }
+  else {
+    const andResult = and(...conditions)
+    combined = conditions.length === 1 ? conditions[0]! : (andResult ?? conditions[0]!)
   }
 
   // Handle group-level invert
   if (filterGroup.invert) {
-    return not(combined);
+    return not(combined)
   }
 
-  return combined;
+  return combined
 }
 
 /**
  * Transform fn-sphere FilterGroup to Drizzle WHERE clause
  */
 export function filterRuleToDrizzleWhere(filterGroup: FilterGroup): SQL | null {
-  return transformFilterGroup(filterGroup);
+  return transformFilterGroup(filterGroup)
 }
 
 /**
@@ -188,16 +205,16 @@ export function filterRuleToDrizzleWhere(filterGroup: FilterGroup): SQL | null {
  */
 export function serializeFilterGroup(filterGroup: FilterGroup): string {
   const replacer = function (this: Record<string, unknown>, key: string) {
-    const value = this[key];
+    const value = this[key]
     if (value instanceof Date) {
       return {
-        __type: "Date",
+        __type: 'Date',
         value: value.toISOString(),
-      };
+      }
     }
-    return value;
-  };
-  return JSON.stringify(filterGroup, replacer);
+    return value
+  }
+  return JSON.stringify(filterGroup, replacer)
 }
 
 /**
@@ -206,17 +223,17 @@ export function serializeFilterGroup(filterGroup: FilterGroup): string {
 export function deserializeFilterGroup(serialized: string): FilterGroup {
   const deserialized = JSON.parse(serialized, (_, value) => {
     // Revive Date objects from special format
-    if (value && typeof value === "object" && value.__type === "Date") {
-      return new Date(value.value);
+    if (value && typeof value === 'object' && value.__type === 'Date') {
+      return new Date(value.value)
     }
-    return value;
-  });
+    return value
+  })
 
   // Type guard to ensure we have a valid FilterGroup
   if (!isValidFilterGroup(deserialized)) {
-    throw new Error("Invalid FilterGroup structure");
+    throw new Error('Invalid FilterGroup structure')
   }
-  return deserialized;
+  return deserialized
 }
 
 /**
@@ -224,15 +241,15 @@ export function deserializeFilterGroup(serialized: string): FilterGroup {
  */
 function isValidFilterGroup(obj: unknown): obj is FilterGroup {
   return (
-    obj !== null &&
-    typeof obj === "object" &&
-    "id" in obj &&
-    typeof obj.id === "string" &&
-    "type" in obj &&
-    obj.type === "FilterGroup" &&
-    "op" in obj &&
-    (obj.op === "and" || obj.op === "or") &&
-    "conditions" in obj &&
-    Array.isArray(obj.conditions)
-  );
+    obj !== null
+    && typeof obj === 'object'
+    && 'id' in obj
+    && typeof obj.id === 'string'
+    && 'type' in obj
+    && obj.type === 'FilterGroup'
+    && 'op' in obj
+    && (obj.op === 'and' || obj.op === 'or')
+    && 'conditions' in obj
+    && Array.isArray(obj.conditions)
+  )
 }

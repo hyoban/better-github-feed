@@ -1,18 +1,18 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react'
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { formatRelativeTime } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { formatRelativeTime } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
-import type { FollowUserData } from "./follow-user-item";
+import type { FollowUserData } from './follow-user-item'
 
-interface FollowUserCardProps {
-  follow: FollowUserData;
-  isActive: boolean;
-  isFocused: boolean;
-  onToggle: (login: string, multiSelect: boolean) => void;
-  onFocus: () => void;
+type FollowUserCardProps = {
+  follow: FollowUserData
+  isActive: boolean
+  isFocused: boolean
+  onToggle: (login: string, multiSelect: boolean) => void
+  onFocus: () => void
 }
 
 export function FollowUserCard({
@@ -22,41 +22,41 @@ export function FollowUserCard({
   onToggle,
   onFocus,
 }: FollowUserCardProps) {
-  const itemCount = follow.itemCount ?? 0;
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const isClickRef = useRef(false);
+  const itemCount = follow.itemCount ?? 0
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const isClickRef = useRef(false)
 
   useEffect(() => {
     if (isFocused) {
-      buttonRef.current?.focus();
+      buttonRef.current?.focus()
     }
-  }, [isFocused]);
+  }, [isFocused])
 
   return (
     <button
       ref={buttonRef}
       type="button"
       onPointerDown={() => {
-        isClickRef.current = true;
+        isClickRef.current = true
       }}
       onClick={(e) => {
-        isClickRef.current = false;
-        onToggle(follow.githubUserLogin, e.metaKey || e.ctrlKey);
+        isClickRef.current = false
+        onToggle(follow.githubUserLogin, e.metaKey || e.ctrlKey)
       }}
       onFocus={() => {
         // Only trigger onFocus for keyboard navigation (Tab), not for clicks
         if (!isClickRef.current) {
-          onFocus();
+          onFocus()
         }
       }}
       aria-pressed={isActive}
       className={cn(
-        "group flex w-full items-center gap-2 border-b border-l px-3 py-2 text-left transition-all",
+        'group flex w-full items-center gap-2 border-b border-l px-3 py-2 text-left transition-all',
         isFocused
-          ? "border-l-primary bg-sidebar-accent"
+          ? 'border-l-primary bg-sidebar-accent'
           : isActive
-            ? "border-l-primary/80 bg-sidebar-accent/80"
-            : "border-l-transparent hover:bg-sidebar-accent/50",
+            ? 'border-l-primary/80 bg-sidebar-accent/80'
+            : 'border-l-transparent hover:bg-sidebar-accent/50',
       )}
     >
       <Avatar className="size-5">
@@ -76,7 +76,11 @@ export function FollowUserCard({
       </Avatar>
       <p className="min-w-0 flex-1 truncate text-sm">
         {follow.githubUserLogin}
-        <span className="text-muted-foreground"> · {formatRelativeTime(follow.latestEntryAt)}</span>
+        <span className="text-muted-foreground">
+          {' '}
+          ·
+          {formatRelativeTime(follow.latestEntryAt)}
+        </span>
       </p>
       {itemCount > 0 && (
         <Badge variant="secondary" className="h-5 shrink-0 px-1.5 text-[10px] font-semibold">
@@ -84,5 +88,5 @@ export function FollowUserCard({
         </Badge>
       )}
     </button>
-  );
+  )
 }

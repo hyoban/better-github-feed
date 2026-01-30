@@ -1,70 +1,70 @@
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from 'react'
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatRelativeTime } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { formatRelativeTime } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
-export interface ActivityItemData {
-  id: string;
-  source: string;
-  title: string;
-  link: string | null;
-  content: string | null;
-  publishedAt: Date | string | null;
-  type: string;
-  repo: string | null;
+export type ActivityItemData = {
+  id: string
+  source: string
+  title: string
+  link: string | null
+  content: string | null
+  publishedAt: Date | string | null
+  type: string
+  repo: string | null
 }
 
-interface ActivitySummaryItemProps {
-  item: ActivityItemData;
-  githubId?: string;
-  isActive: boolean;
-  isFocused: boolean;
-  onClick: () => void;
-  onFocus: () => void;
+type ActivitySummaryItemProps = {
+  item: ActivityItemData
+  githubId?: string
+  isActive: boolean
+  isFocused: boolean
+  onClick: () => void
+  onFocus: () => void
 }
 
-export const ActivitySummaryItem = memo(function ActivitySummaryItem({
+export const ActivitySummaryItem = memo(({
   item,
   githubId,
   isActive,
   isFocused,
   onClick,
   onFocus,
-}: ActivitySummaryItemProps) {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const isClickRef = useRef(false);
+}: ActivitySummaryItemProps) => {
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const isClickRef = useRef(false)
 
   useEffect(() => {
     if (isFocused) {
-      buttonRef.current?.focus();
+      buttonRef.current?.focus()
     }
-  }, [isFocused]);
+  }, [isFocused])
 
   return (
     <button
       ref={buttonRef}
       type="button"
       onPointerDown={() => {
-        isClickRef.current = true;
+        isClickRef.current = true
       }}
       onClick={() => {
-        isClickRef.current = false;
-        onClick();
+        isClickRef.current = false
+        onClick()
       }}
       onFocus={() => {
         // Only trigger onFocus for keyboard navigation (Tab), not for clicks
         if (!isClickRef.current) {
-          onFocus();
+          onFocus()
         }
       }}
       className={cn(
-        "w-full border-b border-l px-4 py-3 text-left transition-colors",
+        'w-full border-b border-l px-4 py-3 text-left transition-colors',
         isFocused
-          ? "border-l-primary bg-sidebar-accent"
+          ? 'border-l-primary bg-sidebar-accent'
           : isActive
-            ? "border-l-primary/80 bg-sidebar-accent/80"
-            : "border-l-transparent hover:bg-sidebar-accent/50",
+            ? 'border-l-primary/80 bg-sidebar-accent/80'
+            : 'border-l-transparent hover:bg-sidebar-accent/50',
       )}
     >
       <div className="flex gap-3">
@@ -93,5 +93,5 @@ export const ActivitySummaryItem = memo(function ActivitySummaryItem({
         </div>
       </div>
     </button>
-  );
-});
+  )
+})

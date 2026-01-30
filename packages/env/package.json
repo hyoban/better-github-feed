@@ -1,8 +1,8 @@
 {
   "name": "@better-github-feed/env",
+  "type": "module",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "exports": {
     "./server": "./src/server.ts",
     "./web": "./src/web.ts"

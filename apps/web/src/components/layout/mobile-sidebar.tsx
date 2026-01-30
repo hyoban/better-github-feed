@@ -1,32 +1,32 @@
-import { MenuIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { MenuIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import UserMenu from "@/components/user-menu";
-import { authClient } from "@/lib/auth-client";
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import UserMenu from '@/components/user-menu'
+import { authClient } from '@/lib/auth-client'
 
-import { AddDeveloperDialog } from "../sidebar/add-developer-dialog";
-import { FollowList } from "../sidebar/follow-list";
-import { SortToggle } from "../sidebar/sort-toggle";
+import { AddDeveloperDialog } from '../sidebar/add-developer-dialog'
+import { FollowList } from '../sidebar/follow-list'
+import { SortToggle } from '../sidebar/sort-toggle'
 
-const LG_BREAKPOINT = 1024;
+const LG_BREAKPOINT = 1024
 
 export function MobileSidebar() {
-  const { data: session } = authClient.useSession();
-  const [open, setOpen] = useState(false);
+  const { data: session } = authClient.useSession()
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia(`(min-width: ${LG_BREAKPOINT}px)`);
+    const mediaQuery = window.matchMedia(`(min-width: ${LG_BREAKPOINT}px)`)
     const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
       if (e.matches) {
-        setOpen(false);
+        setOpen(false)
       }
-    };
-    handleChange(mediaQuery);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
+    }
+    handleChange(mediaQuery)
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -45,5 +45,5 @@ export function MobileSidebar() {
         </div>
       </SheetContent>
     </Sheet>
-  );
+  )
 }

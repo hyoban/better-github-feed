@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from '@tanstack/react-query'
 
 import {
   DropdownMenu,
@@ -8,25 +8,25 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { authClient } from "@/lib/auth-client";
-import { clearPersistedCache } from "@/utils/orpc";
+} from '@/components/ui/dropdown-menu'
+import { authClient } from '@/lib/auth-client'
+import { clearPersistedCache } from '@/utils/orpc'
 
-import { Button } from "./ui/button";
-import { Skeleton } from "./ui/skeleton";
+import { Button } from './ui/button'
+import { Skeleton } from './ui/skeleton'
 
 export default function UserMenu() {
-  const { data: session, isPending } = authClient.useSession();
-  const qc = useQueryClient();
+  const { data: session, isPending } = authClient.useSession()
+  const qc = useQueryClient()
 
   const handleSignOut = () => {
-    qc.clear();
-    clearPersistedCache();
-    authClient.signOut();
-  };
+    qc.clear()
+    clearPersistedCache()
+    authClient.signOut()
+  }
 
   if (isPending) {
-    return <Skeleton className="h-8 w-full" />;
+    return <Skeleton className="h-8 w-full" />
   }
 
   if (!session) {
@@ -37,14 +37,14 @@ export default function UserMenu() {
         className="w-full"
         onClick={() => {
           authClient.signIn.social({
-            provider: "github",
+            provider: 'github',
             callbackURL: window.location.href,
-          });
+          })
         }}
       >
         Sign In
       </Button>
-    );
+    )
   }
 
   return (
@@ -63,5 +63,5 @@ export default function UserMenu() {
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }

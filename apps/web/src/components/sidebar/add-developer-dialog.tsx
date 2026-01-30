@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState } from 'react'
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -8,45 +8,45 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { useAddSubscription, useExportOpml, useImportOpml } from "@/hooks/use-subscription-actions";
-import { useSubscriptionList } from "@/hooks/use-subscription-list";
-import { authClient } from "@/lib/auth-client";
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import { useAddSubscription, useExportOpml, useImportOpml } from '@/hooks/use-subscription-actions'
+import { useSubscriptionList } from '@/hooks/use-subscription-list'
+import { authClient } from '@/lib/auth-client'
 
 export function AddDeveloperDialog() {
-  const { data: session } = authClient.useSession();
-  const { follows } = useSubscriptionList(!!session);
-  const { addUser, isPending: isAddPending } = useAddSubscription();
-  const { importOpml, isPending: isImportPending } = useImportOpml();
-  const { exportOpml } = useExportOpml();
+  const { data: session } = authClient.useSession()
+  const { follows } = useSubscriptionList(!!session)
+  const { addUser, isPending: isAddPending } = useAddSubscription()
+  const { importOpml, isPending: isImportPending } = useImportOpml()
+  const { exportOpml } = useExportOpml()
 
-  const hasFollows = follows.length > 0;
+  const hasFollows = follows.length > 0
 
-  const [loginInput, setLoginInput] = useState("");
-  const [opmlFile, setOpmlFile] = useState<File | null>(null);
-  const [opmlInputKey, setOpmlInputKey] = useState(0);
+  const [loginInput, setLoginInput] = useState('')
+  const [opmlFile, setOpmlFile] = useState<File | null>(null)
+  const [opmlInputKey, setOpmlInputKey] = useState(0)
 
   const handleAddSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
+    event.preventDefault()
     if (!loginInput.trim()) {
-      return;
+      return
     }
-    addUser(loginInput);
-    setLoginInput("");
-  };
+    addUser(loginInput)
+    setLoginInput('')
+  }
 
   const handleImportSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+    event.preventDefault()
     if (!opmlFile || isImportPending) {
-      return;
+      return
     }
-    const text = await opmlFile.text();
-    importOpml(text);
-    setOpmlFile(null);
-    setOpmlInputKey((prev) => prev + 1);
-  };
+    const text = await opmlFile.text()
+    importOpml(text)
+    setOpmlFile(null)
+    setOpmlInputKey(prev => prev + 1)
+  }
 
   return (
     <Dialog>
@@ -59,14 +59,14 @@ export function AddDeveloperDialog() {
         <form className="flex gap-2" onSubmit={handleAddSubmit}>
           <Input
             value={loginInput}
-            onChange={(event) => setLoginInput(event.target.value)}
+            onChange={event => setLoginInput(event.target.value)}
             placeholder="username…"
             aria-label="GitHub username"
             autoComplete="username"
             className="flex-1"
           />
           <Button type="submit" disabled={isAddPending || !loginInput.trim()}>
-            {isAddPending ? "Adding..." : "Add"}
+            {isAddPending ? 'Adding...' : 'Add'}
           </Button>
         </form>
         <Separator />
@@ -78,12 +78,12 @@ export function AddDeveloperDialog() {
             disabled={isImportPending}
             aria-label="Select OPML file to import"
             onChange={(event) => {
-              const file = event.target.files?.[0] ?? null;
-              setOpmlFile(file);
+              const file = event.target.files?.[0] ?? null
+              setOpmlFile(file)
             }}
           />
           <p className="text-xs text-muted-foreground">
-            {opmlFile?.name ?? "Import from OPML (only github.com/xxx.atom links)"}
+            {opmlFile?.name ?? 'Import from OPML (only github.com/xxx.atom links)'}
           </p>
           <div className="flex gap-2">
             <Button
@@ -92,7 +92,7 @@ export function AddDeveloperDialog() {
               className="flex-1"
               disabled={!opmlFile || isImportPending}
             >
-              {isImportPending ? "Importing..." : "Import"}
+              {isImportPending ? 'Importing...' : 'Import'}
             </Button>
             <Button
               type="button"
@@ -107,5 +107,5 @@ export function AddDeveloperDialog() {
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

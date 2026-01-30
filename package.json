@@ -1,11 +1,12 @@
 {
   "name": "better-github-feed",
-  "private": true,
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "type": "module",
+  "private": true,
+  "packageManager": "pnpm@10.28.2",
   "scripts": {
     "dev": "nr -C packages/infra dev",
     "build": "pnpm -r build",
@@ -17,8 +18,9 @@
     "db:generate": "pnpm --filter @better-github-feed/db db:generate",
     "deploy": "pnpm --filter @better-github-feed/infra deploy",
     "destroy": "pnpm --filter @better-github-feed/infra destroy",
-    "check": "oxlint && oxfmt --write",
-    "prepare": "lefthook install"
+    "prepare": "simple-git-hooks",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix"
   },
   "dependencies": {
     "@better-github-feed/env": "workspace:*",
@@ -31,10 +33,19 @@
     "@cloudflare/workers-types": "catalog:",
     "@types/node": "^25.1.0",
     "@typescript/native-preview": "7.0.0-dev.20260130.1",
+    "eslint": "^9.39.2",
+    "eslint-config-hyoban": "https://pkg.pr.new/hyoban/eslint-config-hyoban@1cf416a",
     "lefthook": "^2.0.16",
+    "lint-staged": "^16.2.7",
     "oxfmt": "^0.27.0",
     "oxlint": "^1.42.0",
+    "simple-git-hooks": "^2.13.1",
     "typescript": "^5.9.3"
   },
-  "packageManager": "pnpm@10.28.2"
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged"
+  },
+  "lint-staged": {
+    "*": "eslint --fix"
+  }
 }

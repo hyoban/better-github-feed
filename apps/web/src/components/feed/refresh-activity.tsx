@@ -1,10 +1,10 @@
-import { RotateCwIcon } from "lucide-react";
+import { RotateCwIcon } from 'lucide-react'
 
-import { Button } from "@/components/ui/button";
-import { useRefresh } from "@/hooks/use-refresh";
+import { Button } from '@/components/ui/button'
+import { useRefresh } from '@/hooks/use-refresh'
 
 export function RefreshActivity() {
-  const { isRefreshing, refreshActivity } = useRefresh();
+  const { isRefreshing, refreshActivity } = useRefresh()
   return (
     <Button
       type="button"
@@ -14,7 +14,7 @@ export function RefreshActivity() {
       onClick={refreshActivity}
       aria-label="Refresh activity feed"
     >
-      <RotateCwIcon className={isRefreshing ? "animate-spin" : ""} />
+      <RotateCwIcon className={isRefreshing ? 'animate-spin' : ''} />
     </Button>
-  );
+  )
 }
