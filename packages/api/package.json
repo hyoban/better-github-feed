@@ -22,12 +22,12 @@
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
     "dotenv": "catalog:",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",
     "hono": "catalog:",
-    "typescript": "^5.9.3"
+    "typescript": "catalog:"
   }
 }

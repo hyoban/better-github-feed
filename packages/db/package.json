@@ -18,13 +18,13 @@
     "@better-github-feed/env": "workspace:*",
     "@libsql/client": "catalog:",
     "dotenv": "catalog:",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "catalog:",
     "libsql": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",
-    "drizzle-kit": "^0.31.8",
-    "typescript": "^5.9.3"
+    "drizzle-kit": "catalog:",
+    "typescript": "catalog:"
   }
 }

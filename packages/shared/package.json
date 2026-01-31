@@ -13,11 +13,11 @@
     "type-check": "tsgo"
   },
   "dependencies": {
-    "@fn-sphere/filter": "^1.2.0",
+    "@fn-sphere/filter": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",
-    "typescript": "^5.9.3"
+    "typescript": "catalog:"
   }
 }
