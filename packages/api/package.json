@@ -18,11 +18,9 @@
     "@better-github-feed/db": "workspace:*",
     "@better-github-feed/env": "workspace:*",
     "@better-github-feed/shared": "workspace:*",
-    "@orpc/client": "catalog:",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
-    "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },

@@ -15,9 +15,7 @@
   "dependencies": {
     "@better-github-feed/db": "workspace:*",
     "@better-github-feed/env": "workspace:*",
-    "better-auth": "catalog:",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
+    "better-auth": "catalog:"
   },
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",

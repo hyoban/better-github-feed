@@ -22,11 +22,6 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix"
   },
-  "dependencies": {
-    "@better-github-feed/env": "workspace:*",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
-  },
   "devDependencies": {
     "@antfu/ni": "catalog:",
     "@better-github-feed/config": "workspace:*",

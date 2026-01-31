@@ -18,9 +18,7 @@
     "@better-github-feed/env": "workspace:*",
     "@libsql/client": "catalog:",
     "dotenv": "catalog:",
-    "drizzle-orm": "catalog:",
-    "libsql": "catalog:",
-    "zod": "catalog:"
+    "drizzle-orm": "catalog:"
   },
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",

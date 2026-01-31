@@ -9,8 +9,7 @@
     "destroy": "NODE_ENV=production alchemy destroy --stage prod"
   },
   "dependencies": {
-    "dotenv": "catalog:",
-    "zod": "catalog:"
+    "dotenv": "catalog:"
   },
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",

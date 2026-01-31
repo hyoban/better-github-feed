@@ -10,13 +10,10 @@
   "dependencies": {
     "@better-github-feed/api": "workspace:*",
     "@better-github-feed/auth": "workspace:*",
-    "@better-github-feed/db": "workspace:*",
     "@better-github-feed/env": "workspace:*",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
-    "better-auth": "catalog:",
-    "dotenv": "catalog:",
     "hono": "catalog:",
     "zod": "catalog:"
   },
