@@ -27,6 +27,9 @@ catalogs:
     '@orpc/client':
       specifier: ^1.13.4
       version: 1.13.4
+    '@orpc/contract':
+      specifier: ^1.13.4
+      version: 1.13.4
     '@orpc/openapi':
       specifier: ^1.13.4
       version: 1.13.4
@@ -394,6 +397,9 @@ importers:
       '@better-github-feed/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@better-github-feed/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@better-github-feed/env':
         specifier: workspace:*
         version: link:../../packages/env
@@ -635,6 +641,9 @@ importers:
       '@better-github-feed/auth':
         specifier: workspace:*
         version: link:../auth
+      '@better-github-feed/contract':
+        specifier: workspace:*
+        version: link:../contract
       '@better-github-feed/db':
         specifier: workspace:*
         version: link:../db
@@ -702,6 +711,22 @@ importers:
         version: 5.9.3
 
   packages/config: {}
+
+  packages/contract:
+    dependencies:
+      '@orpc/contract':
+        specifier: 'catalog:'
+        version: 1.13.4
+      zod:
+        specifier: 'catalog:'
+        version: 4.3.6
+    devDependencies:
+      '@better-github-feed/config':
+        specifier: workspace:*
+        version: link:../config
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
 
   packages/db:
     dependencies:

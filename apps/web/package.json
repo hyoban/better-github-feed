@@ -12,6 +12,7 @@
     "@base-ui/react": "catalog:",
     "@better-github-feed/api": "workspace:*",
     "@better-github-feed/auth": "workspace:*",
+    "@better-github-feed/contract": "workspace:*",
     "@better-github-feed/env": "workspace:*",
     "@better-github-feed/shared": "workspace:*",
     "@fn-sphere/filter": "catalog:",

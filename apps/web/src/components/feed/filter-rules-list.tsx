@@ -83,7 +83,7 @@ export function FilterRulesList() {
       return
 
     try {
-      await deleteFilter.mutateAsync({ id: deletingFilter.id })
+      await deleteFilter.mutateAsync({ params: { id: deletingFilter.id } })
       toast.success('Filter deleted')
       setDeletingFilter(null)
     }

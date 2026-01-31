@@ -18,7 +18,7 @@ export function useAddSubscription() {
   )
 
   return {
-    addUser: (login: string) => mutation.mutate({ login }),
+    addUser: (login: string) => mutation.mutate({ body: { login } }),
     isPending: mutation.isPending,
   }
 }
@@ -37,7 +37,7 @@ export function useRemoveSubscription() {
   )
 
   return {
-    removeUser: (id: string) => mutation.mutate({ id }),
+    removeUser: (id: string) => mutation.mutate({ params: { id } }),
     isPending: mutation.isPending,
   }
 }
@@ -61,7 +61,7 @@ export function useImportOpml() {
   )
 
   return {
-    importOpml: (opml: string) => mutation.mutate({ opml }),
+    importOpml: (opml: string) => mutation.mutate({ body: { opml } }),
     isPending: mutation.isPending,
   }
 }
@@ -92,7 +92,7 @@ export function useExportOpml() {
 export function useRefreshFeed() {
   const refreshSingleFeed = (login: string) => {
     toast.promise(
-      client.feed.refreshOne({ login }).then((data) => {
+      client.feed.refreshOne({ params: { login } }).then((data) => {
         queryClient.invalidateQueries({ queryKey: orpc.feed.list.key() })
         queryClient.invalidateQueries({ queryKey: orpc.subscription.list.queryKey() })
         return data

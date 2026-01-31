@@ -1,0 +1,20 @@
+{
+  "name": "@better-github-feed/contract",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "type-check": "tsgo"
+  },
+  "dependencies": {
+    "@orpc/contract": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@better-github-feed/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

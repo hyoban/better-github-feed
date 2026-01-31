@@ -49,11 +49,26 @@ export function useDeleteFilter() {
 }
 
 /**
- * Helper to prepare filter data for API calls
+ * Helper to prepare filter data for API calls (for create)
  */
 export function prepareFilterPayload(name: string, filterRule: FilterGroup) {
   return {
-    name,
-    filterRule: serializeFilterGroup(filterRule),
+    body: {
+      name,
+      filterRule: serializeFilterGroup(filterRule),
+    },
+  }
+}
+
+/**
+ * Helper to prepare filter data for API calls (for update)
+ */
+export function prepareUpdateFilterPayload(id: string, name: string, filterRule: FilterGroup) {
+  return {
+    params: { id },
+    body: {
+      name,
+      filterRule: serializeFilterGroup(filterRule),
+    },
   }
 }

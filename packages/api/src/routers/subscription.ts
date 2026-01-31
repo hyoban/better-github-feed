@@ -42,7 +42,7 @@ type SubscriptionRow = {
 }
 
 export const subscriptionRouter = {
-  list: protectedProcedure.handler(async ({ context }) => {
+  list: protectedProcedure.subscription.list.handler(async ({ context }) => {
     const userId = context.session.user.id
     const rows = await db
       .select({
@@ -112,182 +112,164 @@ export const subscriptionRouter = {
     }))
   }),
 
-  add: protectedProcedure
-    .input(
-      z.object({
-        login: loginSchema,
-      }),
-    )
-    .handler(async ({ context, input }) => {
-      const userId = context.session.user.id
-      const login = normalizeLogin(input.login)
-      if (!login) {
-        throw new ORPCError('BAD_REQUEST', {
-          message: 'GitHub username is required',
-        })
-      }
-
-      // Check if github user exists
-      const existingGithubUser = await db
-        .select({
-          login: githubUser.login,
-          id: githubUser.id,
-          lastRefreshedAt: githubUser.lastRefreshedAt,
-          createdAt: githubUser.createdAt,
-        })
-        .from(githubUser)
-        .where(eq(githubUser.login, login))
-        .limit(1)
-
-      let githubUserRecord = existingGithubUser[0]
-
-      // Create github user if it doesn't exist
-      if (!githubUserRecord) {
-        const createdAt = new Date()
-        await db.insert(githubUser).values({
-          login,
-          createdAt,
-        })
-        githubUserRecord = {
-          login,
-          id: null,
-          lastRefreshedAt: null,
-          createdAt,
-        }
-      }
-
-      // Check if subscription already exists
-      const existingSub = await db
-        .select({ id: subscription.id, createdAt: subscription.createdAt })
-        .from(subscription)
-        .where(and(eq(subscription.userId, userId), eq(subscription.githubUserLogin, login)))
-        .limit(1)
-
-      const existingSubRow = existingSub[0]
-      if (existingSubRow) {
-        throw new ORPCError('CONFLICT', {
-          message: `@${login} is already in your list`,
-        })
-      }
-
-      // Create subscription
-      const subId = crypto.randomUUID()
-      const subCreatedAt = new Date()
-      await db.insert(subscription).values({
-        id: subId,
-        userId,
-        githubUserLogin: login,
-        createdAt: subCreatedAt,
+  add: protectedProcedure.subscription.add.handler(async ({ context, input }) => {
+    const userId = context.session.user.id
+    const login = normalizeLogin(input.body.login)
+    if (!login) {
+      throw new ORPCError('BAD_REQUEST', {
+        message: 'GitHub username is required',
       })
+    }
 
-      return {
-        id: subId,
-        githubUserLogin: login,
-        githubUserId: githubUserRecord.id,
-        lastRefreshedAt: githubUserRecord.lastRefreshedAt,
-        createdAt: subCreatedAt,
-      } satisfies SubscriptionRow
-    }),
-
-  remove: protectedProcedure
-    .input(
-      z.object({
-        id: z.string().trim().min(1),
-      }),
-    )
-    .handler(async ({ context, input }) => {
-      const userId = context.session.user.id
-      await db
-        .delete(subscription)
-        .where(and(eq(subscription.id, input.id), eq(subscription.userId, userId)))
-
-      return { ok: true }
-    }),
-
-  importOpml: protectedProcedure
-    .input(
-      z.object({
-        opml: z.string().trim().min(1),
-      }),
-    )
-    .handler(async ({ context, input }) => {
-      const userId = context.session.user.id
-      const extracted = extractGithubAtomLogins(input.opml)
-      const normalized: string[] = []
-      const seen = new Set<string>()
-
-      extracted.forEach((login) => {
-        const normalizedLogin = normalizeLogin(login)
-        if (!normalizedLogin) {
-          return
-        }
-        if (!loginSchema.safeParse(normalizedLogin).success) {
-          return
-        }
-        if (seen.has(normalizedLogin)) {
-          return
-        }
-        seen.add(normalizedLogin)
-        normalized.push(normalizedLogin)
+    // Check if github user exists
+    const existingGithubUser = await db
+      .select({
+        login: githubUser.login,
+        id: githubUser.id,
+        lastRefreshedAt: githubUser.lastRefreshedAt,
+        createdAt: githubUser.createdAt,
       })
+      .from(githubUser)
+      .where(eq(githubUser.login, login))
+      .limit(1)
 
-      if (normalized.length === 0) {
-        return {
-          total: 0,
-          added: 0,
-          skipped: 0,
-          logins: [] as string[],
-        }
-      }
+    let githubUserRecord = existingGithubUser[0]
 
-      // Get existing github users
-      const existingGithubUsers = await db.select({ login: githubUser.login }).from(githubUser)
-
-      const existingLoginSet = new Set(existingGithubUsers.map(u => u.login))
-      const loginsToCreate = normalized.filter(login => !existingLoginSet.has(login))
-
-      // Create github users for new logins
+    // Create github user if it doesn't exist
+    if (!githubUserRecord) {
       const createdAt = new Date()
-      for (const login of loginsToCreate) {
-        await db.insert(githubUser).values({ login, createdAt }).onConflictDoNothing()
-        existingLoginSet.add(login)
-      }
-
-      // Get existing subscriptions for this user
-      const existingSubs = await db
-        .select({ githubUserLogin: subscription.githubUserLogin })
-        .from(subscription)
-        .where(eq(subscription.userId, userId))
-
-      const existingSubSet = new Set(existingSubs.map(s => s.githubUserLogin))
-      const toInsert = normalized.filter((login) => {
-        return existingLoginSet.has(login) && !existingSubSet.has(login)
+      await db.insert(githubUser).values({
+        login,
+        createdAt,
       })
-
-      if (toInsert.length > 0) {
-        const subCreatedAt = new Date()
-        const chunks = chunkArray(toInsert, 20)
-        for (const chunk of chunks) {
-          await db.insert(subscription).values(
-            chunk.map(login => ({
-              id: crypto.randomUUID(),
-              userId,
-              githubUserLogin: login,
-              createdAt: subCreatedAt,
-            })),
-          )
-        }
+      githubUserRecord = {
+        login,
+        id: null,
+        lastRefreshedAt: null,
+        createdAt,
       }
+    }
 
+    // Check if subscription already exists
+    const existingSub = await db
+      .select({ id: subscription.id, createdAt: subscription.createdAt })
+      .from(subscription)
+      .where(and(eq(subscription.userId, userId), eq(subscription.githubUserLogin, login)))
+      .limit(1)
+
+    const existingSubRow = existingSub[0]
+    if (existingSubRow) {
+      throw new ORPCError('CONFLICT', {
+        message: `@${login} is already in your list`,
+      })
+    }
+
+    // Create subscription
+    const subId = crypto.randomUUID()
+    const subCreatedAt = new Date()
+    await db.insert(subscription).values({
+      id: subId,
+      userId,
+      githubUserLogin: login,
+      createdAt: subCreatedAt,
+    })
+
+    return {
+      id: subId,
+      githubUserLogin: login,
+      githubUserId: githubUserRecord.id,
+      lastRefreshedAt: githubUserRecord.lastRefreshedAt,
+      createdAt: subCreatedAt,
+    } satisfies SubscriptionRow
+  }),
+
+  remove: protectedProcedure.subscription.remove.handler(async ({ context, input }) => {
+    const userId = context.session.user.id
+    await db
+      .delete(subscription)
+      .where(and(eq(subscription.id, input.params.id), eq(subscription.userId, userId)))
+
+    return { ok: true }
+  }),
+
+  importOpml: protectedProcedure.subscription.importOpml.handler(async ({ context, input }) => {
+    const userId = context.session.user.id
+    const extracted = extractGithubAtomLogins(input.body.opml)
+    const normalized: string[] = []
+    const seen = new Set<string>()
+
+    extracted.forEach((login) => {
+      const normalizedLogin = normalizeLogin(login)
+      if (!normalizedLogin) {
+        return
+      }
+      if (!loginSchema.safeParse(normalizedLogin).success) {
+        return
+      }
+      if (seen.has(normalizedLogin)) {
+        return
+      }
+      seen.add(normalizedLogin)
+      normalized.push(normalizedLogin)
+    })
+
+    if (normalized.length === 0) {
       return {
-        total: normalized.length,
-        added: toInsert.length,
-        skipped: normalized.length - toInsert.length,
-        logins: toInsert,
+        total: 0,
+        added: 0,
+        skipped: 0,
+        logins: [] as string[],
       }
-    }),
+    }
 
-  exportOpml: protectedProcedure.handler(async ({ context }) => {
+    // Get existing github users
+    const existingGithubUsers = await db.select({ login: githubUser.login }).from(githubUser)
+
+    const existingLoginSet = new Set(existingGithubUsers.map(u => u.login))
+    const loginsToCreate = normalized.filter(login => !existingLoginSet.has(login))
+
+    // Create github users for new logins
+    const createdAt = new Date()
+    for (const login of loginsToCreate) {
+      await db.insert(githubUser).values({ login, createdAt }).onConflictDoNothing()
+      existingLoginSet.add(login)
+    }
+
+    // Get existing subscriptions for this user
+    const existingSubs = await db
+      .select({ githubUserLogin: subscription.githubUserLogin })
+      .from(subscription)
+      .where(eq(subscription.userId, userId))
+
+    const existingSubSet = new Set(existingSubs.map(s => s.githubUserLogin))
+    const toInsert = normalized.filter((login) => {
+      return existingLoginSet.has(login) && !existingSubSet.has(login)
+    })
+
+    if (toInsert.length > 0) {
+      const subCreatedAt = new Date()
+      const chunks = chunkArray(toInsert, 20)
+      for (const chunk of chunks) {
+        await db.insert(subscription).values(
+          chunk.map(login => ({
+            id: crypto.randomUUID(),
+            userId,
+            githubUserLogin: login,
+            createdAt: subCreatedAt,
+          })),
+        )
+      }
+    }
+
+    return {
+      total: normalized.length,
+      added: toInsert.length,
+      skipped: normalized.length - toInsert.length,
+      logins: toInsert,
+    }
+  }),
+
+  exportOpml: protectedProcedure.subscription.exportOpml.handler(async ({ context }) => {
     const userId = context.session.user.id
     const rows = await db
       .select({ githubUserLogin: subscription.githubUserLogin })

@@ -1,3 +1,4 @@
+import type { RefreshProgressEvent } from '@better-github-feed/contract'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -20,7 +21,7 @@ export function useRefresh() {
     let errors: { login: string, message: string }[] = []
 
     try {
-      const iterator = await client.feed.refresh({}, { signal: controller.signal })
+      const iterator = await client.feed.refresh({}, { signal: controller.signal }) as AsyncIterable<RefreshProgressEvent>
 
       for await (const event of iterator) {
         switch (event.type) {

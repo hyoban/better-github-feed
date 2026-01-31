@@ -10,9 +10,11 @@ export function useActivity(enabled: boolean, activeUsers: string[], activeTypes
   const query = useInfiniteQuery(
     orpc.feed.list.infiniteOptions({
       input: (cursor: number | undefined) => ({
-        cursor,
-        users: usersParam,
-        types: typesParam,
+        query: {
+          cursor,
+          users: usersParam,
+          types: typesParam,
+        },
       }),
       initialPageParam: undefined,
       getNextPageParam: lastPage => lastPage.nextCursor ?? undefined,

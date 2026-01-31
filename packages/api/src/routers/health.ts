@@ -1,7 +1,7 @@
 import { publicProcedure } from '../index'
 
 export const healthRouter = {
-  check: publicProcedure.handler(() => {
+  check: publicProcedure.health.check.handler(() => {
     return 'OK'
   }),
 }

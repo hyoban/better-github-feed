@@ -12,6 +12,7 @@ catalog:
   '@hookform/resolvers': ^5.2.2
   '@libsql/client': 0.17.0
   '@orpc/client': ^1.13.4
+  '@orpc/contract': ^1.13.4
   '@orpc/openapi': ^1.13.4
   '@orpc/server': ^1.13.4
   '@orpc/tanstack-query': ^1.13.4
