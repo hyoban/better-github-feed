@@ -67,7 +67,7 @@ catalog:
   drizzle-orm: ^0.45.1
   embla-carousel-react: ^8.6.0
   eslint: ^9.39.2
-  eslint-config-hyoban: 6.0.0-beta.2
+  eslint-config-hyoban: 6.0.0-beta.3
   hono: ^4.11.7
   idb-keyval: ^6.2.2
   input-otp: ^1.4.2

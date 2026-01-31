@@ -20,7 +20,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 
 First, install the dependencies:
 
-```bash
+```sh
 pnpm install
 ```
 
@@ -35,13 +35,13 @@ This project uses SQLite with Drizzle ORM.
 
 3. Apply the schema to your database:
 
-```bash
+```sh
 pnpm run db:push
 ```
 
 Then, run the development server:
 
-```bash
+```sh
 pnpm run dev
 ```
 
@@ -62,7 +62,7 @@ For more details, see the guide on [Deploying to Cloudflare with Alchemy](https:
 
 ## Project Structure
 
-```
+```txt
 better-github-feed/
 ├── apps/
 │   ├── web/         # Frontend application (React + React Router)
