@@ -1,20 +1,43 @@
-# better-github-feed
+# Better GitHub Feed
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, React Router, Hono, ORPC, and more.
+A modern web application that aggregates GitHub developer activity into a unified, filterable feed. Track the open-source contributions of developers you follow and discover interesting projects through their activity.
 
 ## Features
 
-- **TypeScript** - For type safety and improved developer experience
-- **React Router** - Declarative routing for React
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **shadcn/ui** - Reusable UI components
-- **Hono** - Lightweight, performant server framework
-- **oRPC** - End-to-end type-safe APIs with OpenAPI integration
-- **workers** - Runtime environment
-- **Drizzle** - TypeScript-first ORM
-- **SQLite/Turso** - Database engine
-- **Authentication** - Better-Auth
-- **Oxlint** - Oxlint + Oxfmt (linting & formatting)
+- **GitHub Feed Aggregation** - Collect and display activity from multiple GitHub developers in one place
+- **Advanced Filtering** - Custom filter rules to focus on the events that matter to you
+- **Subscription Management** - Subscribe to developers with OPML import/export support
+- **Real-time Refresh** - Keep your feed up-to-date with the latest activity
+- **GitHub OAuth** - Secure authentication via GitHub
+- **Responsive UI** - Desktop sidebar and mobile drawer for seamless experience across devices
+
+## Tech Stack
+
+### Frontend
+
+- React 19 with React Router
+- TailwindCSS + shadcn/ui
+- TanStack Query for data fetching
+- Vite for development and builds
+
+### Backend
+
+- Hono - Lightweight web framework
+- oRPC - End-to-end type-safe APIs with OpenAPI integration
+- Cloudflare Workers runtime
+
+### Database
+
+- Drizzle ORM
+- SQLite/Turso (D1)
+
+### Auth
+
+- Better-Auth with GitHub OAuth
+
+### Infrastructure
+
+- Alchemy for Cloudflare Workers deployment
 
 ## Getting Started
 
@@ -28,21 +51,20 @@ pnpm install
 
 This project uses SQLite with Drizzle ORM.
 
-1. Start the local SQLite database (optional):
-   D1 local development and migrations are handled automatically by Alchemy during dev and deploy.
+1. D1 local development and migrations are handled automatically by Alchemy during dev and deploy.
 
 2. Update your `.env` file in the `apps/server` directory with the appropriate connection details if needed.
 
 3. Apply the schema to your database:
 
 ```sh
-pnpm run db:push
+pnpm db:push
 ```
 
 Then, run the development server:
 
 ```sh
-pnpm run dev
+pnpm dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser to see the web application.
@@ -50,36 +72,38 @@ The API is running at [http://localhost:3000](http://localhost:3000).
 
 ## Deployment (Cloudflare via Alchemy)
 
-- Dev: pnpm run dev
-- Deploy: pnpm run deploy
-- Destroy: pnpm run destroy
+- Dev: `pnpm dev`
+- Deploy: `pnpm deploy`
+- Destroy: `pnpm destroy`
 
 For more details, see the guide on [Deploying to Cloudflare with Alchemy](https://www.better-t-stack.dev/docs/guides/cloudflare-alchemy).
-
-## Git Hooks and Formatting
-
-- Format and lint fix: `pnpm run check`
 
 ## Project Structure
 
 ```txt
 better-github-feed/
 ├── apps/
-│   ├── web/         # Frontend application (React + React Router)
-│   └── server/      # Backend API (Hono, ORPC)
+│   ├── web/           # Frontend application (React + React Router)
+│   └── server/        # Backend API (Hono, oRPC)
 ├── packages/
-│   ├── api/         # API layer / business logic
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
+│   ├── api/           # API layer / business logic
+│   ├── auth/          # Authentication configuration & logic
+│   ├── config/        # Shared ESLint/TypeScript configuration
+│   ├── contract/      # oRPC API contracts
+│   ├── db/            # Database schema & queries
+│   ├── env/           # Environment variable management
+│   ├── infra/         # Deployment infrastructure (Alchemy)
+│   └── shared/        # Shared types and utilities
 ```
 
 ## Available Scripts
 
-- `pnpm run dev`: Start all applications in development mode
-- `pnpm run build`: Build all applications
-- `pnpm run dev:web`: Start only the web application
-- `pnpm run dev:server`: Start only the server
-- `pnpm run check-types`: Check TypeScript types across all apps
-- `pnpm run db:push`: Push schema changes to database
-- `pnpm run db:studio`: Open database studio UI
-- `pnpm run check`: Run Oxlint and Oxfmt
+- `pnpm dev` - Start all applications in development mode
+- `pnpm build` - Build all applications
+- `pnpm dev:web` - Start only the web application
+- `pnpm dev:server` - Start only the server
+- `pnpm type-check` - Check TypeScript types across all apps
+- `pnpm lint` - Run ESLint
+- `pnpm lint:fix` - Run ESLint with auto-fix
+- `pnpm db:push` - Push schema changes to database
+- `pnpm db:generate` - Generate database migrations
