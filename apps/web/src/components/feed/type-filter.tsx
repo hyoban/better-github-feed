@@ -26,9 +26,22 @@ export function TypeFilter() {
     return activeTypes.filter(type => available.has(type))
   }, [types, activeTypes])
 
-  const sortedTypes = [...types].sort(
-    (a, b) => (typeCounts.get(b) ?? 0) - (typeCounts.get(a) ?? 0),
-  )
+  const pinnedTypes = ['star']
+  const sortedTypes = [...types].sort((a, b) => {
+    const aPinned = pinnedTypes.indexOf(a)
+    const bPinned = pinnedTypes.indexOf(b)
+    // Both pinned: sort by pinned order
+    if (aPinned !== -1 && bPinned !== -1)
+      return aPinned - bPinned
+    // Only a is pinned: a comes first
+    if (aPinned !== -1)
+      return -1
+    // Only b is pinned: b comes first
+    if (bPinned !== -1)
+      return 1
+    // Neither pinned: sort by count
+    return (typeCounts.get(b) ?? 0) - (typeCounts.get(a) ?? 0)
+  })
 
   return (
     <ScrollArea className="w-full">
