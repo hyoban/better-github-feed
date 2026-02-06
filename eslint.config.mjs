@@ -2,11 +2,7 @@ import { defineConfig } from 'eslint-config-hyoban'
 
 export default defineConfig(
   {
-    react: {
-      overrides: {
-        'react/no-implicit-key': 'off',
-      },
-    },
+    react: true,
     pnpm: {
       yaml: false,
     },

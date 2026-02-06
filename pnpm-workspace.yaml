@@ -67,7 +67,7 @@ catalog:
   drizzle-orm: ^0.45.1
   embla-carousel-react: ^8.6.0
   eslint: ^9.39.2
-  eslint-config-hyoban: 6.0.0-beta.6
+  eslint-config-hyoban: 6.0.0-beta.9
   hono: ^4.11.8
   idb-keyval: ^6.2.2
   input-otp: ^1.4.2
@@ -80,7 +80,7 @@ catalog:
   react-day-picker: ^9.13.0
   react-dom: 19.2.4
   react-hook-form: ^7.71.1
-  react-resizable-panels: ^4.6.1
+  react-resizable-panels: ^4.6.2
   react-router-devtools: ^6.2.0
   react-router-dom: ^7.13.0
   recharts: 3.7.0
