@@ -6,7 +6,7 @@
   ],
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.29.2",
+  "packageManager": "pnpm@10.30.3",
   "scripts": {
     "dev": "nr -C packages/infra dev",
     "build": "pnpm -r build",
