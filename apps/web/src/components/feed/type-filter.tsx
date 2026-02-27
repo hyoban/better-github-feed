@@ -26,7 +26,7 @@ export function TypeFilter() {
     return activeTypes.filter(type => available.has(type))
   }, [types, activeTypes])
 
-  const pinnedTypes = ['star']
+  const pinnedTypes = ['star', 'pr_merged']
   const sortedTypes = [...types].sort((a, b) => {
     const aPinned = pinnedTypes.indexOf(a)
     const bPinned = pinnedTypes.indexOf(b)
