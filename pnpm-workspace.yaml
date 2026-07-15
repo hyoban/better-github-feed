@@ -96,7 +96,6 @@ minimumReleaseAgeExclude:
 
 allowBuilds:
   esbuild: true
-  lefthook: true
   msw: true
   sharp: true
   workerd: true
@@ -108,7 +107,7 @@ peerDependencyRules:
   allowAny:
     - vite
   allowedVersions:
-    typescript: ^7.0.0
+    '@voidzero-dev/vite-plus-core@0.2.4>typescript': ^7.0.0
     vite: '*'
 
 shellEmulator: true

@@ -2,7 +2,6 @@
   "name": "web",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.30.3",
   "scripts": {
     "dev": "vp run db:migrate:local && vp dev",
     "build": "vp build",
