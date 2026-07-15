@@ -40,7 +40,7 @@ export function MobileSidebar() {
           </div>
         </div>
         <FollowList />
-        <div className="flex justify-between gap-2 border-t p-2">
+        <div className="flex gap-2 border-t p-2">
           <UserMenu />
           <SyncFollowingButton />
         </div>

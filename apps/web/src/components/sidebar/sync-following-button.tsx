@@ -1,6 +1,7 @@
 import { RefreshCwIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSyncFollowing } from '@/hooks/use-subscription-actions'
 import { authClient } from '@/lib/auth-client'
 
@@ -13,9 +14,24 @@ export function SyncFollowingButton() {
   }
 
   return (
-    <Button type="button" variant="outline" size="sm" disabled={isPending} onClick={syncFollowing}>
-      <RefreshCwIcon className={isPending ? 'animate-spin' : undefined} />
-      {isPending ? 'Syncing...' : 'Sync GitHub'}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            disabled={isPending}
+            onClick={syncFollowing}
+            aria-label={isPending ? 'Syncing GitHub following' : 'Sync GitHub following'}
+          />
+        }
+      >
+        <RefreshCwIcon className={isPending ? 'animate-spin' : undefined} />
+      </TooltipTrigger>
+      <TooltipContent>
+        {isPending ? 'Syncing GitHub following' : 'Sync GitHub following'}
+      </TooltipContent>
+    </Tooltip>
   )
 }

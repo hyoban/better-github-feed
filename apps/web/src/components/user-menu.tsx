@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
+import { ChevronDownIcon } from 'lucide-react'
 
 import {
   DropdownMenu,
@@ -49,8 +50,18 @@ export default function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" size="sm" aria-label="User menu" />}>
-        {session.user.name}
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-w-0 flex-1 justify-between"
+            aria-label="User menu"
+          />
+        }
+      >
+        <span className="truncate">{session.user.name}</span>
+        <ChevronDownIcon className="size-3.5 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuGroup>
