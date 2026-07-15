@@ -2,17 +2,40 @@
   "name": "web",
   "type": "module",
   "private": true,
+  "packageManager": "pnpm@10.30.3",
   "scripts": {
-    "dev": "vite",
+    "dev": "pnpm db:migrate:local && vite",
     "build": "vite build",
     "preview": "vite preview",
-    "type-check": "tsgo"
+    "type-check": "tsgo",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "deploy": "node ./scripts/deploy.mjs",
+    "cf-typegen": "wrangler types ../../worker-configuration.d.ts"
+  },
+  "cloudflare": {
+    "bindings": {
+      "DB": {
+        "description": "D1 stores users, sessions, GitHub followings, and feed items."
+      },
+      "BETTER_AUTH_URL": {
+        "description": "The public Worker origin, without a trailing slash."
+      },
+      "BETTER_AUTH_SECRET": {
+        "description": "Generate a stable secret with `openssl rand -base64 32`."
+      },
+      "BETTER_AUTH_GITHUB_CLIENT_ID": {
+        "description": "Client ID from the production GitHub OAuth App."
+      },
+      "BETTER_AUTH_GITHUB_CLIENT_SECRET": {
+        "description": "Client secret from the production GitHub OAuth App."
+      }
+    }
   },
   "dependencies": {
     "@base-ui/react": "catalog:",
     "@better-github-feed/api": "workspace:*",
     "@better-github-feed/contract": "workspace:*",
-    "@better-github-feed/env": "workspace:*",
     "@better-github-feed/shared": "workspace:*",
     "@fn-sphere/filter": "catalog:",
     "@hookform/resolvers": "catalog:",
@@ -75,18 +98,19 @@
   },
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",
+    "@cloudflare/vite-plugin": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-query-devtools": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
-    "alchemy": "catalog:",
     "react-router-devtools": "catalog:",
     "tailwindcss": "catalog:",
     "tw-animate-css": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vite-tsconfig-paths": "catalog:"
+    "vite-tsconfig-paths": "catalog:",
+    "wrangler": "catalog:"
   }
 }

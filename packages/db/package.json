@@ -11,13 +11,10 @@
   },
   "scripts": {
     "type-check": "tsgo",
-    "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@better-github-feed/env": "workspace:*",
-    "@libsql/client": "catalog:",
-    "dotenv": "catalog:",
     "drizzle-orm": "catalog:"
   },
   "devDependencies": {

@@ -1,5 +1,4 @@
 import type { AppRouterClient } from '@better-github-feed/api/routers/index'
-import { env } from '@better-github-feed/env/web'
 import { createORPCClient } from '@orpc/client'
 import { RPCLink } from '@orpc/client/fetch'
 import { createTanstackQueryUtils } from '@orpc/tanstack-query'
@@ -58,7 +57,7 @@ export async function clearPersistedCache() {
 }
 
 export const link = new RPCLink({
-  url: `${env.VITE_SERVER_URL}/rpc`,
+  url: new URL('/api/rpc', window.location.origin).href,
   fetch(url, options) {
     return fetch(url, {
       ...options,

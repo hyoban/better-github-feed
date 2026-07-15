@@ -9,7 +9,6 @@ export const auth = betterAuth({
     provider: 'sqlite',
     schema,
   }),
-  trustedOrigins: [env.CORS_ORIGIN],
   socialProviders: {
     github: {
       clientId: env.BETTER_AUTH_GITHUB_CLIENT_ID,
@@ -18,11 +17,4 @@ export const auth = betterAuth({
   },
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
-
-  // uncomment crossSubDomainCookies setting when ready to deploy and replace <your-workers-subdomain> with your actual workers subdomain
-  // https://developers.cloudflare.com/workers/wrangler/configuration/#workersdev
-  crossSubDomainCookies: {
-    enabled: true,
-    domain: '.hyoban.workers.dev',
-  },
 })

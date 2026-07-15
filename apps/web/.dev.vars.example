@@ -1,0 +1,8 @@
+BETTER_AUTH_URL=http://localhost:5173
+
+# Generate once with: openssl rand -base64 32
+BETTER_AUTH_SECRET=
+
+# Create an OAuth App at https://github.com/settings/developers
+BETTER_AUTH_GITHUB_CLIENT_ID=
+BETTER_AUTH_GITHUB_CLIENT_SECRET=

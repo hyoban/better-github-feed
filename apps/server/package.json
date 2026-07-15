@@ -3,9 +3,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "build": "tsdown",
-    "type-check": "tsgo",
-    "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server"
+    "type-check": "tsgo"
   },
   "dependencies": {
     "@better-github-feed/api": "workspace:*",
@@ -19,11 +17,7 @@
   },
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",
-    "@cloudflare/workers-types": "catalog:",
     "@types/node": "catalog:",
-    "alchemy": "catalog:",
-    "tsdown": "catalog:",
-    "typescript": "catalog:",
-    "wrangler": "catalog:"
+    "typescript": "catalog:"
   }
 }

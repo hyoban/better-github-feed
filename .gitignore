@@ -11,6 +11,8 @@ build
 # Environment variables
 .env
 .env*.local
+.dev.vars*
+!.dev.vars.example
 
 # IDEs and editors
 .vscode/*
@@ -36,8 +38,8 @@ lerna-debug.log*
 # Turbo
 .turbo
 
-# Better-T-Stack
-.alchemy
+# Cloudflare
+.wrangler
 
 # Testing
 coverage
