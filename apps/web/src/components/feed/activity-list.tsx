@@ -119,7 +119,7 @@ export function ActivityList() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-xs">
                     <Skeleton className="h-3.5 w-16" />
-                    <span className="text-muted-foreground">&middot;</span>
+                    <Skeleton className="size-1 shrink-0 rounded-full" />
                     <Skeleton className="h-3.5 w-10" />
                   </div>
                   <Skeleton className="mt-1.5 h-4 w-full" />
@@ -197,7 +197,7 @@ export function ActivityList() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 text-xs">
                             <Skeleton className="h-3.5 w-16" />
-                            <span className="text-muted-foreground">&middot;</span>
+                            <Skeleton className="size-1 shrink-0 rounded-full" />
                             <Skeleton className="h-3.5 w-10" />
                           </div>
                           <Skeleton className="mt-1.5 h-4 w-full" />
