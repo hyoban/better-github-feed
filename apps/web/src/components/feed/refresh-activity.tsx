@@ -1,20 +1,35 @@
 import { RotateCwIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { useRefresh } from '@/hooks/use-refresh'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useRefreshAllUsers } from '@/hooks/use-refresh'
+import { authClient } from '@/lib/auth-client'
 
-export function RefreshActivity() {
-  const { isRefreshing, refreshActivity } = useRefresh()
+export function RefreshAllUsersButton() {
+  const { data: session } = authClient.useSession()
+  const { isRefreshing, refreshAllUsers } = useRefreshAllUsers()
+
+  if (!session) {
+    return null
+  }
+
   return (
-    <Button
-      type="button"
-      size="icon"
-      variant="ghost"
-      disabled={isRefreshing}
-      onClick={refreshActivity}
-      aria-label="Refresh activity feed"
-    >
-      <RotateCwIcon className={isRefreshing ? 'animate-spin' : ''} />
-    </Button>
+    <Tooltip>
+      <TooltipTrigger
+        render={(
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            disabled={isRefreshing}
+            onClick={refreshAllUsers}
+            aria-label="Refresh all users"
+          />
+        )}
+      >
+        <RotateCwIcon className={isRefreshing ? 'animate-spin' : undefined} />
+      </TooltipTrigger>
+      <TooltipContent>Refresh all users</TooltipContent>
+    </Tooltip>
   )
 }

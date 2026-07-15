@@ -4,24 +4,22 @@ import { toast } from 'sonner'
 
 import { client, orpc, queryClient } from '@/utils/orpc'
 
-export function useRefresh() {
+export function useRefreshAllUsers() {
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const refreshActivity = useCallback(async () => {
+  const refreshAllUsers = useCallback(async () => {
     if (isRefreshing)
       return
 
     setIsRefreshing(true)
     const toastId = toast.loading('Refreshing...')
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
 
     let completed = 0
     let total = 0
     let errors: { login: string, message: string }[] = []
 
     try {
-      const iterator = await client.feed.refresh({}, { signal: controller.signal }) as AsyncIterable<RefreshProgressEvent>
+      const iterator = await client.feed.refresh({}) as AsyncIterable<RefreshProgressEvent>
 
       for await (const event of iterator) {
         switch (event.type) {
@@ -52,17 +50,15 @@ export function useRefresh() {
       }
     }
     catch (error) {
-      const isTimeout = controller.signal.aborted
       const failedCount = total - completed + errors.length
 
       queryClient.invalidateQueries({ queryKey: orpc.feed.list.key() })
       queryClient.invalidateQueries({ queryKey: orpc.subscription.list.queryKey() })
 
       if (completed > 0) {
-        const message = isTimeout
-          ? `Refreshed ${completed}/${total} feeds (timed out)`
-          : `Refreshed ${completed}/${total} feeds (${failedCount} failed)`
-        toast.warning(message, { id: toastId })
+        toast.warning(`Refreshed ${completed}/${total} feeds (${failedCount} failed)`, {
+          id: toastId,
+        })
       }
       else {
         toast.error(error instanceof Error ? error.message : 'Failed to refresh feeds', {
@@ -71,13 +67,12 @@ export function useRefresh() {
       }
     }
     finally {
-      clearTimeout(timeoutId)
       setIsRefreshing(false)
     }
   }, [isRefreshing])
 
   return {
     isRefreshing,
-    refreshActivity,
+    refreshAllUsers,
   }
 }
