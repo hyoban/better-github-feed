@@ -1,0 +1,1 @@
+ALTER TABLE `account` ADD `following_sync_claimed_at` integer;

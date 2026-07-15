@@ -15,9 +15,28 @@ export type FollowingSnapshotRow = {
   createdAt: number
 }
 
+export type FollowingSyncResult = {
+  total: number
+  added: number
+  removed: number
+}
+
+export type FollowingSyncSummary = {
+  attempted: number
+  succeeded: number
+  failed: number
+  following: number
+  added: number
+  removed: number
+}
+
 type Fetcher = typeof fetch
 
 const GITHUB_FOLLOWING_URL = 'https://api.github.com/user/following?per_page=100'
+const GITHUB_FOLLOWING_TIMEOUT_MS = 60 * 1000
+const FOLLOWING_SYNC_CONCURRENCY = 3
+const FOLLOWING_SYNC_RETRY_ATTEMPTS = 70
+const FOLLOWING_SYNC_RETRY_DELAY_MS = 1000
 const D1_JSON_CHUNK_MAX_BYTES = 1_800_000
 const textEncoder = new TextEncoder()
 
@@ -28,6 +47,13 @@ export class GithubFollowingError extends Error {
     super(message)
     this.name = 'GithubFollowingError'
     this.status = status
+  }
+}
+
+export class GithubFollowingSyncInProgressError extends Error {
+  constructor() {
+    super('GitHub following sync already in progress')
+    this.name = 'GithubFollowingSyncInProgressError'
   }
 }
 
@@ -93,6 +119,7 @@ export async function fetchGithubFollowing(
 ): Promise<GithubFollowingUser[]> {
   const following = new Map<string, GithubFollowingUser>()
   const visitedUrls = new Set<string>()
+  const signal = AbortSignal.timeout(GITHUB_FOLLOWING_TIMEOUT_MS)
   let nextUrl: string | null = GITHUB_FOLLOWING_URL
 
   while (nextUrl) {
@@ -110,6 +137,7 @@ export async function fetchGithubFollowing(
           'User-Agent': 'better-github-feed',
           'X-GitHub-Api-Version': '2022-11-28',
         },
+        signal,
       })
     }
     catch (error) {
@@ -192,4 +220,57 @@ export function serializeFollowingSnapshotChunks(
   }
 
   return chunks.length > 0 ? chunks : ['[]']
+}
+
+export async function syncGithubFollowingsForUsers(
+  userIds: string[],
+  syncUser: (userId: string) => Promise<FollowingSyncResult>,
+): Promise<FollowingSyncSummary> {
+  const summary: FollowingSyncSummary = {
+    attempted: userIds.length,
+    succeeded: 0,
+    failed: 0,
+    following: 0,
+    added: 0,
+    removed: 0,
+  }
+
+  for (let index = 0; index < userIds.length; index += FOLLOWING_SYNC_CONCURRENCY) {
+    const userBatch = userIds.slice(index, index + FOLLOWING_SYNC_CONCURRENCY)
+    const results = await Promise.allSettled(userBatch.map(userId => syncUser(userId)))
+
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        summary.failed += 1
+        continue
+      }
+
+      summary.succeeded += 1
+      summary.following += result.value.total
+      summary.added += result.value.added
+      summary.removed += result.value.removed
+    }
+  }
+
+  return summary
+}
+
+export async function waitForGithubFollowingSync<T>(
+  syncUser: () => Promise<T>,
+  maxAttempts = FOLLOWING_SYNC_RETRY_ATTEMPTS,
+  retryDelayMs = FOLLOWING_SYNC_RETRY_DELAY_MS,
+): Promise<T> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await syncUser()
+    }
+    catch (error) {
+      if (!(error instanceof GithubFollowingSyncInProgressError) || attempt === maxAttempts) {
+        throw error
+      }
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs))
+    }
+  }
+
+  throw new Error('GitHub following sync retry loop exited unexpectedly')
 }

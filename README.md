@@ -7,7 +7,7 @@ A modern web application that turns the activity of the developers you follow on
 - **GitHub Feed Aggregation** - Collect activity from the developers you follow
 - **Advanced Filtering** - Focus on the events that matter to you
 - **GitHub Following Sync** - Keep the feed aligned with your GitHub following list
-- **Scheduled Refresh** - Refresh feeds every 20 minutes with a Cron Trigger
+- **Scheduled Refresh** - Sync following lists and refresh feeds every 20 minutes with a Cron Trigger
 - **GitHub OAuth** - Authenticate securely with GitHub
 - **Responsive UI** - Use the feed comfortably on desktop and mobile
 

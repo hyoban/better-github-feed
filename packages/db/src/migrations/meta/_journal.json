@@ -50,6 +50,13 @@
       "when": 1784113022060,
       "tag": "0006_misty_jamie_braddock",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1784113658596,
+      "tag": "0007_mighty_lorna_dane",
+      "breakpoints": true
     }
   ]
 }

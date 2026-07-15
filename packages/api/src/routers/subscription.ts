@@ -1,5 +1,6 @@
 import { auth } from '@better-github-feed/auth'
 import { db } from '@better-github-feed/db'
+import { account } from '@better-github-feed/db/schema/auth'
 import {
   feedItem,
   githubUser,
@@ -7,7 +8,7 @@ import {
   userFilter,
 } from '@better-github-feed/db/schema/github'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm'
 
 import { deserializeFilterGroup, filterRuleToDrizzleWhere } from '../filter/drizzle-transform'
 import { protectedProcedure } from '../index'
@@ -15,11 +16,15 @@ import {
   buildFollowingDiff,
   fetchGithubFollowing,
   GithubFollowingError,
+  GithubFollowingSyncInProgressError,
   serializeFollowingSnapshotChunks,
+  syncGithubFollowingsForUsers,
+  waitForGithubFollowingSync,
 } from './github-following'
 
 // Each chunk adds two batch statements. This leaves room under D1 Free's per-invocation limit.
 const MAX_SNAPSHOT_CHUNKS = 16
+const FOLLOWING_SYNC_CLAIM_TIMEOUT_MS = 10 * 60 * 1000
 
 async function getGithubAccessToken(userId: string) {
   try {
@@ -61,7 +66,7 @@ function toGithubSyncError(error: GithubFollowingError) {
   })
 }
 
-async function syncGithubFollowing(userId: string) {
+async function performGithubFollowingSync(userId: string) {
   const accessToken = await getGithubAccessToken(userId)
 
   let following
@@ -154,6 +159,82 @@ async function syncGithubFollowing(userId: string) {
   }
 }
 
+async function getGithubAccount(userId: string) {
+  const githubAccounts = await db
+    .select({ id: account.id })
+    .from(account)
+    .where(and(eq(account.userId, userId), eq(account.providerId, 'github')))
+    .limit(1)
+
+  const githubAccount = githubAccounts[0]
+  if (!githubAccount) {
+    throw new ORPCError('PRECONDITION_FAILED', {
+      message: 'Reconnect your GitHub account before syncing follows',
+    })
+  }
+
+  return githubAccount
+}
+
+async function claimGithubFollowingSync(accountId: string, claimedAt: Date) {
+  const claimCutoff = new Date(claimedAt.getTime() - FOLLOWING_SYNC_CLAIM_TIMEOUT_MS)
+  const result = await db
+    .update(account)
+    .set({ followingSyncClaimedAt: claimedAt })
+    .where(and(
+      eq(account.id, accountId),
+      or(
+        isNull(account.followingSyncClaimedAt),
+        lt(account.followingSyncClaimedAt, claimCutoff),
+      ),
+    ))
+
+  return result.meta.changes > 0
+}
+
+async function tryReleaseGithubFollowingSync(accountId: string, claimedAt: Date) {
+  try {
+    await db
+      .update(account)
+      .set({ followingSyncClaimedAt: null })
+      .where(and(
+        eq(account.id, accountId),
+        eq(account.followingSyncClaimedAt, claimedAt),
+      ))
+  }
+  catch {
+    // Leave the claim in place until it expires if it cannot be released.
+  }
+}
+
+async function syncGithubFollowing(userId: string) {
+  const githubAccount = await getGithubAccount(userId)
+  const claimedAt = new Date()
+  const claimed = await claimGithubFollowingSync(githubAccount.id, claimedAt)
+  if (!claimed) {
+    throw new GithubFollowingSyncInProgressError()
+  }
+
+  try {
+    return await performGithubFollowingSync(userId)
+  }
+  finally {
+    await tryReleaseGithubFollowingSync(githubAccount.id, claimedAt)
+  }
+}
+
+export async function syncAllGithubFollowings() {
+  const githubAccounts = await db
+    .selectDistinct({ userId: account.userId })
+    .from(account)
+    .where(eq(account.providerId, 'github'))
+
+  return syncGithubFollowingsForUsers(
+    githubAccounts.map(githubAccount => githubAccount.userId),
+    userId => waitForGithubFollowingSync(() => syncGithubFollowing(userId)),
+  )
+}
+
 export const subscriptionRouter = {
   list: protectedProcedure.subscription.list.handler(async ({ context }) => {
     const userId = context.session.user.id
@@ -224,6 +305,14 @@ export const subscriptionRouter = {
   }),
 
   sync: protectedProcedure.subscription.sync.handler(async ({ context }) => {
-    return syncGithubFollowing(context.session.user.id)
+    try {
+      return await syncGithubFollowing(context.session.user.id)
+    }
+    catch (error) {
+      if (error instanceof GithubFollowingSyncInProgressError) {
+        throw new ORPCError('CONFLICT', { message: error.message })
+      }
+      throw error
+    }
   }),
 }

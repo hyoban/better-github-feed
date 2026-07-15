@@ -3,6 +3,7 @@ import {
   appRouter,
   cleanupOldFeedItems,
   refreshAllUsersFeeds,
+  syncAllGithubFollowings,
 } from '@better-github-feed/api/routers/index'
 import { auth } from '@better-github-feed/auth'
 import { OpenAPIHandler } from '@orpc/openapi/fetch'
@@ -78,6 +79,21 @@ export default {
       cron: controller.cron,
       scheduledTime: controller.scheduledTime,
     }))
+
+    try {
+      const followingSyncResults = await syncAllGithubFollowings()
+      // eslint-disable-next-line no-console
+      console.log(JSON.stringify({
+        message: 'following_sync_completed',
+        results: followingSyncResults,
+      }))
+    }
+    catch (error) {
+      console.error(JSON.stringify({
+        message: 'following_sync_failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }))
+    }
 
     const refreshResults = await refreshAllUsersFeeds()
     // eslint-disable-next-line no-console

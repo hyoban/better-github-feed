@@ -4,7 +4,7 @@ import { os, protectedProcedure } from '../index'
 import { cleanupOldFeedItems, feedRouter, refreshAllUsersFeeds } from './feed'
 import { filterRouter } from './filter'
 import { healthRouter } from './health'
-import { subscriptionRouter } from './subscription'
+import { subscriptionRouter, syncAllGithubFollowings } from './subscription'
 
 export const appRouter = os.router({
   health: healthRouter,
@@ -22,4 +22,4 @@ export const appRouter = os.router({
 export type AppRouter = typeof appRouter
 export type AppRouterClient = RouterClient<typeof appRouter>
 
-export { cleanupOldFeedItems, refreshAllUsersFeeds }
+export { cleanupOldFeedItems, refreshAllUsersFeeds, syncAllGithubFollowings }
