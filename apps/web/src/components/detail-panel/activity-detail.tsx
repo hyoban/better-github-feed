@@ -98,7 +98,7 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
         {sanitizedContent ? (
           <div className="p-4">
             <div
-              className="activity-content prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline [&_a:hover]:no-underline [&_blockquote]:border-l [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-4"
+              className="max-w-none [&_a]:text-primary [&_a]:underline [&_a:hover]:no-underline [&_blockquote]:border-l [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-4"
               dangerouslySetInnerHTML={{
                 __html: sanitizedContent,
               }}

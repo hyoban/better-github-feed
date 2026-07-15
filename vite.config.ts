@@ -31,6 +31,7 @@ export default defineConfig({
     settings: {
       'better-tailwindcss': {
         cwd: './apps/web',
+        detectComponentClasses: true,
         entryPoint: 'src/index.css',
         rootFontSize: 16,
       },
@@ -112,6 +113,7 @@ export default defineConfig({
     ],
     rules: {
       'better-tailwindcss/enforce-canonical-classes': 'error',
+      'better-tailwindcss/no-unknown-classes': 'error',
       'accessor-pairs': [
         'error',
         {
