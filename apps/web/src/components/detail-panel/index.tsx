@@ -9,7 +9,7 @@ export function DetailPanel() {
   const [activeId] = useActiveId()
   const [activeTypes] = useActiveTypes()
   const [activeUsers] = useActiveUsers()
-  const { items } = useActivity(!!session, activeUsers, activeTypes)
+  const { items } = useActivity(session?.user.id, activeUsers, activeTypes)
 
   const selectedItem = items.find(item => item.id === activeId)
 

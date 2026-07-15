@@ -15,8 +15,7 @@ export function TypeFilter() {
   const [activeTypes, setActiveTypes] = useActiveTypes()
   const [activeUsers] = useActiveUsers()
 
-  const isAuthenticated = !!session
-  const { types, typeCounts } = useActivity(isAuthenticated, activeUsers, activeTypes)
+  const { types, typeCounts } = useActivity(session?.user.id, activeUsers, activeTypes)
 
   // Filter activeTypes to only include valid types
   const validActiveTypes = useMemo(() => {

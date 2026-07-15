@@ -69,31 +69,18 @@ export const healthContract = {
     .output(z.string()),
 }
 
-// Subscription contract
+// GitHub following sync contract
 export const subscriptionContract = {
   list: contract
     .route({ method: 'GET', path: '/subscription' })
     .output(z.array(subscriptionWithStatsSchema)),
-  add: contract
-    .route({ method: 'POST', path: '/subscription' })
-    .input(z.object({ body: z.object({ login: loginSchema }) }))
-    .output(subscriptionSchema),
-  remove: contract
-    .route({ method: 'DELETE', path: '/subscription/{id}' })
-    .input(z.object({ params: z.object({ id: z.string().trim().min(1) }) }))
-    .output(z.object({ ok: z.literal(true) })),
-  importOpml: contract
-    .route({ method: 'POST', path: '/subscription/import-opml' })
-    .input(z.object({ body: z.object({ opml: z.string().trim().min(1) }) }))
+  sync: contract
+    .route({ method: 'POST', path: '/subscription/sync' })
     .output(z.object({
       total: z.number(),
       added: z.number(),
-      skipped: z.number(),
-      logins: z.array(z.string()),
+      removed: z.number(),
     })),
-  exportOpml: contract
-    .route({ method: 'GET', path: '/subscription/export-opml' })
-    .output(z.object({ opml: z.string() })),
 }
 
 // Feed contract

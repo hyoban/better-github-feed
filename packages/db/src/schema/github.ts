@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
-// Global GitHub user table - stores GitHub users that can be subscribed to
+// Global GitHub user table - stores users found through GitHub following sync
 // Primary key is the GitHub login (username)
 export const githubUser = sqliteTable('github_user', {
   login: text('login').primaryKey(),
@@ -43,7 +43,7 @@ export const feedItem = sqliteTable(
   ],
 )
 
-// Subscription table - links users to GitHub users they follow
+// Materialized relation between app users and their GitHub following lists
 export const subscription = sqliteTable(
   'subscription',
   {

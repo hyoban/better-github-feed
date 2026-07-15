@@ -10,6 +10,7 @@
     }
   },
   "scripts": {
+    "test": "node --test src/routers/github-following.test.ts",
     "type-check": "tsgo"
   },
   "dependencies": {

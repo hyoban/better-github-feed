@@ -1,8 +1,8 @@
 import UserMenu from '@/components/user-menu'
 
-import { AddDeveloperDialog } from './add-developer-dialog'
 import { FollowList } from './follow-list'
 import { SortToggle } from './sort-toggle'
+import { SyncFollowingButton } from './sync-following-button'
 
 export function Sidebar() {
   return (
@@ -13,7 +13,7 @@ export function Sidebar() {
       <FollowList />
       <div className="flex justify-between gap-2 border-t p-2">
         <UserMenu />
-        <AddDeveloperDialog />
+        <SyncFollowingButton />
       </div>
     </aside>
   )

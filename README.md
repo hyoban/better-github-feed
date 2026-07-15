@@ -6,7 +6,7 @@ A modern web application that aggregates GitHub developer activity into a unifie
 
 - **GitHub Feed Aggregation** - Collect and display activity from multiple GitHub developers in one place
 - **Advanced Filtering** - Custom filter rules to focus on the events that matter to you
-- **Subscription Management** - Subscribe to developers with OPML import/export support
+- **GitHub Following Sync** - Keep your feed aligned with the people you follow on GitHub
 - **Real-time Refresh** - Keep your feed up-to-date with the latest activity
 - **GitHub OAuth** - Secure authentication via GitHub
 - **Responsive UI** - Desktop sidebar and mobile drawer for seamless experience across devices

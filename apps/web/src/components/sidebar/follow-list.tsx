@@ -3,20 +3,20 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useFocusedPanel, useKeyboardNavigation } from '@/hooks/use-keyboard-navigation'
-import { useActiveUsers, useSortBy } from '@/hooks/use-query-state'
-import { useRefreshFeed, useRemoveSubscription } from '@/hooks/use-subscription-actions'
+import { useActiveId, useActiveUsers, useSortBy } from '@/hooks/use-query-state'
+import { useRefreshFeed } from '@/hooks/use-subscription-actions'
 import { useSubscriptionList } from '@/hooks/use-subscription-list'
 import { authClient } from '@/lib/auth-client'
 
 import { FollowUserItem } from './follow-user-item'
 
 export function FollowList() {
-  const { data: session } = authClient.useSession()
-  const { follows, isLoading } = useSubscriptionList(!!session)
-  const { removeUser, isPending: isRemovePending } = useRemoveSubscription()
+  const { data: session, isPending: isSessionPending } = authClient.useSession()
+  const { follows, isLoading, isSuccess } = useSubscriptionList(session?.user.id)
   const { refreshSingleFeed } = useRefreshFeed()
   const [sortBy] = useSortBy()
   const [activeUsers, setActiveUsers] = useActiveUsers()
+  const [, setActiveId] = useActiveId()
   const [focusedPanel, setFocusedPanel] = useFocusedPanel()
 
   // Filter activeUsers to only include valid users
@@ -26,6 +26,20 @@ export function FollowList() {
     const available = new Set(follows.map(follow => follow.githubUserLogin).filter(Boolean))
     return activeUsers.filter(login => available.has(login))
   }, [follows, activeUsers])
+
+  useEffect(() => {
+    if (
+      !session
+      || isSessionPending
+      || !isSuccess
+      || validActiveUsers.length === activeUsers.length
+    ) {
+      return
+    }
+
+    void setActiveUsers(validActiveUsers)
+    void setActiveId(null)
+  }, [activeUsers, isSessionPending, isSuccess, session, setActiveId, setActiveUsers, validActiveUsers])
 
   // Sort follows based on sortBy
   const sortedFollows = useMemo(() => {
@@ -112,7 +126,7 @@ export function FollowList() {
     }
   }
 
-  if (isLoading) {
+  if (isSessionPending || isLoading) {
     return (
       <ScrollArea className="min-h-0 flex-1">
         <div>
@@ -131,7 +145,9 @@ export function FollowList() {
     return (
       <div className="flex min-h-0 flex-1 items-start px-4 pt-4">
         <p className="text-sm text-muted-foreground">
-          Add a developer to start collecting activity.
+          {session
+            ? 'Sync your GitHub following to start building your feed.'
+            : 'Sign in with GitHub to sync the people you follow.'}
         </p>
       </div>
     )
@@ -150,14 +166,12 @@ export function FollowList() {
                 follow={follow}
                 isActive={isActive}
                 isFocused={isFocused}
-                isRemovePending={isRemovePending}
                 onToggle={toggleUser}
                 onFocus={() => {
                   void setFocusedPanel('sidebar')
                   void setActiveUsers([follow.githubUserLogin])
                 }}
                 onRefresh={refreshSingleFeed}
-                onRemove={removeUser}
               />
             </div>
           )

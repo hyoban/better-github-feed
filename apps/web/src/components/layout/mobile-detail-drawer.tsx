@@ -11,7 +11,7 @@ export function MobileDetailDrawer() {
   const [activeId, setActiveId] = useActiveId()
   const [activeTypes] = useActiveTypes()
   const [activeUsers] = useActiveUsers()
-  const { items } = useActivity(!!session, activeUsers, activeTypes)
+  const { items } = useActivity(session?.user.id, activeUsers, activeTypes)
   const isDesktop = useIsDesktop()
 
   const selectedItem = items.find(item => item.id === activeId)

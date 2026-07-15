@@ -14,16 +14,17 @@ import { authClient } from '@/lib/auth-client'
 import { ActivitySummaryItem } from './activity-summary-item'
 
 export function ActivityList() {
-  const { data: session } = authClient.useSession()
+  const { data: session, isPending: isSessionPending } = authClient.useSession()
   const [activeTypes] = useActiveTypes()
   const [activeUsers] = useActiveUsers()
   const [activeId, setActiveId] = useActiveId()
   const [focusedPanel, setFocusedPanel] = useFocusedPanel()
 
-  const isAuthenticated = !!session
-  const { follows } = useSubscriptionList(isAuthenticated)
+  const userId = session?.user.id
+  const isAuthenticated = !!userId
+  const { follows, isLoading: isFollowsLoading } = useSubscriptionList(userId)
   const { items, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage }
-    = useActivity(isAuthenticated, activeUsers, activeTypes)
+    = useActivity(userId, activeUsers, activeTypes)
 
   const hasFollows = follows.length > 0
 
@@ -38,10 +39,14 @@ export function ActivityList() {
     return map
   }, [follows])
 
-  const emptyMessage
-    = items.length === 0 && hasFollows
-      ? 'No cached activity yet. Hit Refresh to fetch the latest feeds.'
-      : 'No activity matches your filters yet.'
+  const hasActiveFilters = activeUsers.length > 0 || activeTypes.length > 0
+  const emptyMessage = !isAuthenticated
+    ? 'Sign in with GitHub to see activity from the people you follow.'
+    : !hasFollows
+        ? 'Sync your GitHub following to start building your feed.'
+        : hasActiveFilters
+          ? 'No activity matches your filters yet.'
+          : 'No cached activity yet. Refresh a followed user to fetch their latest activity.'
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null)
   const loadMoreTriggered = useRef(false)
 
@@ -105,7 +110,7 @@ export function ActivityList() {
     prevFocusedPanel.current = focusedPanel
   }, [focusedPanel, items, activeId, setActiveId, virtualizer])
 
-  if (isLoading) {
+  if (isSessionPending || isFollowsLoading || isLoading) {
     return (
       <ScrollArea className="h-full min-h-0 flex-1">
         <div>

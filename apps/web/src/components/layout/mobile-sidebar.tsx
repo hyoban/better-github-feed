@@ -4,16 +4,14 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import UserMenu from '@/components/user-menu'
-import { authClient } from '@/lib/auth-client'
 
-import { AddDeveloperDialog } from '../sidebar/add-developer-dialog'
 import { FollowList } from '../sidebar/follow-list'
 import { SortToggle } from '../sidebar/sort-toggle'
+import { SyncFollowingButton } from '../sidebar/sync-following-button'
 
 const LG_BREAKPOINT = 1024
 
 export function MobileSidebar() {
-  const { data: session } = authClient.useSession()
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -40,7 +38,7 @@ export function MobileSidebar() {
         <FollowList />
         <div className="flex justify-between gap-2 border-t p-2">
           <UserMenu />
-          {session && <AddDeveloperDialog />}
+          <SyncFollowingButton />
         </div>
       </SheetContent>
     </Sheet>

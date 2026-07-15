@@ -1,4 +1,5 @@
 import { db } from '@better-github-feed/db'
+import { user as appUser } from '@better-github-feed/db/schema/auth'
 import {
   feedItem,
   githubUser,
@@ -145,7 +146,7 @@ export const feedRouter = {
 
   refresh: protectedProcedure.feed.refresh.handler(async function* ({ context }) {
     const userId = context.session.user.id
-    // Get all github users that this user is subscribed to
+    // Get all GitHub users synced from this user's following list
     const subs = await db
       .select({
         githubUserLogin: subscription.githubUserLogin,
@@ -235,7 +236,7 @@ export const feedRouter = {
     const userId = context.session.user.id
     const login = normalizeLogin(input.params.login)
 
-    // Verify the user is subscribed to this login
+    // Verify the login is still in the user's synced GitHub following list
     const existingSub = await db
       .select({ githubUserLogin: subscription.githubUserLogin })
       .from(subscription)
@@ -244,7 +245,7 @@ export const feedRouter = {
 
     const existingSubRow = existingSub[0]
     if (!existingSubRow) {
-      throw new ORPCError('NOT_FOUND', { message: 'User not in your subscription list' })
+      throw new ORPCError('NOT_FOUND', { message: 'User not in your GitHub following list' })
     }
 
     const refreshedAt = new Date()
@@ -288,7 +289,7 @@ export const feedRouter = {
 
   clear: protectedProcedure.feed.clear.handler(async ({ context }) => {
     const userId = context.session.user.id
-    // Get all github users that this user is subscribed to
+    // Get all GitHub users synced from this user's following list
     const subs = await db
       .select({ githubUserLogin: subscription.githubUserLogin })
       .from(subscription)
@@ -297,7 +298,7 @@ export const feedRouter = {
     const githubUserLogins = subs.map(s => s.githubUserLogin)
 
     if (githubUserLogins.length > 0) {
-      // Delete feed items for subscribed github users
+      // Delete feed items for synced GitHub users
       await db.delete(feedItem).where(inArray(feedItem.githubUserLogin, githubUserLogins))
 
       // Reset lastRefreshedAt for these github users
@@ -356,16 +357,19 @@ export async function cleanupOldFeedItems(maxItemsPerUser = 200) {
 }
 
 /**
- * Refresh feeds for all github users - used by cron job
- * Only refreshes the 50 least recently refreshed github users each run
+ * Refresh feeds for GitHub users followed by an active app user.
+ * Only refreshes the 50 least recently refreshed GitHub users each run.
  */
 export async function refreshAllUsersFeeds() {
-  // Get the 50 least recently refreshed github users
+  // Ignore cached GitHub users and orphaned relations that no active app user follows.
   const usersToRefresh = await db
     .select({
       login: githubUser.login,
     })
     .from(githubUser)
+    .innerJoin(subscription, eq(githubUser.login, subscription.githubUserLogin))
+    .innerJoin(appUser, eq(subscription.userId, appUser.id))
+    .groupBy(githubUser.login)
     .orderBy(asc(githubUser.lastRefreshedAt))
     .limit(50)
 
