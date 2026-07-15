@@ -4,7 +4,7 @@ import { TypeFilter } from '@/components/feed/type-filter'
 import { MobileDetailDrawer } from '@/components/layout/mobile-detail-drawer'
 import { MobileHeader } from '@/components/layout/mobile-header'
 import { Sidebar } from '@/components/sidebar'
-import { FocusedPanelProvider } from '@/hooks/use-keyboard-navigation'
+import { FocusedPanelProvider } from '@/hooks/focused-panel-provider'
 
 export function Home() {
   return (

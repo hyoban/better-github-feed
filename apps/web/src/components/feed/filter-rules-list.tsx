@@ -64,7 +64,7 @@ function FilterRuleItem({
   )
 }
 
-export function FilterRulesList() {
+function FilterRulesList() {
   const { data: filters, isLoading } = useFilters()
   const deleteFilter = useDeleteFilter()
 

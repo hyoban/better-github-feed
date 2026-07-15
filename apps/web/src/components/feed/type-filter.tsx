@@ -23,6 +23,7 @@ export function TypeFilter() {
     const available = new Set(types)
     return activeTypes.filter(type => available.has(type))
   }, [types, activeTypes])
+  const validActiveTypeSet = useMemo(() => new Set(validActiveTypes), [validActiveTypes])
 
   const pinnedTypes = ['star', 'pr_merged']
   const sortedTypes = [...types].sort((a, b) => {
@@ -46,13 +47,13 @@ export function TypeFilter() {
           size="sm"
           variant={validActiveTypes.length === 0 ? 'default' : 'outline'}
           className="h-7 shrink-0 rounded-full"
-          onClick={() => setActiveTypes([])}
+          onClick={() => void setActiveTypes([])}
         >
           All
         </Button>
         <Separator orientation="vertical" />
         {sortedTypes.map(type => {
-          const isActive = validActiveTypes.includes(type)
+          const isActive = validActiveTypeSet.has(type)
           return (
             <Button
               key={type}
@@ -62,13 +63,13 @@ export function TypeFilter() {
               onClick={e => {
                 const isMultiSelect = e.metaKey || e.ctrlKey
                 if (isMultiSelect) {
-                  setActiveTypes(
+                  void setActiveTypes(
                     isActive
                       ? validActiveTypes.filter(t => t !== type)
                       : [...validActiveTypes, type],
                   )
                 } else {
-                  setActiveTypes(isActive ? [] : [type])
+                  void setActiveTypes(isActive ? [] : [type])
                 }
               }}
             >

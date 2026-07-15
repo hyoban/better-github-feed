@@ -2,7 +2,21 @@ import type { RefreshProgressEvent } from '@better-github-feed/contract'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
+import { warnIfCacheInvalidationFailed } from '@/lib/cache-invalidation'
 import { feedMutations } from '@/utils/orpc'
+
+export function refreshSingleFeed(login: string) {
+  toast.promise(feedMutations.refreshOne(login), {
+    loading: `Refreshing @${login}...`,
+    success: result => {
+      const message = result.data.skipped
+        ? `Skipped @${login}: refreshed recently or already refreshing`
+        : `Refreshed @${login}: ${result.data.itemCount} items`
+      return result.cacheStatus === 'stale' ? `${message}; cached data may be stale` : message
+    },
+    error: err => (err instanceof Error ? err.message : 'Failed to refresh'),
+  })
+}
 
 export function useRefreshAllUsers() {
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -53,9 +67,10 @@ export function useRefreshAllUsers() {
         const skippedMessage = skipped > 0 ? `, skipped ${skipped} recent or active refreshes` : ''
         toast.success(`Refreshed ${total - skipped} feeds${skippedMessage}`, { id: toastId })
       }
-      if (result.cacheStatus === 'stale') {
-        toast.warning('Feeds refreshed, but cached data could not be refreshed')
-      }
+      warnIfCacheInvalidationFailed(
+        result,
+        'Feeds refreshed, but cached data could not be refreshed',
+      )
     } catch (error) {
       const refreshableTotal = total - skipped
       const failedCount = refreshableTotal - completed + errors.length

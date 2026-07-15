@@ -1,22 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect } from 'react'
 
-export type FocusedPanel = 'sidebar' | 'feed'
+import { FocusedPanelContext } from './focused-panel-context'
 
-// Context for focused panel state
-const FocusedPanelContext = createContext<{
-  focusedPanel: FocusedPanel
-  setFocusedPanel: (panel: FocusedPanel) => void
-} | null>(null)
-
-export function FocusedPanelProvider({ children }: { children: React.ReactNode }) {
-  const [focusedPanel, setFocusedPanel] = useState<FocusedPanel>('feed')
-
-  return (
-    <FocusedPanelContext.Provider value={{ focusedPanel, setFocusedPanel }}>
-      {children}
-    </FocusedPanelContext.Provider>
-  )
-}
+export type { FocusedPanel } from './focused-panel-context'
 
 export function useFocusedPanel() {
   const context = useContext(FocusedPanelContext)

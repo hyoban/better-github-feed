@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useFocusedPanel, useKeyboardNavigation } from '@/hooks/use-keyboard-navigation'
 import { useActiveId, useActiveUsers, useSortBy } from '@/hooks/use-query-state'
-import { useRefreshFeed } from '@/hooks/use-subscription-actions'
+import { refreshSingleFeed } from '@/hooks/use-refresh'
 import { useSubscriptionList } from '@/hooks/use-subscription-list'
 import { authClient } from '@/lib/auth-client'
 
@@ -13,7 +13,6 @@ import { FollowUserItem } from './follow-user-item'
 export function FollowList() {
   const { data: session, isPending: isSessionPending } = authClient.useSession()
   const { follows, isLoading, isSuccess } = useSubscriptionList(session?.user.id)
-  const { refreshSingleFeed } = useRefreshFeed()
   const [sortBy] = useSortBy()
   const [activeUsers, setActiveUsers] = useActiveUsers()
   const [, setActiveId] = useActiveId()
@@ -22,9 +21,12 @@ export function FollowList() {
   // Filter activeUsers to only include valid users
   const validActiveUsers = useMemo(() => {
     if (follows.length === 0) return []
-    const available = new Set(follows.map(follow => follow.githubUserLogin).filter(Boolean))
+    const available = new Set(
+      follows.flatMap(follow => (follow.githubUserLogin ? [follow.githubUserLogin] : [])),
+    )
     return activeUsers.filter(login => available.has(login))
   }, [follows, activeUsers])
+  const validActiveUserSet = useMemo(() => new Set(validActiveUsers), [validActiveUsers])
 
   useEffect(() => {
     if (
@@ -114,16 +116,16 @@ export function FollowList() {
   const toggleUser = (login: string, multiSelect: boolean) => {
     setFocusedPanel('sidebar')
     if (multiSelect) {
-      if (validActiveUsers.includes(login)) {
-        setActiveUsers(validActiveUsers.filter(item => item !== login))
+      if (validActiveUserSet.has(login)) {
+        void setActiveUsers(validActiveUsers.filter(item => item !== login))
       } else {
-        setActiveUsers([...validActiveUsers, login])
+        void setActiveUsers([...validActiveUsers, login])
       }
     } else {
       if (validActiveUsers.length === 1 && validActiveUsers[0] === login) {
-        setActiveUsers([])
+        void setActiveUsers([])
       } else {
-        setActiveUsers([login])
+        void setActiveUsers([login])
       }
     }
   }
@@ -159,7 +161,7 @@ export function FollowList() {
     <ScrollArea className="min-h-0 flex-1">
       <div ref={listRef}>
         {sortedFollows.map(follow => {
-          const isActive = validActiveUsers.includes(follow.githubUserLogin)
+          const isActive = validActiveUserSet.has(follow.githubUserLogin)
           const isFocused =
             focusedPanel === 'sidebar' && validActiveUsers[0] === follow.githubUserLogin
           return (

@@ -47,6 +47,7 @@ export const FollowUserItem = memo(
                 href={`https://github.com/${follow.githubUserLogin}`}
                 target="_blank"
                 rel="noreferrer"
+                aria-label={`Open ${follow.githubUserLogin} on GitHub`}
               />
             }
           >

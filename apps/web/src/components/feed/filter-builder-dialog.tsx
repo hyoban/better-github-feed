@@ -1,7 +1,7 @@
 import type { FilterGroup } from '@better-github-feed/shared'
 import { emptyFilterGroup, feedItemFilterSchema, filterFnList } from '@better-github-feed/shared'
 import { FilterBuilder, FilterSphereProvider, useFilterSphere } from '@fn-sphere/filter'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -75,9 +75,7 @@ export function FilterBuilderDialog({
   editingFilter,
 }: FilterBuilderDialogProps) {
   const [name, setName] = useState(editingFilter?.name ?? '')
-  const [filterRule, setFilterRule] = useState<FilterGroup>(
-    editingFilter?.filterRule ?? emptyFilterGroup,
-  )
+  const filterRuleRef = useRef<FilterGroup>(editingFilter?.filterRule ?? emptyFilterGroup)
 
   const createFilter = useCreateFilter()
   const updateFilter = useUpdateFilter()
@@ -91,7 +89,7 @@ export function FilterBuilderDialog({
       return
     }
 
-    if (filterRule.conditions.length === 0) {
+    if (filterRuleRef.current.conditions.length === 0) {
       toast.error('Please add at least one filter rule')
       return
     }
@@ -100,11 +98,13 @@ export function FilterBuilderDialog({
       if (isEditing) {
         await updateFilter.mutateAsync({
           params: { id: editingFilter.id },
-          body: { name: name.trim(), filterRule },
+          body: { name: name.trim(), filterRule: filterRuleRef.current },
         })
         toast.success('Filter updated')
       } else {
-        await createFilter.mutateAsync({ body: { name: name.trim(), filterRule } })
+        await createFilter.mutateAsync({
+          body: { name: name.trim(), filterRule: filterRuleRef.current },
+        })
         toast.success('Filter created')
       }
 
@@ -118,7 +118,7 @@ export function FilterBuilderDialog({
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
       setName(editingFilter?.name ?? '')
-      setFilterRule(editingFilter?.filterRule ?? emptyFilterGroup)
+      filterRuleRef.current = editingFilter?.filterRule ?? emptyFilterGroup
     }
     onOpenChange(newOpen)
   }
@@ -138,7 +138,9 @@ export function FilterBuilderDialog({
           name={name}
           setName={setName}
           defaultRule={editingFilter?.filterRule ?? emptyFilterGroup}
-          onFilterChange={setFilterRule}
+          onFilterChange={rule => {
+            filterRuleRef.current = rule
+          }}
         />
 
         <DialogFooter>

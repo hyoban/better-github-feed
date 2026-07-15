@@ -49,6 +49,7 @@ export function ActivityList() {
         : 'No cached activity yet. Refresh a followed user to fetch their latest activity.'
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null)
   const loadMoreTriggered = useRef(false)
+  const wasFetchingNextPage = useRef(isFetchingNextPage)
 
   const scrollAreaRef = (node: HTMLDivElement | null) => {
     if (node) {
@@ -66,6 +67,27 @@ export function ActivityList() {
     overscan: 10,
     enabled: !!scrollElement,
   })
+  const virtualItems = virtualizer.getVirtualItems()
+  const isLoaderVisible =
+    !isSessionPending &&
+    !isFollowsLoading &&
+    !isLoading &&
+    items.length > 0 &&
+    virtualItems.some(virtualRow => virtualRow.index >= items.length)
+
+  useEffect(() => {
+    if (wasFetchingNextPage.current && !isFetchingNextPage) {
+      loadMoreTriggered.current = false
+    }
+    wasFetchingNextPage.current = isFetchingNextPage
+  }, [isFetchingNextPage])
+
+  useEffect(() => {
+    if (isLoaderVisible && hasNextPage && !isFetchingNextPage && !loadMoreTriggered.current) {
+      loadMoreTriggered.current = true
+      void fetchNextPage()
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, isLoaderVisible])
 
   // Keyboard navigation
   const handleNavigate = useCallback(
@@ -144,11 +166,6 @@ export function ActivityList() {
     )
   }
 
-  // Reset load trigger when not fetching
-  if (!isFetchingNextPage) {
-    loadMoreTriggered.current = false
-  }
-
   const showRefreshing = isFetching && !isLoading
 
   return (
@@ -166,15 +183,9 @@ export function ActivityList() {
             position: 'relative',
           }}
         >
-          {virtualizer.getVirtualItems().map(virtualRow => {
+          {virtualItems.map(virtualRow => {
             const isLoaderRow = virtualRow.index >= items.length
             const item = items[virtualRow.index]
-
-            // Trigger load more when loader row is rendered
-            if (isLoaderRow && hasNextPage && !isFetchingNextPage && !loadMoreTriggered.current) {
-              loadMoreTriggered.current = true
-              fetchNextPage()
-            }
 
             return (
               <div

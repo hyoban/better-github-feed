@@ -5,36 +5,6 @@ export function formatTypeLabel(type: string) {
     .join(' ')
 }
 
-// Cache formatters for better performance (Vercel React Best Practices: Locale & i18n)
-const dayFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: '2-digit',
-  year: 'numeric',
-})
-
-const timeFormatter = new Intl.DateTimeFormat('en-US', {
-  hour: '2-digit',
-  minute: '2-digit',
-})
-
-export function formatDay(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return 'Unknown date'
-  }
-
-  return dayFormatter.format(date)
-}
-
-export function formatTime(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return 'Unknown time'
-  }
-
-  return timeFormatter.format(date)
-}
-
 export function formatRelativeTime(date: Date | string | null) {
   if (!date) {
     return 'Never'

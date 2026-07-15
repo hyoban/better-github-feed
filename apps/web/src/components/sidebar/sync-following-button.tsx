@@ -2,12 +2,12 @@ import { RefreshCwIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useSyncFollowing } from '@/hooks/use-subscription-actions'
+import { useFollowingSync } from '@/hooks/use-following-sync'
 import { authClient } from '@/lib/auth-client'
 
 export function SyncFollowingButton() {
   const { data: session } = authClient.useSession()
-  const { syncFollowing, isPending } = useSyncFollowing()
+  const { syncFollowing, isPending } = useFollowingSync()
 
   if (!session) {
     return null
