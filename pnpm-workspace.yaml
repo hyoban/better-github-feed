@@ -31,6 +31,7 @@ catalog:
   dompurify: ^3.4.12
   drizzle-kit: ^0.31.10
   drizzle-orm: ^0.45.2
+  eslint-plugin-better-tailwindcss: ^4.6.1
   hono: ^4.12.30
   idb-keyval: ^6.3.0
   lucide-react: ^1.24.0

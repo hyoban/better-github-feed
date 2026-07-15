@@ -84,12 +84,12 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
             href={item.link}
             target="_blank"
             rel="noreferrer"
-            className="block text-lg leading-tight font-semibold text-foreground transition-colors hover:text-primary"
+            className="block text-lg/tight font-semibold text-foreground transition-colors hover:text-primary"
           >
             {item.title}
           </a>
         ) : (
-          <h1 className="text-lg leading-tight font-semibold text-foreground">{item.title}</h1>
+          <h1 className="text-lg/tight font-semibold text-foreground">{item.title}</h1>
         )}
       </div>
 

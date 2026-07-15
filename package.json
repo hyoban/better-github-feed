@@ -26,6 +26,7 @@
     "@cloudflare/workers-types": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native-preview": "catalog:",
+    "eslint-plugin-better-tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

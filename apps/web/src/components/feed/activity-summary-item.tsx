@@ -83,9 +83,7 @@ export const ActivitySummaryItem = memo(
               <span>&middot;</span>
               <span>{formatRelativeTime(item.publishedAt)}</span>
             </div>
-            <p className="mt-1 line-clamp-2 text-sm leading-snug text-foreground/90">
-              {item.title}
-            </p>
+            <p className="mt-1 line-clamp-2 text-sm/snug text-foreground/90">{item.title}</p>
           </div>
         </div>
       </button>

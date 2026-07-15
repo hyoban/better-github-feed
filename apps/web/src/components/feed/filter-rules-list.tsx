@@ -100,7 +100,7 @@ function FilterRulesList() {
         {isLoading ? (
           <div className="text-sm text-muted-foreground">Loading filters...</div>
         ) : filters && filters.length > 0 ? (
-          <ScrollArea className="max-h-[300px]">
+          <ScrollArea className="max-h-75">
             <div className="flex flex-col gap-2">
               {filters.map(filter => (
                 <FilterRuleItem

@@ -23,7 +23,18 @@ export default defineConfig({
         name: 'vite-plus',
         specifier: 'vite-plus/oxlint-plugin',
       },
+      {
+        name: 'better-tailwindcss',
+        specifier: 'eslint-plugin-better-tailwindcss',
+      },
     ],
+    settings: {
+      'better-tailwindcss': {
+        cwd: './apps/web',
+        entryPoint: 'src/index.css',
+        rootFontSize: 16,
+      },
+    },
     categories: {
       correctness: 'warn',
     },
@@ -100,6 +111,7 @@ export default defineConfig({
       '**/components.d.ts',
     ],
     rules: {
+      'better-tailwindcss/enforce-canonical-classes': 'error',
       'accessor-pairs': [
         'error',
         {
