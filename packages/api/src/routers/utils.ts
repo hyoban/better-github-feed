@@ -12,16 +12,9 @@ export type ActivityItem = {
   source: string
 }
 
-export type ActivityError = {
-  login: string
-  message: string
-}
+export type { ActivityError, RefreshProgressEvent } from '@better-github-feed/contract'
 
-export type RefreshProgressEvent
-  = | { type: 'start', total: number }
-    | { type: 'success', login: string, index: number, itemCount: number }
-    | { type: 'error', login: string, index: number, message: string }
-    | { type: 'done', errors: ActivityError[] }
+const GITHUB_ACTIVITY_TIMEOUT_MS = 30 * 1000
 
 export function normalizeLogin(input: string) {
   return input.trim().replace(/^@/, '').toLowerCase()
@@ -192,6 +185,7 @@ export async function fetchGithubActivity(login: string) {
     headers: {
       'User-Agent': 'better-github-feed',
     },
+    signal: AbortSignal.timeout(GITHUB_ACTIVITY_TIMEOUT_MS),
   })
 
   if (!response.ok) {

@@ -7,10 +7,15 @@ import {
   userFilter,
 } from '@better-github-feed/db/schema/github'
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, inArray, lt, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 
 import { deserializeFilterGroup, filterRuleToDrizzleWhere } from '../filter/drizzle-transform'
 import { adminProcedure, protectedProcedure } from '../index'
+import {
+  REFRESH_CLAIM_TIMEOUT_MS,
+  REFRESH_COOLDOWN_MS,
+  shouldSkipRefresh,
+} from './refresh-cooldown'
 import type { ActivityError, RefreshProgressEvent } from './utils'
 import {
   chunkArray,
@@ -18,6 +23,127 @@ import {
   mapFeedItemRow,
   normalizeLogin,
 } from './utils'
+
+type RefreshCandidate = {
+  login: string
+  lastRefreshedAt: Date | null
+  refreshClaimedAt: Date | null
+}
+
+async function claimRefresh(login: string, claimedAt: Date) {
+  const cooldownCutoff = new Date(claimedAt.getTime() - REFRESH_COOLDOWN_MS)
+  const claimCutoff = new Date(claimedAt.getTime() - REFRESH_CLAIM_TIMEOUT_MS)
+  const result = await db
+    .update(githubUser)
+    .set({ refreshClaimedAt: claimedAt })
+    .where(and(
+      eq(githubUser.login, login),
+      or(isNull(githubUser.lastRefreshedAt), lt(githubUser.lastRefreshedAt, cooldownCutoff)),
+      or(isNull(githubUser.refreshClaimedAt), lt(githubUser.refreshClaimedAt, claimCutoff)),
+    ))
+
+  return result.meta.changes > 0
+}
+
+async function claimRefreshableUsers<T extends RefreshCandidate>(users: T[], claimedAt: Date) {
+  const results = await Promise.allSettled(users.map(async user => ({
+    user,
+    claimed: !shouldSkipRefresh(user.lastRefreshedAt, user.refreshClaimedAt, claimedAt)
+      && await claimRefresh(user.login, claimedAt),
+  })))
+
+  const claimedUsers: T[] = []
+  let claimFailed = false
+  let claimError: unknown
+
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      claimFailed = true
+      claimError ??= result.reason
+    }
+    else if (result.value.claimed) {
+      claimedUsers.push(result.value.user)
+    }
+  }
+
+  if (claimFailed) {
+    await Promise.all(claimedUsers.map(user => tryReleaseRefreshClaim(user, claimedAt)))
+    throw claimError
+  }
+
+  return claimedUsers
+}
+
+async function tryReleaseRefreshClaim(user: RefreshCandidate, claimedAt: Date) {
+  try {
+    await db
+      .update(githubUser)
+      .set({ refreshClaimedAt: null })
+      .where(and(
+        eq(githubUser.login, user.login),
+        eq(githubUser.refreshClaimedAt, claimedAt),
+      ))
+  }
+  catch {
+    // Leave the cooldown in place if the failed refresh claim cannot be released.
+  }
+}
+
+async function refreshGithubUser(user: RefreshCandidate, claimedAt: Date) {
+  const { login } = user
+
+  try {
+    const { items, githubId } = await fetchGithubActivity(login)
+    const rows = items.map(item => ({
+      id: item.id,
+      githubUserLogin: login,
+      title: item.title,
+      link: item.link,
+      repo: item.repo,
+      type: item.type,
+      summary: item.summary,
+      content: item.content,
+      publishedAt: new Date(item.publishedAtMs),
+    }))
+
+    const chunks = chunkArray(rows, 8)
+    for (const chunk of chunks) {
+      if (chunk.length === 0) {
+        continue
+      }
+      await db.insert(feedItem).values(chunk).onConflictDoNothing()
+    }
+
+    const refreshedAt = new Date()
+    const updateData: { lastRefreshedAt: Date, refreshClaimedAt: null, id?: string } = {
+      lastRefreshedAt: refreshedAt,
+      refreshClaimedAt: null,
+    }
+    if (githubId) {
+      updateData.id = githubId
+    }
+
+    // Only the current claim may complete the refresh. An expired claim must not overwrite a newer
+    // refresh timestamp.
+    const result = await db
+      .update(githubUser)
+      .set(updateData)
+      .where(and(
+        eq(githubUser.login, login),
+        eq(githubUser.refreshClaimedAt, claimedAt),
+      ))
+
+    if (result.meta.changes === 0) {
+      throw new Error(`Refresh for ${login} was superseded by a newer request`)
+    }
+
+    return { refreshedAt, itemCount: items.length }
+  }
+  catch (error) {
+    await tryReleaseRefreshClaim(user, claimedAt)
+    throw error
+  }
+}
 
 export const feedRouter = {
   list: protectedProcedure.feed.list.handler(async ({ context, input }) => {
@@ -149,74 +275,50 @@ export const feedRouter = {
     // Get all GitHub users synced from this user's following list
     const subs = await db
       .select({
-        githubUserLogin: subscription.githubUserLogin,
+        login: subscription.githubUserLogin,
+        lastRefreshedAt: githubUser.lastRefreshedAt,
+        refreshClaimedAt: githubUser.refreshClaimedAt,
       })
       .from(subscription)
       .innerJoin(githubUser, eq(subscription.githubUserLogin, githubUser.login))
       .where(eq(subscription.userId, userId))
       .orderBy(asc(githubUser.lastRefreshedAt))
 
+    const claimedAt = new Date()
+    const usersToRefresh = await claimRefreshableUsers(subs, claimedAt)
+    const skipped = subs.length - usersToRefresh.length
+
+    yield { type: 'start', total: subs.length, skipped } as RefreshProgressEvent
+
     if (subs.length === 0) {
       yield { type: 'done', errors: [] } as RefreshProgressEvent
       return
     }
 
-    yield { type: 'start', total: subs.length } as RefreshProgressEvent
-
-    const refreshedAt = new Date()
     const errors: ActivityError[] = []
     const events: RefreshProgressEvent[] = []
     let completed = 0
 
     // Start all fetches concurrently
-    const promises = subs.map(async (sub, index) => {
-      const login = sub.githubUserLogin
+    const promises = usersToRefresh.map(async (user, index) => {
+      const { login } = user
 
       try {
-        const { items, githubId } = await fetchGithubActivity(login)
-
-        const rows = items.map(item => ({
-          id: item.id,
-          githubUserLogin: login,
-          title: item.title,
-          link: item.link,
-          repo: item.repo,
-          type: item.type,
-          summary: item.summary,
-          content: item.content,
-          publishedAt: new Date(item.publishedAtMs),
-        }))
-
-        const chunks = chunkArray(rows, 8)
-        for (const chunk of chunks) {
-          if (chunk.length === 0) {
-            continue
-          }
-          await db.insert(feedItem).values(chunk).onConflictDoNothing()
-        }
-
-        // Update both lastRefreshedAt and githubId
-        const updateData: { lastRefreshedAt: Date, id?: string } = {
-          lastRefreshedAt: refreshedAt,
-        }
-        if (githubId) {
-          updateData.id = githubId
-        }
-
-        await db.update(githubUser).set(updateData).where(eq(githubUser.login, login))
-
-        events.push({ type: 'success', login, index, itemCount: items.length })
+        const { itemCount } = await refreshGithubUser(user, claimedAt)
+        events.push({ type: 'success', login, index, itemCount })
       }
       catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to refresh feed'
         errors.push({ login, message })
         events.push({ type: 'error', login, index, message })
       }
-      completed += 1
+      finally {
+        completed += 1
+      }
     })
 
     // Yield events as they complete
-    while (completed < subs.length) {
+    while (completed < usersToRefresh.length) {
       await new Promise(resolve => setTimeout(resolve, 100))
       while (events.length > 0) {
         yield events.shift()!
@@ -238,8 +340,13 @@ export const feedRouter = {
 
     // Verify the login is still in the user's synced GitHub following list
     const existingSub = await db
-      .select({ githubUserLogin: subscription.githubUserLogin })
+      .select({
+        login: subscription.githubUserLogin,
+        lastRefreshedAt: githubUser.lastRefreshedAt,
+        refreshClaimedAt: githubUser.refreshClaimedAt,
+      })
       .from(subscription)
+      .innerJoin(githubUser, eq(subscription.githubUserLogin, githubUser.login))
       .where(and(eq(subscription.userId, userId), eq(subscription.githubUserLogin, login)))
       .limit(1)
 
@@ -248,42 +355,17 @@ export const feedRouter = {
       throw new ORPCError('NOT_FOUND', { message: 'User not in your GitHub following list' })
     }
 
-    const refreshedAt = new Date()
-    const { items, githubId } = await fetchGithubActivity(login)
-
-    const rows = items.map(item => ({
-      id: item.id,
-      githubUserLogin: login,
-      title: item.title,
-      link: item.link,
-      repo: item.repo,
-      type: item.type,
-      summary: item.summary,
-      content: item.content,
-      publishedAt: new Date(item.publishedAtMs),
-    }))
-
-    const chunks = chunkArray(rows, 8)
-    for (const chunk of chunks) {
-      if (chunk.length === 0) {
-        continue
-      }
-      await db.insert(feedItem).values(chunk).onConflictDoNothing()
+    const claimedAt = new Date()
+    const usersToRefresh = await claimRefreshableUsers([existingSubRow], claimedAt)
+    if (usersToRefresh.length === 0) {
+      return { skipped: true as const }
     }
 
-    // Update both lastRefreshedAt and githubId
-    const updateData: { lastRefreshedAt: Date, id?: string } = {
-      lastRefreshedAt: refreshedAt,
-    }
-    if (githubId) {
-      updateData.id = githubId
-    }
-
-    await db.update(githubUser).set(updateData).where(eq(githubUser.login, login))
-
+    const { refreshedAt, itemCount } = await refreshGithubUser(existingSubRow, claimedAt)
     return {
+      skipped: false as const,
       refreshedAt: refreshedAt.toISOString(),
-      itemCount: items.length,
+      itemCount,
     }
   }),
 
@@ -362,9 +444,11 @@ export async function cleanupOldFeedItems(maxItemsPerUser = 200) {
  */
 export async function refreshAllUsersFeeds() {
   // Ignore cached GitHub users and orphaned relations that no active app user follows.
-  const usersToRefresh = await db
+  const refreshCandidates = await db
     .select({
       login: githubUser.login,
+      lastRefreshedAt: githubUser.lastRefreshedAt,
+      refreshClaimedAt: githubUser.refreshClaimedAt,
     })
     .from(githubUser)
     .innerJoin(subscription, eq(githubUser.login, subscription.githubUserLogin))
@@ -373,48 +457,20 @@ export async function refreshAllUsersFeeds() {
     .orderBy(asc(githubUser.lastRefreshedAt))
     .limit(50)
 
-  if (usersToRefresh.length === 0) {
+  if (refreshCandidates.length === 0) {
     return []
   }
 
-  const refreshedAt = new Date()
+  const claimedAt = new Date()
+  const usersToRefresh = await claimRefreshableUsers(refreshCandidates, claimedAt)
+  const skipped = refreshCandidates.length - usersToRefresh.length
   let success = 0
   let failed = 0
 
   // Process feeds concurrently
-  const promises = usersToRefresh.map(async ({ login }) => {
+  const promises = usersToRefresh.map(async (user) => {
     try {
-      const { items, githubId } = await fetchGithubActivity(login)
-      const rows = items.map(item => ({
-        id: item.id,
-        githubUserLogin: login,
-        title: item.title,
-        link: item.link,
-        repo: item.repo,
-        type: item.type,
-        summary: item.summary,
-        content: item.content,
-        publishedAt: new Date(item.publishedAtMs),
-      }))
-
-      const chunks = chunkArray(rows, 8)
-      for (const chunk of chunks) {
-        if (chunk.length === 0) {
-          continue
-        }
-        await db.insert(feedItem).values(chunk).onConflictDoNothing()
-      }
-
-      // Update both lastRefreshedAt and githubId
-      const updateData: { lastRefreshedAt: Date, id?: string } = {
-        lastRefreshedAt: refreshedAt,
-      }
-      if (githubId) {
-        updateData.id = githubId
-      }
-
-      await db.update(githubUser).set(updateData).where(eq(githubUser.login, login))
-
+      await refreshGithubUser(user, claimedAt)
       return { success: true }
     }
     catch {
@@ -432,5 +488,5 @@ export async function refreshAllUsersFeeds() {
     }
   }
 
-  return [{ refreshed: usersToRefresh.length, success, failed }]
+  return [{ refreshed: usersToRefresh.length, skipped, success, failed }]
 }

@@ -8,7 +8,7 @@ export type ActivityError = {
 }
 
 export type RefreshProgressEvent
-  = | { type: 'start', total: number }
+  = | { type: 'start', total: number, skipped: number }
     | { type: 'success', login: string, index: number, itemCount: number }
     | { type: 'error', login: string, index: number, message: string }
     | { type: 'done', errors: ActivityError[] }
@@ -118,10 +118,14 @@ export const feedContract = {
   refreshOne: contract
     .route({ method: 'POST', path: '/feed/refresh/{login}' })
     .input(z.object({ params: z.object({ login: loginSchema }) }))
-    .output(z.object({
-      refreshedAt: z.string(),
-      itemCount: z.number(),
-    })),
+    .output(z.discriminatedUnion('skipped', [
+      z.object({ skipped: z.literal(true) }),
+      z.object({
+        skipped: z.literal(false),
+        refreshedAt: z.string(),
+        itemCount: z.number(),
+      }),
+    ])),
   clear: contract
     .route({ method: 'POST', path: '/feed/clear' })
     .output(z.object({ ok: z.literal(true) })),

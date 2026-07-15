@@ -7,6 +7,7 @@ export const githubUser = sqliteTable('github_user', {
   login: text('login').primaryKey(),
   id: text('id'), // GitHub user ID (e.g., "38493346"), optional
   lastRefreshedAt: integer('last_refreshed_at', { mode: 'timestamp_ms' }),
+  refreshClaimedAt: integer('refresh_claimed_at', { mode: 'timestamp_ms' }),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

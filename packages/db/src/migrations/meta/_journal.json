@@ -43,6 +43,13 @@
       "when": 1769435521138,
       "tag": "0005_massive_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1784113022060,
+      "tag": "0006_misty_jamie_braddock",
+      "breakpoints": true
     }
   ]
 }

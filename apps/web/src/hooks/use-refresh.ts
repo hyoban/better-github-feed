@@ -16,6 +16,7 @@ export function useRefreshAllUsers() {
 
     let completed = 0
     let total = 0
+    let skipped = 0
     let errors: { login: string, message: string }[] = []
 
     try {
@@ -25,12 +26,17 @@ export function useRefreshAllUsers() {
         switch (event.type) {
           case 'start':
             total = event.total
-            toast.loading(`Refreshing 0/${total}`, { id: toastId })
+            skipped = event.skipped
+            toast.loading(`Refreshing ${skipped}/${total}`, { id: toastId })
             break
           case 'success':
+            completed += 1
+            toast.loading(`Refreshing ${completed + skipped}/${total}`, { id: toastId })
+            break
           case 'error':
             completed += 1
-            toast.loading(`Refreshing ${completed}/${total}`, { id: toastId })
+            errors.push({ login: event.login, message: event.message })
+            toast.loading(`Refreshing ${completed + skipped}/${total}`, { id: toastId })
             break
           case 'done':
             errors = event.errors
@@ -43,22 +49,34 @@ export function useRefreshAllUsers() {
 
       if (errors.length > 0) {
         const failedLogins = errors.map(error => `@${error.login}`).join(', ')
-        toast.error(`Failed to refresh: ${failedLogins}`, { id: toastId })
+        const skippedMessage = skipped > 0 ? `; skipped ${skipped} recent or active refreshes` : ''
+        toast.error(`Failed to refresh: ${failedLogins}${skippedMessage}`, { id: toastId })
+      }
+      else if (total === 0) {
+        toast.info('No feeds to refresh', { id: toastId })
+      }
+      else if (skipped === total) {
+        toast.info(`Skipped ${skipped} recent or active refreshes`, { id: toastId })
       }
       else {
-        toast.success(`Refreshed ${total} feeds`, { id: toastId })
+        const skippedMessage = skipped > 0 ? `, skipped ${skipped} recent or active refreshes` : ''
+        toast.success(`Refreshed ${total - skipped} feeds${skippedMessage}`, { id: toastId })
       }
     }
     catch (error) {
-      const failedCount = total - completed + errors.length
+      const refreshableTotal = total - skipped
+      const failedCount = refreshableTotal - completed + errors.length
+      const succeededCount = completed - errors.length
 
       queryClient.invalidateQueries({ queryKey: orpc.feed.list.key() })
       queryClient.invalidateQueries({ queryKey: orpc.subscription.list.queryKey() })
 
       if (completed > 0) {
-        toast.warning(`Refreshed ${completed}/${total} feeds (${failedCount} failed)`, {
-          id: toastId,
-        })
+        const skippedMessage = skipped > 0 ? `, skipped ${skipped} recent or active refreshes` : ''
+        toast.warning(
+          `Refreshed ${succeededCount}/${refreshableTotal} feeds (${failedCount} failed)${skippedMessage}`,
+          { id: toastId },
+        )
       }
       else {
         toast.error(error instanceof Error ? error.message : 'Failed to refresh feeds', {

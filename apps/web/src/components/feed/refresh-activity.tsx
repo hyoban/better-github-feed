@@ -29,7 +29,7 @@ export function RefreshAllUsersButton() {
       >
         <RotateCwIcon className={isRefreshing ? 'animate-spin' : undefined} />
       </TooltipTrigger>
-      <TooltipContent>Refresh all users</TooltipContent>
+      <TooltipContent>Refresh all users (skips recent or in-progress refreshes)</TooltipContent>
     </Tooltip>
   )
 }

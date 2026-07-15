@@ -1,0 +1,1 @@
+ALTER TABLE `github_user` ADD `refresh_claimed_at` integer;

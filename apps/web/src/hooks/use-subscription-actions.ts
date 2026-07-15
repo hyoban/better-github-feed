@@ -35,7 +35,9 @@ export function useRefreshFeed() {
       }),
       {
         loading: `Refreshing @${login}...`,
-        success: data => `Refreshed @${login}: ${data.itemCount} items`,
+        success: data => data.skipped
+          ? `Skipped @${login}: refreshed recently or already refreshing`
+          : `Refreshed @${login}: ${data.itemCount} items`,
         error: err => (err instanceof Error ? err.message : 'Failed to refresh'),
       },
     )

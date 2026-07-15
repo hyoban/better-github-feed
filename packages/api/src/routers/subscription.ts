@@ -111,10 +111,11 @@ async function syncGithubFollowing(userId: string) {
     .insert(githubUser)
     .select(sql`
         select
-          json_extract(value, '$.login'),
-          json_extract(value, '$.githubId'),
-          null,
-          ${now}
+          json_extract(value, '$.login') as login,
+          json_extract(value, '$.githubId') as id,
+          null as last_refreshed_at,
+          null as refresh_claimed_at,
+          ${now} as created_at
         from json_each(${snapshotJson})
         where true
       `)
