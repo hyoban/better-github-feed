@@ -11,7 +11,7 @@ export function useClearData() {
         queryClient.invalidateQueries({ queryKey: orpc.subscription.list.queryKey() })
         toast.success('Activity data cleared')
       },
-      onError: (error) => {
+      onError: error => {
         toast.error(error.message)
       },
     }),

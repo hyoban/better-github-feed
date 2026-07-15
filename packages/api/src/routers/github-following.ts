@@ -62,17 +62,17 @@ function parseFollowingPage(value: unknown): GithubFollowingUser[] {
     throw new GithubFollowingError('GitHub returned an invalid following list')
   }
 
-  return value.map((item) => {
+  return value.map(item => {
     if (!item || typeof item !== 'object') {
       throw new GithubFollowingError('GitHub returned an invalid following list')
     }
 
     const { id, login } = item as Record<string, unknown>
     if (
-      typeof id !== 'number'
-      || !Number.isSafeInteger(id)
-      || typeof login !== 'string'
-      || !/^[a-z0-9-]{1,40}$/i.test(login)
+      typeof id !== 'number' ||
+      !Number.isSafeInteger(id) ||
+      typeof login !== 'string' ||
+      !/^[a-z0-9-]{1,40}$/i.test(login)
     ) {
       throw new GithubFollowingError('GitHub returned an invalid following list')
     }
@@ -98,8 +98,7 @@ function getNextPageUrl(linkHeader: string | null) {
     let url: URL
     try {
       url = new URL(match[1])
-    }
-    catch {
+    } catch {
       throw new GithubFollowingError('GitHub returned an invalid pagination link')
     }
 
@@ -132,15 +131,14 @@ export async function fetchGithubFollowing(
     try {
       response = await fetcher(nextUrl, {
         headers: {
-          'Accept': 'application/vnd.github+json',
-          'Authorization': `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${accessToken}`,
           'User-Agent': 'better-github-feed',
           'X-GitHub-Api-Version': '2022-11-28',
         },
         signal,
       })
-    }
-    catch (error) {
+    } catch (error) {
       if (error instanceof GithubFollowingError) {
         throw error
       }
@@ -157,8 +155,7 @@ export async function fetchGithubFollowing(
     let value: unknown
     try {
       value = await response.json()
-    }
-    catch {
+    } catch {
       throw new GithubFollowingError('GitHub returned an invalid following list')
     }
 
@@ -263,8 +260,7 @@ export async function waitForGithubFollowingSync<T>(
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       return await syncUser()
-    }
-    catch (error) {
+    } catch (error) {
       if (!(error instanceof GithubFollowingSyncInProgressError) || attempt === maxAttempts) {
         throw error
       }

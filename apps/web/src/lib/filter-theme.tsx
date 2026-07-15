@@ -1,10 +1,5 @@
 import type { FilterTheme } from '@fn-sphere/filter'
-import {
-  createFilterTheme,
-  presetTheme,
-  useFilterGroup,
-  useRootRule,
-} from '@fn-sphere/filter'
+import { createFilterTheme, presetTheme, useFilterGroup, useRootRule } from '@fn-sphere/filter'
 import { PlusIcon, TrashIcon } from 'lucide-react'
 import type { ChangeEvent } from 'react'
 import { useCallback } from 'react'
@@ -96,7 +91,7 @@ const templatesSpec = {
       </div>
     )
   },
-  FilterSelect: (props) => {
+  FilterSelect: props => {
     const PresetFilterSelect = presetTheme.templates.FilterSelect
     return <PresetFilterSelect tryRetainArgs {...props} />
   },

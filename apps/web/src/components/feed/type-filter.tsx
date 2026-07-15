@@ -19,8 +19,7 @@ export function TypeFilter() {
 
   // Filter activeTypes to only include valid types
   const validActiveTypes = useMemo(() => {
-    if (types.length === 0)
-      return []
+    if (types.length === 0) return []
     const available = new Set(types)
     return activeTypes.filter(type => available.has(type))
   }, [types, activeTypes])
@@ -30,14 +29,11 @@ export function TypeFilter() {
     const aPinned = pinnedTypes.indexOf(a)
     const bPinned = pinnedTypes.indexOf(b)
     // Both pinned: sort by pinned order
-    if (aPinned !== -1 && bPinned !== -1)
-      return aPinned - bPinned
+    if (aPinned !== -1 && bPinned !== -1) return aPinned - bPinned
     // Only a is pinned: a comes first
-    if (aPinned !== -1)
-      return -1
+    if (aPinned !== -1) return -1
     // Only b is pinned: b comes first
-    if (bPinned !== -1)
-      return 1
+    if (bPinned !== -1) return 1
     // Neither pinned: sort by count
     return (typeCounts.get(b) ?? 0) - (typeCounts.get(a) ?? 0)
   })
@@ -55,7 +51,7 @@ export function TypeFilter() {
           All
         </Button>
         <Separator orientation="vertical" />
-        {sortedTypes.map((type) => {
+        {sortedTypes.map(type => {
           const isActive = validActiveTypes.includes(type)
           return (
             <Button
@@ -63,7 +59,7 @@ export function TypeFilter() {
               size="sm"
               variant={isActive ? 'default' : 'outline'}
               className="flex h-7 shrink-0 gap-1 rounded-full"
-              onClick={(e) => {
+              onClick={e => {
                 const isMultiSelect = e.metaKey || e.ctrlKey
                 if (isMultiSelect) {
                   setActiveTypes(
@@ -71,8 +67,7 @@ export function TypeFilter() {
                       ? validActiveTypes.filter(t => t !== type)
                       : [...validActiveTypes, type],
                   )
-                }
-                else {
+                } else {
                   setActiveTypes(isActive ? [] : [type])
                 }
               }}

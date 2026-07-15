@@ -13,13 +13,7 @@ export function SyncFollowingButton() {
   }
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      disabled={isPending}
-      onClick={syncFollowing}
-    >
+    <Button type="button" variant="outline" size="sm" disabled={isPending} onClick={syncFollowing}>
       <RefreshCwIcon className={isPending ? 'animate-spin' : undefined} />
       {isPending ? 'Syncing...' : 'Sync GitHub'}
     </Button>

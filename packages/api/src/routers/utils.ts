@@ -38,8 +38,8 @@ function decodeHtmlEntities(value: string) {
     '&lt;': '<',
     '&gt;': '>',
     '&quot;': '"',
-    '&#39;': '\'',
-    '&apos;': '\'',
+    '&#39;': "'",
+    '&apos;': "'",
     '&nbsp;': ' ',
   }
 
@@ -83,8 +83,7 @@ function extractRepoFromLink(link: string | null) {
     if (segments.length >= 2) {
       return `${segments[0]}/${segments[1]}`
     }
-  }
-  catch {
+  } catch {
     return null
   }
 
@@ -173,8 +172,7 @@ export async function fetchGithubUserId(login: string): Promise<string | null> {
 
     const feedText = await response.text()
     return extractGithubIdFromFeed(feedText)
-  }
-  catch {
+  } catch {
     return null
   }
 }

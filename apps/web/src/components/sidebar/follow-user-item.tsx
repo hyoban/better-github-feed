@@ -27,39 +27,36 @@ type FollowUserItemProps = {
   onRefresh: (login: string) => void
 }
 
-export const FollowUserItem = memo(({
-  follow,
-  isActive,
-  isFocused,
-  onToggle,
-  onFocus,
-  onRefresh,
-}: FollowUserItemProps) => {
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger className="group/follow relative block">
-        <FollowUserCard
-          follow={follow}
-          isActive={isActive}
-          isFocused={isFocused}
-          onToggle={onToggle}
-          onFocus={onFocus}
-        />
-      </ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem
-          render={(
-            <a
-              href={`https://github.com/${follow.githubUserLogin}`}
-              target="_blank"
-              rel="noreferrer"
-            />
-          )}
-        >
-          Open GitHub
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => onRefresh(follow.githubUserLogin)}>Refresh</ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
-  )
-})
+export const FollowUserItem = memo(
+  ({ follow, isActive, isFocused, onToggle, onFocus, onRefresh }: FollowUserItemProps) => {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger className="group/follow relative block">
+          <FollowUserCard
+            follow={follow}
+            isActive={isActive}
+            isFocused={isFocused}
+            onToggle={onToggle}
+            onFocus={onFocus}
+          />
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem
+            render={
+              <a
+                href={`https://github.com/${follow.githubUserLogin}`}
+                target="_blank"
+                rel="noreferrer"
+              />
+            }
+          >
+            Open GitHub
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => onRefresh(follow.githubUserLogin)}>
+            Refresh
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    )
+  },
+)

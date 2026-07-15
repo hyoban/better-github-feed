@@ -1,9 +1,5 @@
 import type { FilterGroup } from '@better-github-feed/shared'
-import {
-  emptyFilterGroup,
-  feedItemFilterSchema,
-  filterFnList,
-} from '@better-github-feed/shared'
+import { emptyFilterGroup, feedItemFilterSchema, filterFnList } from '@better-github-feed/shared'
 import { FilterBuilder, FilterSphereProvider, useFilterSphere } from '@fn-sphere/filter'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -19,7 +15,12 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { prepareFilterPayload, prepareUpdateFilterPayload, useCreateFilter, useUpdateFilter } from '@/hooks/use-filters'
+import {
+  prepareFilterPayload,
+  prepareUpdateFilterPayload,
+  useCreateFilter,
+  useUpdateFilter,
+} from '@/hooks/use-filters'
 import { filterTheme } from '@/lib/filter-theme'
 
 type FilterBuilderDialogProps = {
@@ -105,16 +106,14 @@ export function FilterBuilderDialog({
         const payload = prepareUpdateFilterPayload(editingFilter.id, name.trim(), filterRule)
         await updateFilter.mutateAsync(payload)
         toast.success('Filter updated')
-      }
-      else {
+      } else {
         const payload = prepareFilterPayload(name.trim(), filterRule)
         await createFilter.mutateAsync(payload)
         toast.success('Filter created')
       }
 
       onOpenChange(false)
-    }
-    catch {
+    } catch {
       toast.error(isEditing ? 'Failed to update filter' : 'Failed to create filter')
     }
   }

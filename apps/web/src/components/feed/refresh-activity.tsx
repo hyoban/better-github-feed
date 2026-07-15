@@ -16,7 +16,7 @@ export function RefreshAllUsersButton() {
   return (
     <Tooltip>
       <TooltipTrigger
-        render={(
+        render={
           <Button
             type="button"
             size="icon-sm"
@@ -25,7 +25,7 @@ export function RefreshAllUsersButton() {
             onClick={refreshAllUsers}
             aria-label="Refresh all users"
           />
-        )}
+        }
       >
         <RotateCwIcon className={isRefreshing ? 'animate-spin' : undefined} />
       </TooltipTrigger>

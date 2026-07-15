@@ -75,8 +75,7 @@ function SidebarProvider({
       const openState = typeof value === 'function' ? value(open) : value
       if (setOpenProp) {
         setOpenProp(openState)
-      }
-      else {
+      } else {
         _setOpen(openState)
       }
 
@@ -256,7 +255,7 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
       variant="ghost"
       size="icon-sm"
       className={cn(className)}
-      onClick={(event) => {
+      onClick={event => {
         onClick?.(event)
         toggleSidebar()
       }}
@@ -486,8 +485,8 @@ function SidebarMenuButton({
   tooltip,
   className,
   ...props
-}: useRender.ComponentProps<'button'>
-  & React.ComponentProps<'button'> & {
+}: useRender.ComponentProps<'button'> &
+  React.ComponentProps<'button'> & {
     isActive?: boolean
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
   } & VariantProps<typeof sidebarMenuButtonVariants>) {
@@ -537,8 +536,8 @@ function SidebarMenuAction({
   render,
   showOnHover = false,
   ...props
-}: useRender.ComponentProps<'button'>
-  & React.ComponentProps<'button'> & {
+}: useRender.ComponentProps<'button'> &
+  React.ComponentProps<'button'> & {
     showOnHover?: boolean
   }) {
   return useRender({
@@ -547,8 +546,8 @@ function SidebarMenuAction({
       {
         className: cn(
           'absolute end-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform group-data-[collapsible=icon]:hidden peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1 after:absolute after:-inset-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 md:after:hidden [&>svg]:size-4 [&>svg]:shrink-0',
-          showOnHover
-          && 'group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 peer-data-active/menu-button:text-sidebar-accent-foreground md:opacity-0 data-open:opacity-100',
+          showOnHover &&
+            'group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 peer-data-active/menu-button:text-sidebar-accent-foreground md:opacity-0 data-open:opacity-100',
           className,
         ),
       },
@@ -640,8 +639,8 @@ function SidebarMenuSubButton({
   isActive = false,
   className,
   ...props
-}: useRender.ComponentProps<'a'>
-  & React.ComponentProps<'a'> & {
+}: useRender.ComponentProps<'a'> &
+  React.ComponentProps<'a'> & {
     size?: 'sm' | 'md'
     isActive?: boolean
   }) {

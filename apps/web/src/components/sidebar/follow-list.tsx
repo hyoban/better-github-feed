@@ -21,25 +21,32 @@ export function FollowList() {
 
   // Filter activeUsers to only include valid users
   const validActiveUsers = useMemo(() => {
-    if (follows.length === 0)
-      return []
+    if (follows.length === 0) return []
     const available = new Set(follows.map(follow => follow.githubUserLogin).filter(Boolean))
     return activeUsers.filter(login => available.has(login))
   }, [follows, activeUsers])
 
   useEffect(() => {
     if (
-      !session
-      || isSessionPending
-      || !isSuccess
-      || validActiveUsers.length === activeUsers.length
+      !session ||
+      isSessionPending ||
+      !isSuccess ||
+      validActiveUsers.length === activeUsers.length
     ) {
       return
     }
 
     void setActiveUsers(validActiveUsers)
     void setActiveId(null)
-  }, [activeUsers, isSessionPending, isSuccess, session, setActiveId, setActiveUsers, validActiveUsers])
+  }, [
+    activeUsers,
+    isSessionPending,
+    isSuccess,
+    session,
+    setActiveId,
+    setActiveUsers,
+    validActiveUsers,
+  ])
 
   // Sort follows based on sortBy
   const sortedFollows = useMemo(() => {
@@ -59,8 +66,7 @@ export function FollowList() {
   // Keyboard navigation
   const handleNavigate = useCallback(
     (direction: 'up' | 'down') => {
-      if (focusedPanel !== 'sidebar' || sortedFollows.length === 0)
-        return
+      if (focusedPanel !== 'sidebar' || sortedFollows.length === 0) return
 
       const logins = sortedFollows.map(f => f.githubUserLogin)
       const currentLogin = validActiveUsers[0]
@@ -69,8 +75,7 @@ export function FollowList() {
       let newIndex: number
       if (direction === 'up') {
         newIndex = currentIndex <= 0 ? 0 : currentIndex - 1
-      }
-      else {
+      } else {
         newIndex = currentIndex >= logins.length - 1 ? logins.length - 1 : currentIndex + 1
       }
 
@@ -107,20 +112,17 @@ export function FollowList() {
 
   // Toggle user selection
   const toggleUser = (login: string, multiSelect: boolean) => {
-    void setFocusedPanel('sidebar')
+    setFocusedPanel('sidebar')
     if (multiSelect) {
       if (validActiveUsers.includes(login)) {
         setActiveUsers(validActiveUsers.filter(item => item !== login))
-      }
-      else {
+      } else {
         setActiveUsers([...validActiveUsers, login])
       }
-    }
-    else {
+    } else {
       if (validActiveUsers.length === 1 && validActiveUsers[0] === login) {
         setActiveUsers([])
-      }
-      else {
+      } else {
         setActiveUsers([login])
       }
     }
@@ -156,10 +158,10 @@ export function FollowList() {
   return (
     <ScrollArea className="min-h-0 flex-1">
       <div ref={listRef}>
-        {sortedFollows.map((follow) => {
+        {sortedFollows.map(follow => {
           const isActive = validActiveUsers.includes(follow.githubUserLogin)
-          const isFocused
-            = focusedPanel === 'sidebar' && validActiveUsers[0] === follow.githubUserLogin
+          const isFocused =
+            focusedPanel === 'sidebar' && validActiveUsers[0] === follow.githubUserLogin
           return (
             <div key={follow.id} data-user-login={follow.githubUserLogin}>
               <FollowUserItem
@@ -168,7 +170,7 @@ export function FollowList() {
                 isFocused={isFocused}
                 onToggle={toggleUser}
                 onFocus={() => {
-                  void setFocusedPanel('sidebar')
+                  setFocusedPanel('sidebar')
                   void setActiveUsers([follow.githubUserLogin])
                 }}
                 onRefresh={refreshSingleFeed}

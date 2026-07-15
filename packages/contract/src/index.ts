@@ -7,11 +7,11 @@ export type ActivityError = {
   message: string
 }
 
-export type RefreshProgressEvent
-  = | { type: 'start', total: number, skipped: number }
-    | { type: 'success', login: string, index: number, itemCount: number }
-    | { type: 'error', login: string, index: number, message: string }
-    | { type: 'done', errors: ActivityError[] }
+export type RefreshProgressEvent =
+  | { type: 'start'; total: number; skipped: number }
+  | { type: 'success'; login: string; index: number; itemCount: number }
+  | { type: 'error'; login: string; index: number; message: string }
+  | { type: 'done'; errors: ActivityError[] }
 
 const loginSchema = z
   .string()
@@ -64,9 +64,7 @@ const userFilterSchema = z.object({
 
 // Health contract
 export const healthContract = {
-  check: contract
-    .route({ method: 'GET', path: '/health' })
-    .output(z.string()),
+  check: contract.route({ method: 'GET', path: '/health' }).output(z.string()),
 }
 
 // GitHub following sync contract
@@ -74,13 +72,13 @@ export const subscriptionContract = {
   list: contract
     .route({ method: 'GET', path: '/subscription' })
     .output(z.array(subscriptionWithStatsSchema)),
-  sync: contract
-    .route({ method: 'POST', path: '/subscription/sync' })
-    .output(z.object({
+  sync: contract.route({ method: 'POST', path: '/subscription/sync' }).output(
+    z.object({
       total: z.number(),
       added: z.number(),
       removed: z.number(),
-    })),
+    }),
+  ),
 }
 
 // Feed contract
@@ -105,27 +103,30 @@ export const feedContract = {
           .optional(),
       }),
     )
-    .output(z.object({
-      items: z.array(feedItemSchema),
-      nextCursor: z.number().nullable(),
-      hasMore: z.boolean(),
-      types: z.array(z.string()),
-      typeCounts: z.record(z.string(), z.number()),
-    })),
+    .output(
+      z.object({
+        items: z.array(feedItemSchema),
+        nextCursor: z.number().nullable(),
+        hasMore: z.boolean(),
+        types: z.array(z.string()),
+        typeCounts: z.record(z.string(), z.number()),
+      }),
+    ),
   // Generator/streaming endpoint - output type inferred from handler
-  refresh: contract
-    .route({ method: 'POST', path: '/feed/refresh' }),
+  refresh: contract.route({ method: 'POST', path: '/feed/refresh' }),
   refreshOne: contract
     .route({ method: 'POST', path: '/feed/refresh/{login}' })
     .input(z.object({ params: z.object({ login: loginSchema }) }))
-    .output(z.discriminatedUnion('skipped', [
-      z.object({ skipped: z.literal(true) }),
-      z.object({
-        skipped: z.literal(false),
-        refreshedAt: z.string(),
-        itemCount: z.number(),
-      }),
-    ])),
+    .output(
+      z.discriminatedUnion('skipped', [
+        z.object({ skipped: z.literal(true) }),
+        z.object({
+          skipped: z.literal(false),
+          refreshedAt: z.string(),
+          itemCount: z.number(),
+        }),
+      ]),
+    ),
   clear: contract
     .route({ method: 'POST', path: '/feed/clear' })
     .output(z.object({ ok: z.literal(true) })),
@@ -141,9 +142,7 @@ export const feedContract = {
 
 // Filter contract
 export const filterContract = {
-  list: contract
-    .route({ method: 'GET', path: '/filter' })
-    .output(z.array(userFilterSchema)),
+  list: contract.route({ method: 'GET', path: '/filter' }).output(z.array(userFilterSchema)),
   create: contract
     .route({ method: 'POST', path: '/filter' })
     .input(
@@ -171,22 +170,22 @@ export const filterContract = {
     .route({ method: 'DELETE', path: '/filter/{id}' })
     .input(z.object({ params: z.object({ id: z.string() }) }))
     .output(z.object({ success: z.literal(true) })),
-  getSchema: contract
-    .route({ method: 'GET', path: '/filter/schema' })
-    .output(z.object({
+  getSchema: contract.route({ method: 'GET', path: '/filter/schema' }).output(
+    z.object({
       schema: z.unknown(),
       filterFnList: z.array(z.object({ name: z.string() })),
       emptyFilterGroup: z.unknown(),
-    })),
+    }),
+  ),
 }
 
 // Private data contract
-const privateDataContract = contract
-  .route({ method: 'GET', path: '/private-data' })
-  .output(z.object({
+const privateDataContract = contract.route({ method: 'GET', path: '/private-data' }).output(
+  z.object({
     message: z.string(),
     user: z.unknown().optional(),
-  }))
+  }),
+)
 
 export const routerContract = {
   health: healthContract,

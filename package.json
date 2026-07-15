@@ -1,42 +1,34 @@
 {
   "name": "better-github-feed",
+  "private": true,
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "type": "module",
-  "private": true,
-  "packageManager": "pnpm@10.30.3",
   "scripts": {
-    "dev": "pnpm --filter web dev",
-    "build": "pnpm --filter web build",
-    "preview": "pnpm --filter web preview",
-    "type-check": "pnpm -r type-check",
-    "dev:web": "pnpm --filter web dev",
-    "db:migrate:local": "pnpm --filter web db:migrate:local",
-    "db:migrate:remote": "pnpm --filter web db:migrate:remote",
-    "db:generate": "pnpm --filter @better-github-feed/db db:generate",
-    "deploy": "pnpm --filter web run deploy",
-    "cf-typegen": "pnpm --filter web cf-typegen",
-    "prepare": "simple-git-hooks",
-    "lint": "eslint",
-    "lint:fix": "eslint --fix"
+    "dev": "vp run --filter web dev",
+    "build": "vp build apps/web",
+    "preview": "vp preview apps/web",
+    "type-check": "vp run -r type-check",
+    "dev:web": "vp run --filter web dev",
+    "db:migrate:local": "vp run --filter web db:migrate:local",
+    "db:migrate:remote": "vp run --filter web db:migrate:remote",
+    "db:generate": "vp run --filter @better-github-feed/db db:generate",
+    "deploy": "vp run --filter web deploy",
+    "cf-typegen": "vp run --filter web cf-typegen",
+    "prepare": "vp config --no-agent",
+    "lint": "vp lint",
+    "lint:fix": "vp lint --fix"
   },
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",
     "@cloudflare/workers-types": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native-preview": "catalog:",
-    "eslint": "catalog:",
-    "eslint-config-hyoban": "catalog:",
-    "lint-staged": "catalog:",
-    "simple-git-hooks": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   },
-  "simple-git-hooks": {
-    "pre-commit": "pnpm lint-staged"
-  },
-  "lint-staged": {
-    "*": "eslint --fix"
-  }
+  "packageManager": "pnpm@10.30.3"
 }

@@ -24,7 +24,7 @@ export function MobileDetailDrawer() {
   return (
     <Drawer
       open={!!selectedItem}
-      onOpenChange={(open) => {
+      onOpenChange={open => {
         if (!open) {
           void setActiveId(null)
         }

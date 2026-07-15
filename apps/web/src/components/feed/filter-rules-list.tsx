@@ -53,9 +53,7 @@ function FilterRuleItem({
       <div className="flex min-w-0 flex-col gap-1">
         <span className="truncate font-medium">{filter.name}</span>
         <span className="text-xs text-muted-foreground">
-          {ruleCount}
-          {' '}
-          {ruleCount === 1 ? 'rule' : 'rules'}
+          {ruleCount} {ruleCount === 1 ? 'rule' : 'rules'}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-1">
@@ -79,15 +77,13 @@ export function FilterRulesList() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const handleDelete = async () => {
-    if (!deletingFilter)
-      return
+    if (!deletingFilter) return
 
     try {
       await deleteFilter.mutateAsync({ params: { id: deletingFilter.id } })
       toast.success('Filter deleted')
       setDeletingFilter(null)
-    }
-    catch {
+    } catch {
       toast.error('Failed to delete filter')
     }
   }
@@ -102,30 +98,26 @@ export function FilterRulesList() {
 
         <span className="text-sm font-medium">Your Filters</span>
 
-        {isLoading
-          ? (
-              <div className="text-sm text-muted-foreground">Loading filters...</div>
-            )
-          : filters && filters.length > 0
-            ? (
-                <ScrollArea className="max-h-[300px]">
-                  <div className="flex flex-col gap-2">
-                    {filters.map(filter => (
-                      <FilterRuleItem
-                        key={filter.id}
-                        filter={filter}
-                        onEdit={() => setEditingFilter(filter)}
-                        onDelete={() => setDeletingFilter(filter)}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              )
-            : (
-                <div className="rounded-md border bg-muted/30 py-4 text-center text-sm text-muted-foreground">
-                  No custom filters yet. Add a filter to hide specific feed items.
-                </div>
-              )}
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground">Loading filters...</div>
+        ) : filters && filters.length > 0 ? (
+          <ScrollArea className="max-h-[300px]">
+            <div className="flex flex-col gap-2">
+              {filters.map(filter => (
+                <FilterRuleItem
+                  key={filter.id}
+                  filter={filter}
+                  onEdit={() => setEditingFilter(filter)}
+                  onDelete={() => setDeletingFilter(filter)}
+                />
+              ))}
+            </div>
+          </ScrollArea>
+        ) : (
+          <div className="rounded-md border bg-muted/30 py-4 text-center text-sm text-muted-foreground">
+            No custom filters yet. Add a filter to hide specific feed items.
+          </div>
+        )}
       </div>
 
       {/* Create Filter Dialog */}
@@ -144,18 +136,13 @@ export function FilterRulesList() {
       />
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!deletingFilter}
-        onOpenChange={open => !open && setDeletingFilter(null)}
-      >
+      <AlertDialog open={!!deletingFilter} onOpenChange={open => !open && setDeletingFilter(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Filter</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "
-              {deletingFilter?.name}
-              "? This action cannot be
-              undone.
+              Are you sure you want to delete "{deletingFilter?.name}
+              "? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -177,12 +164,12 @@ export function FilterManagementDialog() {
   return (
     <Dialog>
       <DialogTrigger
-        render={(
+        render={
           <Button variant="outline" size="sm" className="h-7 gap-1 rounded-full">
             Filters
             {filterCount > 0 && <Badge variant="secondary">{filterCount}</Badge>}
           </Button>
-        )}
+        }
       />
       <DialogContent>
         <DialogHeader>

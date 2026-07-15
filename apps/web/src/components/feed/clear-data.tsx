@@ -19,7 +19,7 @@ export function ClearData() {
   return (
     <AlertDialog>
       <AlertDialogTrigger
-        render={(
+        render={
           <Button
             type="button"
             size="icon"
@@ -27,7 +27,7 @@ export function ClearData() {
             disabled={isClearPending}
             aria-label="Clear all activity data"
           />
-        )}
+        }
       >
         <Trash2Icon />
       </AlertDialogTrigger>

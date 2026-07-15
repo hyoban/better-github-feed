@@ -27,8 +27,8 @@ export const queryClient = new QueryClient({
 })
 
 // Use IndexedDB for larger storage capacity (via idb-keyval)
-const idbStorage
-  = typeof window !== 'undefined'
+const idbStorage =
+  typeof window !== 'undefined'
     ? {
         getItem: async (key: string) => {
           const value = await get<string>(key)

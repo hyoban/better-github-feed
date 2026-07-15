@@ -19,8 +19,7 @@ const columnMap = {
 type ColumnName = keyof typeof columnMap
 
 function getColumn(path: (string | number)[] | undefined) {
-  if (!path || path.length === 0)
-    return null
+  if (!path || path.length === 0) return null
   const columnName = path[0] as ColumnName
   return columnMap[columnName] ?? null
 }
@@ -30,16 +29,14 @@ function getColumn(path: (string | number)[] | undefined) {
  */
 function transformSingleFilter(filter: SingleFilter): SQL | null {
   const column = getColumn(filter.path)
-  if (!column || !filter.name)
-    return null
+  if (!column || !filter.name) return null
 
   const value = filter.args?.[0]
 
   // Handle operators
   switch (filter.name) {
     case 'equals': {
-      if (value === undefined || value === null)
-        return null
+      if (value === undefined || value === null) return null
       if (column === feedItem.publishedAt && value instanceof Date) {
         return eq(column, value)
       }
@@ -47,8 +44,7 @@ function transformSingleFilter(filter: SingleFilter): SQL | null {
     }
 
     case 'notEqual': {
-      if (value === undefined || value === null)
-        return null
+      if (value === undefined || value === null) return null
       if (column === feedItem.publishedAt && value instanceof Date) {
         return ne(column, value)
       }
@@ -56,38 +52,32 @@ function transformSingleFilter(filter: SingleFilter): SQL | null {
     }
 
     case 'contains': {
-      if (value === undefined || value === null || typeof value !== 'string')
-        return null
+      if (value === undefined || value === null || typeof value !== 'string') return null
       return like(column as typeof feedItem.title, `%${escapeLike(value)}%`)
     }
 
     case 'notContains': {
-      if (value === undefined || value === null || typeof value !== 'string')
-        return null
+      if (value === undefined || value === null || typeof value !== 'string') return null
       return not(like(column as typeof feedItem.title, `%${escapeLike(value)}%`))
     }
 
     case 'startsWith': {
-      if (value === undefined || value === null || typeof value !== 'string')
-        return null
+      if (value === undefined || value === null || typeof value !== 'string') return null
       return like(column as typeof feedItem.title, `${escapeLike(value)}%`)
     }
 
     case 'endsWith': {
-      if (value === undefined || value === null || typeof value !== 'string')
-        return null
+      if (value === undefined || value === null || typeof value !== 'string') return null
       return like(column as typeof feedItem.title, `%${escapeLike(value)}`)
     }
 
     case 'notStartsWith': {
-      if (value === undefined || value === null || typeof value !== 'string')
-        return null
+      if (value === undefined || value === null || typeof value !== 'string') return null
       return not(like(column as typeof feedItem.title, `${escapeLike(value)}%`))
     }
 
     case 'notEndsWith': {
-      if (value === undefined || value === null || typeof value !== 'string')
-        return null
+      if (value === undefined || value === null || typeof value !== 'string') return null
       return not(like(column as typeof feedItem.title, `%${escapeLike(value)}`))
     }
 
@@ -102,27 +92,23 @@ function transformSingleFilter(filter: SingleFilter): SQL | null {
     }
 
     case 'before': {
-      if (!(value instanceof Date))
-        return null
+      if (!(value instanceof Date)) return null
       return lt(feedItem.publishedAt, value)
     }
 
     case 'after': {
-      if (!(value instanceof Date))
-        return null
+      if (!(value instanceof Date)) return null
       return gt(feedItem.publishedAt, value)
     }
 
     case 'greaterThan': {
-      if (typeof value !== 'number')
-        return null
+      if (typeof value !== 'number') return null
       // For numeric comparisons on non-date columns
       return sql`${column} > ${value}`
     }
 
     case 'lessThan': {
-      if (typeof value !== 'number')
-        return null
+      if (typeof value !== 'number') return null
       // For numeric comparisons on non-date columns
       return sql`${column} < ${value}`
     }
@@ -154,8 +140,7 @@ function transformFilterGroup(filterGroup: FilterGroup): SQL | null {
 
     if (condition.type === 'Filter') {
       result = transformSingleFilter(condition)
-    }
-    else if (condition.type === 'FilterGroup') {
+    } else if (condition.type === 'FilterGroup') {
       result = transformFilterGroup(condition)
     }
 
@@ -163,8 +148,7 @@ function transformFilterGroup(filterGroup: FilterGroup): SQL | null {
       // Handle invert for individual conditions
       if (condition.invert) {
         conditions.push(not(result))
-      }
-      else {
+      } else {
         conditions.push(result)
       }
     }
@@ -179,8 +163,7 @@ function transformFilterGroup(filterGroup: FilterGroup): SQL | null {
   if (filterGroup.op === 'or') {
     const orResult = or(...conditions)
     combined = conditions.length === 1 ? conditions[0]! : (orResult ?? conditions[0]!)
-  }
-  else {
+  } else {
     const andResult = and(...conditions)
     combined = conditions.length === 1 ? conditions[0]! : (andResult ?? conditions[0]!)
   }
@@ -241,15 +224,15 @@ export function deserializeFilterGroup(serialized: string): FilterGroup {
  */
 function isValidFilterGroup(obj: unknown): obj is FilterGroup {
   return (
-    obj !== null
-    && typeof obj === 'object'
-    && 'id' in obj
-    && typeof obj.id === 'string'
-    && 'type' in obj
-    && obj.type === 'FilterGroup'
-    && 'op' in obj
-    && (obj.op === 'and' || obj.op === 'or')
-    && 'conditions' in obj
-    && Array.isArray(obj.conditions)
+    obj !== null &&
+    typeof obj === 'object' &&
+    'id' in obj &&
+    typeof obj.id === 'string' &&
+    'type' in obj &&
+    obj.type === 'FilterGroup' &&
+    'op' in obj &&
+    (obj.op === 'and' || obj.op === 'or') &&
+    'conditions' in obj &&
+    Array.isArray(obj.conditions)
   )
 }

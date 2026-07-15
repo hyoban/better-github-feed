@@ -24,12 +24,23 @@ The application is deployed as one Cloudflare Worker:
 
 The SPA and API share one origin. API routes live under `/api/*`, while every other navigation request falls back to the SPA.
 
+## Prerequisites
+
+Install the Vite+ CLI, then open a new terminal:
+
+```sh
+curl -fsSL https://vite.plus | bash
+vp help
+```
+
+On Windows, install it from PowerShell with `irm https://vite.plus/ps1 | iex`. Vite+ reads the repository's `.node-version` and manages the matching Node.js runtime automatically.
+
 ## Local Development
 
 Install dependencies:
 
 ```sh
-pnpm install
+vp install
 ```
 
 Copy the local secrets template:
@@ -56,7 +67,7 @@ http://localhost:5173/api/auth/callback/github
 Start the application:
 
 ```sh
-pnpm dev
+vp run dev
 ```
 
 Wrangler creates a local D1 database, applies pending migrations, and Vite serves both the SPA and Worker at [http://localhost:5173](http://localhost:5173).
@@ -115,7 +126,7 @@ Before the first Wrangler deployment, copy the existing D1 database ID from the 
   "binding": "DB",
   "database_name": "better-github-feed-database-prod",
   "database_id": "<existing-d1-database-id>",
-  "migrations_dir": "../../packages/db/src/migrations"
+  "migrations_dir": "../../packages/db/src/migrations",
 }
 ```
 
@@ -132,7 +143,7 @@ better-github-feed/
 ├── packages/
 │   ├── api/           # API routers and business logic
 │   ├── auth/          # Better Auth configuration
-│   ├── config/        # Shared ESLint and TypeScript configuration
+│   ├── config/        # Shared TypeScript configuration
 │   ├── contract/      # oRPC contracts
 │   ├── db/            # Drizzle schema and D1 migrations
 │   ├── env/           # Typed Cloudflare binding access
@@ -141,13 +152,13 @@ better-github-feed/
 
 ## Scripts
 
-- `pnpm dev` - Apply local migrations and start the full application
-- `pnpm build` - Build the SPA and Worker deployment bundle
-- `pnpm preview` - Preview the production bundle locally
-- `pnpm type-check` - Type-check every workspace package
-- `pnpm lint` - Run ESLint
-- `pnpm db:generate` - Generate a new Drizzle migration
-- `pnpm db:migrate:local` - Apply migrations to local D1
-- `pnpm db:migrate:remote` - Apply migrations to production D1
-- `pnpm run deploy` - Provision bindings, apply production migrations, and deploy the built Worker
-- `pnpm cf-typegen` - Regenerate Cloudflare runtime and binding types
+- `vp run dev` - Apply local migrations and start the full application
+- `vp check` - Format, lint, and type-check the workspace
+- `vp test` - Run the Vitest test suite
+- `vp run build` - Build the SPA and Worker deployment bundle
+- `vp run preview` - Preview the production bundle locally
+- `vp run db:generate` - Generate a new Drizzle migration
+- `vp run db:migrate:local` - Apply migrations to local D1
+- `vp run db:migrate:remote` - Apply migrations to production D1
+- `vp run deploy` - Provision bindings, apply production migrations, and deploy the built Worker
+- `vp run cf-typegen` - Regenerate Cloudflare runtime and binding types

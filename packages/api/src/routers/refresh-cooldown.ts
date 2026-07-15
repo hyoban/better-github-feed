@@ -8,10 +8,10 @@ export function shouldSkipRefresh(
   cooldownMs = REFRESH_COOLDOWN_MS,
   claimTimeoutMs = REFRESH_CLAIM_TIMEOUT_MS,
 ) {
-  const wasRefreshedRecently = lastRefreshedAt !== null
-    && lastRefreshedAt.getTime() >= now.getTime() - cooldownMs
-  const isRefreshInProgress = refreshClaimedAt !== null
-    && refreshClaimedAt.getTime() >= now.getTime() - claimTimeoutMs
+  const wasRefreshedRecently =
+    lastRefreshedAt !== null && lastRefreshedAt.getTime() >= now.getTime() - cooldownMs
+  const isRefreshInProgress =
+    refreshClaimedAt !== null && refreshClaimedAt.getTime() >= now.getTime() - claimTimeoutMs
 
   return wasRefreshedRecently || isRefreshInProgress
 }

@@ -40,8 +40,7 @@ async function getGithubAccessToken(userId: string) {
     }
 
     return accessToken
-  }
-  catch {
+  } catch {
     throw new ORPCError('PRECONDITION_FAILED', {
       message: 'Reconnect your GitHub account before syncing follows',
     })
@@ -72,8 +71,7 @@ async function performGithubFollowingSync(userId: string) {
   let following
   try {
     following = await fetchGithubFollowing(accessToken)
-  }
-  catch (error) {
+  } catch (error) {
     if (error instanceof GithubFollowingError) {
       throw toGithubSyncError(error)
     }
@@ -96,7 +94,7 @@ async function performGithubFollowingSync(userId: string) {
 
   const now = Date.now()
   const currentByLogin = new Map(currentRows.map(row => [row.githubUserLogin, row]))
-  const snapshot = following.map((user) => {
+  const snapshot = following.map(user => {
     const current = currentByLogin.get(user.login)
     return {
       githubId: user.id,
@@ -112,9 +110,10 @@ async function performGithubFollowingSync(userId: string) {
     })
   }
 
-  const upsertGithubUsers = snapshotJsonChunks.map(snapshotJson => db
-    .insert(githubUser)
-    .select(sql`
+  const upsertGithubUsers = snapshotJsonChunks.map(snapshotJson =>
+    db
+      .insert(githubUser)
+      .select(sql`
         select
           json_extract(value, '$.login') as login,
           json_extract(value, '$.githubId') as id,
@@ -124,21 +123,22 @@ async function performGithubFollowingSync(userId: string) {
         from json_each(${snapshotJson})
         where true
       `)
-    .onConflictDoUpdate({
-      target: githubUser.login,
-      set: { id: sql`excluded.id` },
-    }))
+      .onConflictDoUpdate({
+        target: githubUser.login,
+        set: { id: sql`excluded.id` },
+      }),
+  )
 
-  const replaceSubscriptions = snapshotJsonChunks.map(snapshotJson => db
-    .insert(subscription)
-    .select(sql`
+  const replaceSubscriptions = snapshotJsonChunks.map(snapshotJson =>
+    db.insert(subscription).select(sql`
         select
           json_extract(value, '$.subscriptionId'),
           ${userId},
           json_extract(value, '$.login'),
           json_extract(value, '$.createdAt')
         from json_each(${snapshotJson})
-      `))
+      `),
+  )
 
   const firstUpsert = upsertGithubUsers[0]
   if (!firstUpsert) {
@@ -181,13 +181,12 @@ async function claimGithubFollowingSync(accountId: string, claimedAt: Date) {
   const result = await db
     .update(account)
     .set({ followingSyncClaimedAt: claimedAt })
-    .where(and(
-      eq(account.id, accountId),
-      or(
-        isNull(account.followingSyncClaimedAt),
-        lt(account.followingSyncClaimedAt, claimCutoff),
+    .where(
+      and(
+        eq(account.id, accountId),
+        or(isNull(account.followingSyncClaimedAt), lt(account.followingSyncClaimedAt, claimCutoff)),
       ),
-    ))
+    )
 
   return result.meta.changes > 0
 }
@@ -197,12 +196,8 @@ async function tryReleaseGithubFollowingSync(accountId: string, claimedAt: Date)
     await db
       .update(account)
       .set({ followingSyncClaimedAt: null })
-      .where(and(
-        eq(account.id, accountId),
-        eq(account.followingSyncClaimedAt, claimedAt),
-      ))
-  }
-  catch {
+      .where(and(eq(account.id, accountId), eq(account.followingSyncClaimedAt, claimedAt)))
+  } catch {
     // Leave the claim in place until it expires if it cannot be released.
   }
 }
@@ -217,8 +212,7 @@ async function syncGithubFollowing(userId: string) {
 
   try {
     return await performGithubFollowingSync(userId)
-  }
-  finally {
+  } finally {
     await tryReleaseGithubFollowingSync(githubAccount.id, claimedAt)
   }
 }
@@ -262,8 +256,7 @@ export const subscriptionRouter = {
         if (where) {
           filterConditions.push(where)
         }
-      }
-      catch {
+      } catch {
         // Skip invalid rules
       }
     }
@@ -273,8 +266,8 @@ export const subscriptionRouter = {
       statsConditions.push(and(...filterConditions)!)
     }
 
-    const stats
-      = githubUserLogins.length > 0
+    const stats =
+      githubUserLogins.length > 0
         ? await db
             .select({
               githubUserLogin: feedItem.githubUserLogin,
@@ -307,8 +300,7 @@ export const subscriptionRouter = {
   sync: protectedProcedure.subscription.sync.handler(async ({ context }) => {
     try {
       return await syncGithubFollowing(context.session.user.id)
-    }
-    catch (error) {
+    } catch (error) {
       if (error instanceof GithubFollowingSyncInProgressError) {
         throw new ORPCError('CONFLICT', { message: error.message })
       }

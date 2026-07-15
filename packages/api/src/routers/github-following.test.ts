@@ -1,6 +1,5 @@
-/* eslint-disable test/no-import-node-test */
 import assert from 'node:assert/strict'
-import { describe, it } from 'node:test'
+import { describe, it } from 'vite-plus/test'
 
 import {
   buildFollowingDiff,
@@ -16,18 +15,23 @@ describe('fetchGithubFollowing', () => {
   it('loads every page and normalizes duplicate logins', async () => {
     const requests: Request[] = []
     const pages = [
-      new Response(JSON.stringify([
-        { id: 1, login: 'Alice' },
-        { id: 2, login: 'bob' },
-      ]), {
-        headers: {
-          link: '<https://api.github.com/user/following?per_page=100&page=2>; rel="next"',
+      new Response(
+        JSON.stringify([
+          { id: 1, login: 'Alice' },
+          { id: 2, login: 'bob' },
+        ]),
+        {
+          headers: {
+            link: '<https://api.github.com/user/following?per_page=100&page=2>; rel="next"',
+          },
         },
-      }),
-      new Response(JSON.stringify([
-        { id: 1, login: 'alice' },
-        { id: 3, login: 'Carol' },
-      ])),
+      ),
+      new Response(
+        JSON.stringify([
+          { id: 1, login: 'alice' },
+          { id: 3, login: 'Carol' },
+        ]),
+      ),
     ]
 
     const following = await fetchGithubFollowing('secret-token', async (input, init) => {
@@ -144,16 +148,13 @@ describe('serializeFollowingSnapshotChunks', () => {
 describe('syncGithubFollowingsForUsers', () => {
   it('syncs every user and aggregates successful results', async () => {
     const syncedUsers: string[] = []
-    const summary = await syncGithubFollowingsForUsers(
-      ['user-1', 'user-2'],
-      async (userId) => {
-        syncedUsers.push(userId)
-        if (userId === 'user-2') {
-          throw new Error('expired token')
-        }
-        return { total: 12, added: 3, removed: 1 }
-      },
-    )
+    const summary = await syncGithubFollowingsForUsers(['user-1', 'user-2'], async userId => {
+      syncedUsers.push(userId)
+      if (userId === 'user-2') {
+        throw new Error('expired token')
+      }
+      return { total: 12, added: 3, removed: 1 }
+    })
 
     assert.deepEqual(syncedUsers.sort(), ['user-1', 'user-2'])
     assert.deepEqual(summary, {

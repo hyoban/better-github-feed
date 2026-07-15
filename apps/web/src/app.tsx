@@ -13,7 +13,7 @@ export function App() {
       persistOptions={{
         persister,
         dehydrateOptions: {
-          shouldDehydrateQuery: (query) => {
+          shouldDehydrateQuery: query => {
             // Persist all successful queries
             return query.state.status === 'success'
           },
@@ -40,10 +40,9 @@ export function ErrorBoundary() {
 
   if (isRouteErrorResponse(error)) {
     message = error.status === 404 ? '404' : 'Error'
-    details
-      = error.status === 404 ? 'The requested page could not be found.' : error.statusText || details
-  }
-  else if (import.meta.env.DEV && error && error instanceof Error) {
+    details =
+      error.status === 404 ? 'The requested page could not be found.' : error.statusText || details
+  } else if (import.meta.env.DEV && error && error instanceof Error) {
     details = error.message
     stack = error.stack
   }

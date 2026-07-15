@@ -30,14 +30,14 @@ export function useActivity(
   })
 
   const items = useMemo(
-    () => (enabled ? query.data?.pages.flatMap(page => page.items) ?? [] : []),
+    () => (enabled ? (query.data?.pages.flatMap(page => page.items) ?? []) : []),
     [enabled, query.data],
   )
 
-  const types = enabled ? query.data?.pages[0]?.types ?? [] : []
+  const types = enabled ? (query.data?.pages[0]?.types ?? []) : []
 
   const typeCounts = useMemo(() => {
-    const counts = enabled ? query.data?.pages[0]?.typeCounts ?? {} : {}
+    const counts = enabled ? (query.data?.pages[0]?.typeCounts ?? {}) : {}
     return new Map(Object.entries(counts))
   }, [enabled, query.data])
 

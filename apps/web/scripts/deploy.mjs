@@ -17,19 +17,23 @@ const configuredSecrets = Object.fromEntries(
     .map(([secretName, environmentName]) => [secretName, process.env[environmentName]]),
 )
 
-if (Object.keys(configuredSecrets).length > 0
-  && Object.keys(configuredSecrets).length !== Object.keys(secretEnvironmentNames).length) {
+if (
+  Object.keys(configuredSecrets).length > 0 &&
+  Object.keys(configuredSecrets).length !== Object.keys(secretEnvironmentNames).length
+) {
   const missingVariables = Object.entries(secretEnvironmentNames)
     .filter(([secretName]) => !configuredSecrets[secretName])
     .map(([, environmentName]) => environmentName)
-  throw new Error(`Set all deployment secrets or none of them. Missing: ${missingVariables.join(', ')}`)
+  throw new Error(
+    `Set all deployment secrets or none of them. Missing: ${missingVariables.join(', ')}`,
+  )
 }
 
-const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
+const vp = process.platform === 'win32' ? 'vp.cmd' : 'vp'
 
 function runWrangler(args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(pnpm, ['exec', 'wrangler', ...args], {
+    const child = spawn(vp, ['exec', 'wrangler', ...args], {
       env: process.env,
       stdio: 'inherit',
     })
@@ -64,8 +68,7 @@ try {
   await runWrangler(['versions', 'upload', ...secretsArguments])
   await runWrangler(['d1', 'migrations', 'apply', 'DB', '--remote'])
   await runWrangler(['deploy', ...secretsArguments])
-}
-finally {
+} finally {
   if (temporaryDirectory) {
     await rm(temporaryDirectory, { recursive: true, force: true })
   }

@@ -17,12 +17,7 @@ import {
   shouldSkipRefresh,
 } from './refresh-cooldown'
 import type { ActivityError, RefreshProgressEvent } from './utils'
-import {
-  chunkArray,
-  fetchGithubActivity,
-  mapFeedItemRow,
-  normalizeLogin,
-} from './utils'
+import { chunkArray, fetchGithubActivity, mapFeedItemRow, normalizeLogin } from './utils'
 
 type RefreshCandidate = {
   login: string
@@ -36,21 +31,26 @@ async function claimRefresh(login: string, claimedAt: Date) {
   const result = await db
     .update(githubUser)
     .set({ refreshClaimedAt: claimedAt })
-    .where(and(
-      eq(githubUser.login, login),
-      or(isNull(githubUser.lastRefreshedAt), lt(githubUser.lastRefreshedAt, cooldownCutoff)),
-      or(isNull(githubUser.refreshClaimedAt), lt(githubUser.refreshClaimedAt, claimCutoff)),
-    ))
+    .where(
+      and(
+        eq(githubUser.login, login),
+        or(isNull(githubUser.lastRefreshedAt), lt(githubUser.lastRefreshedAt, cooldownCutoff)),
+        or(isNull(githubUser.refreshClaimedAt), lt(githubUser.refreshClaimedAt, claimCutoff)),
+      ),
+    )
 
   return result.meta.changes > 0
 }
 
 async function claimRefreshableUsers<T extends RefreshCandidate>(users: T[], claimedAt: Date) {
-  const results = await Promise.allSettled(users.map(async user => ({
-    user,
-    claimed: !shouldSkipRefresh(user.lastRefreshedAt, user.refreshClaimedAt, claimedAt)
-      && await claimRefresh(user.login, claimedAt),
-  })))
+  const results = await Promise.allSettled(
+    users.map(async user => ({
+      user,
+      claimed:
+        !shouldSkipRefresh(user.lastRefreshedAt, user.refreshClaimedAt, claimedAt) &&
+        (await claimRefresh(user.login, claimedAt)),
+    })),
+  )
 
   const claimedUsers: T[] = []
   let claimFailed = false
@@ -60,14 +60,14 @@ async function claimRefreshableUsers<T extends RefreshCandidate>(users: T[], cla
     if (result.status === 'rejected') {
       claimFailed = true
       claimError ??= result.reason
-    }
-    else if (result.value.claimed) {
+    } else if (result.value.claimed) {
       claimedUsers.push(result.value.user)
     }
   }
 
   if (claimFailed) {
     await Promise.all(claimedUsers.map(user => tryReleaseRefreshClaim(user, claimedAt)))
+    // oxlint-disable-next-line no-throw-literal -- Promise rejection reasons may be any value.
     throw claimError
   }
 
@@ -79,12 +79,8 @@ async function tryReleaseRefreshClaim(user: RefreshCandidate, claimedAt: Date) {
     await db
       .update(githubUser)
       .set({ refreshClaimedAt: null })
-      .where(and(
-        eq(githubUser.login, user.login),
-        eq(githubUser.refreshClaimedAt, claimedAt),
-      ))
-  }
-  catch {
+      .where(and(eq(githubUser.login, user.login), eq(githubUser.refreshClaimedAt, claimedAt)))
+  } catch {
     // Leave the cooldown in place if the failed refresh claim cannot be released.
   }
 }
@@ -115,7 +111,7 @@ async function refreshGithubUser(user: RefreshCandidate, claimedAt: Date) {
     }
 
     const refreshedAt = new Date()
-    const updateData: { lastRefreshedAt: Date, refreshClaimedAt: null, id?: string } = {
+    const updateData: { lastRefreshedAt: Date; refreshClaimedAt: null; id?: string } = {
       lastRefreshedAt: refreshedAt,
       refreshClaimedAt: null,
     }
@@ -128,18 +124,14 @@ async function refreshGithubUser(user: RefreshCandidate, claimedAt: Date) {
     const result = await db
       .update(githubUser)
       .set(updateData)
-      .where(and(
-        eq(githubUser.login, login),
-        eq(githubUser.refreshClaimedAt, claimedAt),
-      ))
+      .where(and(eq(githubUser.login, login), eq(githubUser.refreshClaimedAt, claimedAt)))
 
     if (result.meta.changes === 0) {
       throw new Error(`Refresh for ${login} was superseded by a newer request`)
     }
 
     return { refreshedAt, itemCount: items.length }
-  }
-  catch (error) {
+  } catch (error) {
     await tryReleaseRefreshClaim(user, claimedAt)
     throw error
   }
@@ -164,10 +156,8 @@ export const feedRouter = {
       try {
         const rule = deserializeFilterGroup(uf.filterRule)
         const where = filterRuleToDrizzleWhere(rule)
-        if (where)
-          filterConditions.push(where)
-      }
-      catch {
+        if (where) filterConditions.push(where)
+      } catch {
         // Skip invalid rules
       }
     }
@@ -306,13 +296,11 @@ export const feedRouter = {
       try {
         const { itemCount } = await refreshGithubUser(user, claimedAt)
         events.push({ type: 'success', login, index, itemCount })
-      }
-      catch (error) {
+      } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to refresh feed'
         errors.push({ login, message })
         events.push({ type: 'error', login, index, message })
-      }
-      finally {
+      } finally {
         completed += 1
       }
     })
@@ -468,12 +456,11 @@ export async function refreshAllUsersFeeds() {
   let failed = 0
 
   // Process feeds concurrently
-  const promises = usersToRefresh.map(async (user) => {
+  const promises = usersToRefresh.map(async user => {
     try {
       await refreshGithubUser(user, claimedAt)
       return { success: true }
-    }
-    catch {
+    } catch {
       return { success: false }
     }
   })
@@ -482,8 +469,7 @@ export async function refreshAllUsersFeeds() {
   for (const result of promiseResults) {
     if (result.success) {
       success++
-    }
-    else {
+    } else {
       failed++
     }
   }

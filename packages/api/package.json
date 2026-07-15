@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "test": "node --test src/routers/*.test.ts",
+    "test": "vp test",
     "type-check": "tsgo"
   },
   "dependencies": {
@@ -28,6 +28,8 @@
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",
     "hono": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

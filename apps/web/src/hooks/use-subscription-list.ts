@@ -12,7 +12,7 @@ export function useSubscriptionList(userId: string | undefined) {
   })
 
   return {
-    follows: enabled ? query.data ?? [] : [],
+    follows: enabled ? (query.data ?? []) : [],
     isLoading: enabled && query.isLoading,
     isSuccess: enabled && query.isSuccess,
   }

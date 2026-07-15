@@ -6,31 +6,31 @@
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*"],
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "better-github-feed-database-prod",
-      "migrations_dir": "../../packages/db/src/migrations"
-    }
+      "migrations_dir": "../../packages/db/src/migrations",
+    },
   ],
   "secrets": {
     "required": [
       "BETTER_AUTH_URL",
       "BETTER_AUTH_SECRET",
       "BETTER_AUTH_GITHUB_CLIENT_ID",
-      "BETTER_AUTH_GITHUB_CLIENT_SECRET"
-    ]
+      "BETTER_AUTH_GITHUB_CLIENT_SECRET",
+    ],
   },
   "triggers": {
-    "crons": ["*/20 * * * *"]
+    "crons": ["*/20 * * * *"],
   },
   "observability": {
     "enabled": true,
     "logs": {
       "enabled": true,
-      "head_sampling_rate": 1
-    }
-  }
+      "head_sampling_rate": 1,
+    },
+  },
 }

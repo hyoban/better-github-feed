@@ -60,8 +60,7 @@ function Carousel({
 
   const subscribeToApi = React.useCallback(
     (callback: () => void) => {
-      if (!api)
-        return () => {}
+      if (!api) return () => {}
       api.on('reInit', callback)
       api.on('select', callback)
       return () => {
@@ -97,8 +96,7 @@ function Carousel({
       if (event.key === 'ArrowLeft') {
         event.preventDefault()
         scrollPrev()
-      }
-      else if (event.key === 'ArrowRight') {
+      } else if (event.key === 'ArrowRight') {
         event.preventDefault()
         scrollNext()
       }

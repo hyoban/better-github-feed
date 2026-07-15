@@ -23,8 +23,8 @@ export function ActivityList() {
   const userId = session?.user.id
   const isAuthenticated = !!userId
   const { follows, isLoading: isFollowsLoading } = useSubscriptionList(userId)
-  const { items, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage }
-    = useActivity(userId, activeUsers, activeTypes)
+  const { items, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    useActivity(userId, activeUsers, activeTypes)
 
   const hasFollows = follows.length > 0
 
@@ -43,10 +43,10 @@ export function ActivityList() {
   const emptyMessage = !isAuthenticated
     ? 'Sign in with GitHub to see activity from the people you follow.'
     : !hasFollows
-        ? 'Sync your GitHub following to start building your feed.'
-        : hasActiveFilters
-          ? 'No activity matches your filters yet.'
-          : 'No cached activity yet. Refresh a followed user to fetch their latest activity.'
+      ? 'Sync your GitHub following to start building your feed.'
+      : hasActiveFilters
+        ? 'No activity matches your filters yet.'
+        : 'No cached activity yet. Refresh a followed user to fetch their latest activity.'
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null)
   const loadMoreTriggered = useRef(false)
 
@@ -70,8 +70,7 @@ export function ActivityList() {
   // Keyboard navigation
   const handleNavigate = useCallback(
     (direction: 'up' | 'down') => {
-      if (focusedPanel !== 'feed' || items.length === 0)
-        return
+      if (focusedPanel !== 'feed' || items.length === 0) return
 
       const ids = items.map(item => item.id)
       const currentIndex = activeId ? ids.indexOf(activeId) : -1
@@ -79,8 +78,7 @@ export function ActivityList() {
       let newIndex: number
       if (direction === 'up') {
         newIndex = currentIndex <= 0 ? 0 : currentIndex - 1
-      }
-      else {
+      } else {
         newIndex = currentIndex >= ids.length - 1 ? ids.length - 1 : currentIndex + 1
       }
 
@@ -168,7 +166,7 @@ export function ActivityList() {
             position: 'relative',
           }}
         >
-          {virtualizer.getVirtualItems().map((virtualRow) => {
+          {virtualizer.getVirtualItems().map(virtualRow => {
             const isLoaderRow = virtualRow.index >= items.length
             const item = items[virtualRow.index]
 
@@ -191,43 +189,39 @@ export function ActivityList() {
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                {isLoaderRow || !item
-                  ? (
-                      isFetchingNextPage
-                        ? (
-                            <div className="border-b border-l border-l-transparent px-4 py-3">
-                              <div className="flex gap-3">
-                                <Skeleton className="size-8 shrink-0 rounded-full" />
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2 text-xs">
-                                    <Skeleton className="h-3.5 w-16" />
-                                    <span className="text-muted-foreground">&middot;</span>
-                                    <Skeleton className="h-3.5 w-10" />
-                                  </div>
-                                  <Skeleton className="mt-1.5 h-4 w-full" />
-                                  <Skeleton className="mt-1 h-4 w-2/3" />
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        : null
-                    )
-                  : (
-                      <ActivitySummaryItem
-                        item={item}
-                        githubId={githubIdMap.get(item.source)}
-                        isActive={activeId === item.id}
-                        isFocused={focusedPanel === 'feed' && activeId === item.id}
-                        onClick={() => {
-                          void setFocusedPanel('feed')
-                          void setActiveId(item.id)
-                        }}
-                        onFocus={() => {
-                          void setFocusedPanel('feed')
-                          void setActiveId(item.id)
-                        }}
-                      />
-                    )}
+                {isLoaderRow || !item ? (
+                  isFetchingNextPage ? (
+                    <div className="border-b border-l border-l-transparent px-4 py-3">
+                      <div className="flex gap-3">
+                        <Skeleton className="size-8 shrink-0 rounded-full" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 text-xs">
+                            <Skeleton className="h-3.5 w-16" />
+                            <span className="text-muted-foreground">&middot;</span>
+                            <Skeleton className="h-3.5 w-10" />
+                          </div>
+                          <Skeleton className="mt-1.5 h-4 w-full" />
+                          <Skeleton className="mt-1 h-4 w-2/3" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : null
+                ) : (
+                  <ActivitySummaryItem
+                    item={item}
+                    githubId={githubIdMap.get(item.source)}
+                    isActive={activeId === item.id}
+                    isFocused={focusedPanel === 'feed' && activeId === item.id}
+                    onClick={() => {
+                      setFocusedPanel('feed')
+                      void setActiveId(item.id)
+                    }}
+                    onFocus={() => {
+                      setFocusedPanel('feed')
+                      void setActiveId(item.id)
+                    }}
+                  />
+                )}
               </div>
             )
           })}

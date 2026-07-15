@@ -27,7 +27,7 @@ export const apiHandler = new OpenAPIHandler(appRouter, {
     }),
   ],
   interceptors: [
-    onError((error) => {
+    onError(error => {
       console.error(error)
     }),
   ],
@@ -35,14 +35,13 @@ export const apiHandler = new OpenAPIHandler(appRouter, {
 
 export const rpcHandler = new RPCHandler(appRouter, {
   interceptors: [
-    onError((error) => {
+    onError(error => {
       console.error(error)
     }),
   ],
 })
 
 app.use('/*', async (c, next) => {
-  // eslint-disable-next-line react-naming-convention/context-name
   const requestContext = await createContext({ context: c })
 
   const rpcResult = await rpcHandler.handle(c.req.raw, {
@@ -66,41 +65,46 @@ app.use('/*', async (c, next) => {
   await next()
 })
 
-app.get('/api/health', (c) => {
+app.get('/api/health', c => {
   return c.text('OK')
 })
 
 export default {
   fetch: app.fetch,
   async scheduled(controller) {
-    // eslint-disable-next-line no-console
-    console.log(JSON.stringify({
-      message: 'cron_triggered',
-      cron: controller.cron,
-      scheduledTime: controller.scheduledTime,
-    }))
+    // oxlint-disable-next-line no-console
+    console.log(
+      JSON.stringify({
+        message: 'cron_triggered',
+        cron: controller.cron,
+        scheduledTime: controller.scheduledTime,
+      }),
+    )
 
     try {
       const followingSyncResults = await syncAllGithubFollowings()
-      // eslint-disable-next-line no-console
-      console.log(JSON.stringify({
-        message: 'following_sync_completed',
-        results: followingSyncResults,
-      }))
-    }
-    catch (error) {
-      console.error(JSON.stringify({
-        message: 'following_sync_failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }))
+      // oxlint-disable-next-line no-console
+      console.log(
+        JSON.stringify({
+          message: 'following_sync_completed',
+          results: followingSyncResults,
+        }),
+      )
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          message: 'following_sync_failed',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }),
+      )
     }
 
     const refreshResults = await refreshAllUsersFeeds()
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line no-console
     console.log(JSON.stringify({ message: 'refresh_completed', results: refreshResults }))
 
     const cleanupResults = await cleanupOldFeedItems()
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line no-console
     console.log(JSON.stringify({ message: 'cleanup_completed', results: cleanupResults }))
   },
 } satisfies ExportedHandler<Env>

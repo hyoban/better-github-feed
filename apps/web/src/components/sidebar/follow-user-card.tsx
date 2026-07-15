@@ -39,7 +39,7 @@ export function FollowUserCard({
       onPointerDown={() => {
         isClickRef.current = true
       }}
-      onClick={(e) => {
+      onClick={e => {
         isClickRef.current = false
         onToggle(follow.githubUserLogin, e.metaKey || e.ctrlKey)
       }}
@@ -76,11 +76,7 @@ export function FollowUserCard({
       </Avatar>
       <p className="min-w-0 flex-1 truncate text-sm">
         {follow.githubUserLogin}
-        <span className="text-muted-foreground">
-          {' '}
-          ·
-          {formatRelativeTime(follow.latestEntryAt)}
-        </span>
+        <span className="text-muted-foreground"> ·{formatRelativeTime(follow.latestEntryAt)}</span>
       </p>
       {itemCount > 0 && (
         <Badge variant="secondary" className="h-5 shrink-0 px-1.5 text-[10px] font-semibold">

@@ -1,9 +1,5 @@
 import type { FilterGroup, FnSchema, SingleFilter } from '@fn-sphere/filter'
-import {
-  createFilterGroup,
-  defineTypedFn,
-  presetFilter,
-} from '@fn-sphere/filter'
+import { createFilterGroup, defineTypedFn, presetFilter } from '@fn-sphere/filter'
 import { z } from 'zod'
 
 export type { FilterGroup, SingleFilter }
@@ -18,10 +14,8 @@ const notStartsWith = defineTypedFn({
     output: z.boolean(),
   }),
   implement: (value, target) => {
-    if (!target)
-      return true
-    if (typeof value !== 'string')
-      return false
+    if (!target) return true
+    if (typeof value !== 'string') return false
     return !value.toLowerCase().startsWith(target.toLowerCase())
   },
 })
@@ -36,10 +30,8 @@ const notEndsWith = defineTypedFn({
     output: z.boolean(),
   }),
   implement: (value, target) => {
-    if (!target)
-      return true
-    if (typeof value !== 'string')
-      return false
+    if (!target) return true
+    if (typeof value !== 'string') return false
     return !value.toLowerCase().endsWith(target.toLowerCase())
   },
 })

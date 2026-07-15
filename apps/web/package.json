@@ -4,9 +4,9 @@
   "private": true,
   "packageManager": "pnpm@10.30.3",
   "scripts": {
-    "dev": "pnpm db:migrate:local && vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "vp run db:migrate:local && vp dev",
+    "build": "vp build",
+    "preview": "vp preview",
     "type-check": "tsgo",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
@@ -110,7 +110,7 @@
     "tw-animate-css": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vite-tsconfig-paths": "catalog:",
-    "wrangler": "catalog:"
+    "wrangler": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

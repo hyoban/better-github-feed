@@ -1,11 +1,7 @@
 import { db } from '@better-github-feed/db'
 import { userFilter } from '@better-github-feed/db/schema/github'
 import type { FilterGroup } from '@better-github-feed/shared'
-import {
-  emptyFilterGroup,
-  feedItemFilterSchema,
-  filterFnList,
-} from '@better-github-feed/shared'
+import { emptyFilterGroup, feedItemFilterSchema, filterFnList } from '@better-github-feed/shared'
 import { ORPCError } from '@orpc/server'
 import { and, eq } from 'drizzle-orm'
 
@@ -48,8 +44,7 @@ export const filterRouter = {
     let parsedRule: FilterGroup
     try {
       parsedRule = deserializeFilterGroup(input.body.filterRule)
-    }
-    catch {
+    } catch {
       throw new ORPCError('BAD_REQUEST', { message: 'Invalid filter rule format' })
     }
 
@@ -96,14 +91,13 @@ export const filterRouter = {
     if (input.body.filterRule) {
       try {
         deserializeFilterGroup(input.body.filterRule)
-      }
-      catch {
+      } catch {
         throw new ORPCError('BAD_REQUEST', { message: 'Invalid filter rule format' })
       }
     }
 
     const now = new Date()
-    const updateData: { name?: string, filterRule?: string, updatedAt: Date } = {
+    const updateData: { name?: string; filterRule?: string; updatedAt: Date } = {
       updatedAt: now,
     }
 
@@ -120,11 +114,7 @@ export const filterRouter = {
       .where(and(eq(userFilter.id, filterId), eq(userFilter.userId, userId)))
 
     // Fetch updated record
-    const updated = await db
-      .select()
-      .from(userFilter)
-      .where(eq(userFilter.id, filterId))
-      .limit(1)
+    const updated = await db.select().from(userFilter).where(eq(userFilter.id, filterId)).limit(1)
 
     const record = updated[0]!
     return {
