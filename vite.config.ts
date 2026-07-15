@@ -1,3 +1,4 @@
+import { RECOMMENDED_RULES, TANSTACK_QUERY_RULES } from 'oxlint-plugin-react-doctor'
 import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
@@ -26,6 +27,10 @@ export default defineConfig({
       {
         name: 'better-tailwindcss',
         specifier: 'eslint-plugin-better-tailwindcss',
+      },
+      {
+        name: 'react-doctor',
+        specifier: 'oxlint-plugin-react-doctor',
       },
     ],
     settings: {
@@ -112,8 +117,22 @@ export default defineConfig({
       '**/components.d.ts',
     ],
     rules: {
+      ...RECOMMENDED_RULES,
+      ...TANSTACK_QUERY_RULES,
       'better-tailwindcss/enforce-canonical-classes': 'error',
       'better-tailwindcss/no-unknown-classes': 'error',
+      'react-doctor/exhaustive-deps': 'off',
+      'react-doctor/jsx-no-comment-textnodes': 'off',
+      'react-doctor/jsx-no-duplicate-props': 'off',
+      'react-doctor/js-tosorted-immutable': 'off',
+      'react-doctor/no-array-index-as-key': 'off',
+      'react-doctor/no-direct-mutation-state': 'off',
+      'react-doctor/no-eval': 'off',
+      'react-doctor/no-redundant-should-component-update': 'off',
+      'react-doctor/no-string-refs': 'off',
+      'react-doctor/only-export-components': 'off',
+      'react-doctor/react-compiler-no-manual-memoization': 'off',
+      'react-doctor/rules-of-hooks': 'off',
       'accessor-pairs': [
         'error',
         {

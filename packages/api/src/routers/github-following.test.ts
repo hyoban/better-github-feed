@@ -14,7 +14,7 @@ describe('fetchGithubFollowing', () => {
         ]),
         {
           headers: {
-            link: '<https://api.github.com/user/following?per_page=100&page=2>; rel="next"',
+            link: '<https://api.github.com/user/following?per_page=100&page=2>; rel="prev next"',
           },
         },
       ),

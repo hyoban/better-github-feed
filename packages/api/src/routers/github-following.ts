@@ -49,7 +49,7 @@ function getNextPageUrl(linkHeader: string | null) {
 
   for (const link of linkHeader.split(',')) {
     const match = link.trim().match(/^<([^>]+)>;\s*rel="([^"]+)"$/)
-    if (!match?.[1] || !match[2]?.split(/\s+/).includes('next')) {
+    if (!match?.[1] || !match[2] || !/(?:^|\s)next(?:\s|$)/.test(match[2])) {
       continue
     }
 

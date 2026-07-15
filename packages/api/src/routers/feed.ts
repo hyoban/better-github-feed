@@ -70,6 +70,8 @@ export async function cleanupOldFeedItems(maxItemsPerUser = 200) {
     const login = user.login
 
     // Get the publishedAt of the Nth newest item (the cutoff point)
+    // Cleanup is serialized to avoid issuing an unbounded burst of D1 reads and writes.
+    // oxlint-disable-next-line react-doctor/async-await-in-loop
     const cutoffResult = await db
       .select({ publishedAt: feedItem.publishedAt })
       .from(feedItem)
@@ -85,6 +87,7 @@ export async function cleanupOldFeedItems(maxItemsPerUser = 200) {
     }
 
     // Delete items older than the cutoff
+    // oxlint-disable-next-line react-doctor/async-await-in-loop
     const deleted = await db
       .delete(feedItem)
       .where(and(eq(feedItem.githubUserLogin, login), lt(feedItem.publishedAt, cutoff)))

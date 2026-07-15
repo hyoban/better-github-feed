@@ -212,20 +212,19 @@ export function createVisibleFeed(database: Database) {
     },
 
     async listFollowing(userId: string) {
-      const rows = await database
-        .select({
-          id: subscription.id,
-          githubUserLogin: subscription.githubUserLogin,
-          githubUserId: githubUser.id,
-          lastRefreshedAt: githubUser.lastRefreshedAt,
-          createdAt: subscription.createdAt,
-        })
-        .from(subscription)
-        .innerJoin(githubUser, eq(subscription.githubUserLogin, githubUser.login))
-        .where(eq(subscription.userId, userId))
-        .orderBy(desc(subscription.createdAt))
-
-      const [visibleCondition, activityClearedAt] = await Promise.all([
+      const [rows, visibleCondition, activityClearedAt] = await Promise.all([
+        database
+          .select({
+            id: subscription.id,
+            githubUserLogin: subscription.githubUserLogin,
+            githubUserId: githubUser.id,
+            lastRefreshedAt: githubUser.lastRefreshedAt,
+            createdAt: subscription.createdAt,
+          })
+          .from(subscription)
+          .innerJoin(githubUser, eq(subscription.githubUserLogin, githubUser.login))
+          .where(eq(subscription.userId, userId))
+          .orderBy(desc(subscription.createdAt)),
         getVisibleCondition(database, userId),
         getActivityClearedAt(userId),
       ])

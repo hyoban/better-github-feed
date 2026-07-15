@@ -163,6 +163,8 @@ export function createFeedRefresh({
 
       try {
         for (const user of users) {
+          // Claims are serialized so earlier successes can be released if a later claim fails.
+          // oxlint-disable-next-line react-doctor/async-await-in-loop
           if (await claim(user, claimedAt)) {
             claimedUsers.push(user)
           }
@@ -240,6 +242,8 @@ export function createFeedRefresh({
       const claimedUsers: RefreshCandidate[] = []
       try {
         for (const user of users) {
+          // Claims are serialized so earlier successes can be released if a later claim fails.
+          // oxlint-disable-next-line react-doctor/async-await-in-loop
           if (await claim(user, claimedAt)) {
             claimedUsers.push(user)
           }

@@ -27,6 +27,7 @@
     "@types/node": "catalog:",
     "@typescript/native-preview": "catalog:",
     "eslint-plugin-better-tailwindcss": "catalog:",
+    "oxlint-plugin-react-doctor": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"
