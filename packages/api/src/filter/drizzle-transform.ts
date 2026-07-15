@@ -1,7 +1,8 @@
 import { feedItem } from '@better-github-feed/db/schema/github'
 import type { FilterGroup, SingleFilter } from '@better-github-feed/shared'
+import { filterGroupSchema } from '@better-github-feed/shared'
 import type { SQL } from 'drizzle-orm'
-import { and, eq, gt, isNotNull, isNull, like, lt, ne, not, or, sql } from 'drizzle-orm'
+import { and, eq, gt, isNotNull, isNull, like, lt, ne, not, or } from 'drizzle-orm'
 
 /**
  * Column mapping from filter path to Drizzle column
@@ -36,19 +37,13 @@ function transformSingleFilter(filter: SingleFilter): SQL | null {
   // Handle operators
   switch (filter.name) {
     case 'equals': {
-      if (value === undefined || value === null) return null
-      if (column === feedItem.publishedAt && value instanceof Date) {
-        return eq(column, value)
-      }
-      return eq(column as typeof feedItem.title, String(value))
+      if (typeof value !== 'string') return null
+      return eq(column as typeof feedItem.title, value)
     }
 
     case 'notEqual': {
-      if (value === undefined || value === null) return null
-      if (column === feedItem.publishedAt && value instanceof Date) {
-        return ne(column, value)
-      }
-      return ne(column as typeof feedItem.title, String(value))
+      if (typeof value !== 'string') return null
+      return ne(column as typeof feedItem.title, value)
     }
 
     case 'contains': {
@@ -99,18 +94,6 @@ function transformSingleFilter(filter: SingleFilter): SQL | null {
     case 'after': {
       if (!(value instanceof Date)) return null
       return gt(feedItem.publishedAt, value)
-    }
-
-    case 'greaterThan': {
-      if (typeof value !== 'number') return null
-      // For numeric comparisons on non-date columns
-      return sql`${column} > ${value}`
-    }
-
-    case 'lessThan': {
-      if (typeof value !== 'number') return null
-      // For numeric comparisons on non-date columns
-      return sql`${column} < ${value}`
     }
 
     default:
@@ -212,27 +195,5 @@ export function deserializeFilterGroup(serialized: string): FilterGroup {
     return value
   })
 
-  // Type guard to ensure we have a valid FilterGroup
-  if (!isValidFilterGroup(deserialized)) {
-    throw new Error('Invalid FilterGroup structure')
-  }
-  return deserialized
-}
-
-/**
- * Type guard to validate FilterGroup structure
- */
-function isValidFilterGroup(obj: unknown): obj is FilterGroup {
-  return (
-    obj !== null &&
-    typeof obj === 'object' &&
-    'id' in obj &&
-    typeof obj.id === 'string' &&
-    'type' in obj &&
-    obj.type === 'FilterGroup' &&
-    'op' in obj &&
-    (obj.op === 'and' || obj.op === 'or') &&
-    'conditions' in obj &&
-    Array.isArray(obj.conditions)
-  )
+  return filterGroupSchema.parse(deserialized)
 }

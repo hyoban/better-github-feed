@@ -54,6 +54,64 @@ export const feedItemFilterSchema = z.object({
 
 export type FeedItemFilterSchema = z.infer<typeof feedItemFilterSchema>
 
+const filterIdSchema = z
+  .string()
+  .min(1)
+  .transform(value => value as FilterGroup['id'])
+const filterMetaSchema = z.record(z.string(), z.unknown()).optional()
+const stringFieldSchema = z.enum(['title', 'repo', 'type', 'summary', 'content', 'githubUserLogin'])
+const stringValueOperatorSchema = z.enum([
+  'equals',
+  'notEqual',
+  'contains',
+  'notContains',
+  'startsWith',
+  'endsWith',
+  'notStartsWith',
+  'notEndsWith',
+])
+const stringPresenceOperatorSchema = z.enum(['isEmpty', 'isNotEmpty'])
+const dateOperatorSchema = z.enum(['before', 'after'])
+const singleFilterBaseSchema = {
+  id: filterIdSchema,
+  type: z.literal('Filter'),
+  invert: z.boolean().optional(),
+  meta: filterMetaSchema,
+}
+const singleFilterSchema: z.ZodType<SingleFilter> = z.union([
+  z.object({
+    ...singleFilterBaseSchema,
+    path: z.tuple([stringFieldSchema]),
+    name: stringValueOperatorSchema,
+    args: z.tuple([z.string()]),
+  }),
+  z.object({
+    ...singleFilterBaseSchema,
+    path: z.tuple([stringFieldSchema]),
+    name: stringPresenceOperatorSchema,
+    args: z.tuple([]),
+  }),
+  z.object({
+    ...singleFilterBaseSchema,
+    path: z.tuple([z.literal('publishedAt')]),
+    name: dateOperatorSchema,
+    args: z.tuple([z.date()]),
+  }),
+])
+
+const recursiveFilterGroupSchema: z.ZodType<FilterGroup> = z.lazy(() =>
+  z.object({
+    id: filterIdSchema,
+    type: z.literal('FilterGroup'),
+    op: z.enum(['and', 'or']),
+    conditions: z.array(z.union([singleFilterSchema, recursiveFilterGroupSchema])).min(1),
+    invert: z.boolean().optional(),
+    meta: filterMetaSchema,
+  }),
+)
+
+export const filterGroupSchema = recursiveFilterGroupSchema
+
 export const filterFnList: FnSchema[] = [...presetFilter, ...customFilters]
 
 /**
@@ -63,20 +121,3 @@ export const emptyFilterGroup: FilterGroup = createFilterGroup({
   op: 'and',
   conditions: [],
 })
-
-/**
- * Serialize a FilterGroup object to JSON string with special date handling
- */
-export function serializeFilterGroup(filterGroup: unknown): string {
-  const replacer = function (this: Record<string, unknown>, key: string) {
-    const value = this[key]
-    if (value instanceof Date) {
-      return {
-        __type: 'Date',
-        value: value.toISOString(),
-      }
-    }
-    return value
-  }
-  return JSON.stringify(filterGroup, replacer)
-}

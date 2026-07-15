@@ -12,6 +12,7 @@ export function App() {
       client={queryClient}
       persistOptions={{
         persister,
+        buster: 'visible-feed-cursor-v2',
         dehydrateOptions: {
           shouldDehydrateQuery: query => {
             // Persist all successful queries

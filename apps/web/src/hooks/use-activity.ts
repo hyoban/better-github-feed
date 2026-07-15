@@ -13,7 +13,7 @@ export function useActivity(
   const enabled = !!userId
 
   const options = orpc.feed.list.infiniteOptions({
-    input: (cursor: number | undefined) => ({
+    input: (cursor: string | undefined) => ({
       query: {
         cursor,
         users: usersParam,

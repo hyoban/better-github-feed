@@ -189,6 +189,9 @@ catalogs:
     lucide-react:
       specifier: ^1.24.0
       version: 1.24.0
+    miniflare:
+      specifier: ^4.20260710.0
+      version: 4.20260710.0
     next-themes:
       specifier: ^0.4.6
       version: 0.4.6
@@ -596,6 +599,9 @@ importers:
       hono:
         specifier: 'catalog:'
         version: 4.12.30
+      miniflare:
+        specifier: 'catalog:'
+        version: 4.20260710.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -629,6 +635,9 @@ importers:
 
   packages/contract:
     dependencies:
+      '@better-github-feed/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@orpc/contract':
         specifier: 'catalog:'
         version: 1.14.8
@@ -8413,7 +8422,7 @@ snapshots:
       sirv: 3.0.2
       tinyrainbow: 3.1.0
       vitest: 4.1.10(@types/node@26.1.1)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(typescript@7.0.2)(yaml@2.8.2))(msw@2.12.7(@types/node@26.1.1)(typescript@7.0.2))
-      ws: 8.21.0
+      ws: 8.21.1
     transitivePeerDependencies:
       - bufferutil
       - msw

@@ -2,7 +2,7 @@ import type { RefreshProgressEvent } from '@better-github-feed/contract'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
-import { client, orpc, queryClient } from '@/utils/orpc'
+import { feedMutations } from '@/utils/orpc'
 
 export function useRefreshAllUsers() {
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -19,9 +19,7 @@ export function useRefreshAllUsers() {
     let errors: { login: string; message: string }[] = []
 
     try {
-      const iterator = (await client.feed.refresh({})) as AsyncIterable<RefreshProgressEvent>
-
-      for await (const event of iterator) {
+      const result = await feedMutations.refreshFollowing((event: RefreshProgressEvent) => {
         switch (event.type) {
           case 'start':
             total = event.total
@@ -41,10 +39,7 @@ export function useRefreshAllUsers() {
             errors = event.errors
             break
         }
-      }
-
-      queryClient.invalidateQueries({ queryKey: orpc.feed.list.key() })
-      queryClient.invalidateQueries({ queryKey: orpc.subscription.list.queryKey() })
+      })
 
       if (errors.length > 0) {
         const failedLogins = errors.map(error => `@${error.login}`).join(', ')
@@ -58,13 +53,13 @@ export function useRefreshAllUsers() {
         const skippedMessage = skipped > 0 ? `, skipped ${skipped} recent or active refreshes` : ''
         toast.success(`Refreshed ${total - skipped} feeds${skippedMessage}`, { id: toastId })
       }
+      if (result.cacheStatus === 'stale') {
+        toast.warning('Feeds refreshed, but cached data could not be refreshed')
+      }
     } catch (error) {
       const refreshableTotal = total - skipped
       const failedCount = refreshableTotal - completed + errors.length
       const succeededCount = completed - errors.length
-
-      queryClient.invalidateQueries({ queryKey: orpc.feed.list.key() })
-      queryClient.invalidateQueries({ queryKey: orpc.subscription.list.queryKey() })
 
       if (completed > 0) {
         const skippedMessage = skipped > 0 ? `, skipped ${skipped} recent or active refreshes` : ''

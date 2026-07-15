@@ -7,6 +7,8 @@ import { QueryCache, QueryClient } from '@tanstack/react-query'
 import { del, get, set } from 'idb-keyval'
 import { toast } from 'sonner'
 
+import { createFeedMutationCache, createFeedMutations } from '@/lib/feed-mutations'
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -19,7 +21,7 @@ export const queryClient = new QueryClient({
       toast.error(`Error: ${error.message}`, {
         action: {
           label: 'retry',
-          onClick: query.invalidate,
+          onClick: () => query.invalidate(),
         },
       })
     },
@@ -69,3 +71,23 @@ export const link = new RPCLink({
 export const client: AppRouterClient = createORPCClient(link)
 
 export const orpc = createTanstackQueryUtils(client)
+
+export const feedMutations = createFeedMutations({
+  remote: {
+    syncFollowing: () => client.subscription.sync({}),
+    refreshOne: login => client.feed.refreshOne({ params: { login } }),
+    refreshFollowing: async () =>
+      (await client.feed.refresh({})) as AsyncIterable<
+        import('@better-github-feed/contract').RefreshProgressEvent
+      >,
+    clearFeed: () => client.feed.clear({}),
+    createFilter: input => client.filter.create({ body: input }),
+    updateFilter: (id, input) => client.filter.update({ params: { id }, body: input }),
+    deleteFilter: id => client.filter.delete({ params: { id } }),
+  },
+  cache: createFeedMutationCache(queryClient, {
+    feed: orpc.feed.list.key(),
+    following: orpc.subscription.list.queryKey(),
+    filters: orpc.filter.list.queryKey(),
+  }),
+})

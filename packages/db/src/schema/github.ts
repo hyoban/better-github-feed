@@ -62,6 +62,12 @@ export const subscription = sqliteTable(
   ],
 )
 
+// User-owned feed view state, kept separate from replaceable GitHub Following snapshots
+export const userFeedState = sqliteTable('user_feed_state', {
+  userId: text('user_id').primaryKey(),
+  activityClearedAt: integer('activity_cleared_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
 // User filter rules table - stores custom filter rules for each user
 export const userFilter = sqliteTable(
   'user_filter',

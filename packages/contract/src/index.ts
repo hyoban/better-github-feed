@@ -1,3 +1,4 @@
+import { filterGroupSchema } from '@better-github-feed/shared'
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
 
@@ -19,6 +20,29 @@ const loginSchema = z
   .min(1)
   .max(40)
   .regex(/^@?[a-z0-9-]+$/i, 'Invalid GitHub username')
+
+const visibleFeedCursorSchema = z
+  .string()
+  .max(500)
+  .refine(cursor => {
+    const separator = cursor.indexOf(':')
+    const publishedAtMs = Number(cursor.slice(0, separator))
+    const encodedId = cursor.slice(separator + 1)
+    if (
+      separator < 1 ||
+      !Number.isSafeInteger(publishedAtMs) ||
+      Math.abs(publishedAtMs) > 8_640_000_000_000_000 ||
+      encodedId.length === 0
+    ) {
+      return false
+    }
+    try {
+      const id = decodeURIComponent(encodedId)
+      return id.length > 0 && encodeURIComponent(id) === encodedId
+    } catch {
+      return false
+    }
+  }, 'Invalid Visible Feed cursor')
 
 export const contract = oc.$route({
   inputStructure: 'detailed',
@@ -52,15 +76,22 @@ const feedItemSchema = z.object({
   source: z.string(),
 })
 
-// FilterGroup from @fn-sphere/filter has complex branded types that can't be modeled in Zod
-// Use z.any() to allow the actual type to pass through without validation issues
-const userFilterSchema = z.object({
+const userFilterBaseSchema = z.object({
   id: z.string(),
   name: z.string(),
-  filterRule: z.any(),
   createdAt: z.date(),
   updatedAt: z.date(),
 })
+const userFilterSchema = z.discriminatedUnion('isValid', [
+  userFilterBaseSchema.extend({
+    isValid: z.literal(true),
+    filterRule: filterGroupSchema,
+  }),
+  userFilterBaseSchema.extend({
+    isValid: z.literal(false),
+    filterRule: z.null(),
+  }),
+])
 
 // Health contract
 export const healthContract = {
@@ -89,7 +120,7 @@ export const feedContract = {
       z.object({
         query: z
           .object({
-            cursor: z.coerce.number().optional(),
+            cursor: visibleFeedCursorSchema.optional(),
             limit: z.coerce.number().min(1).max(100).default(20),
             users: z
               .union([z.string(), z.array(z.string())])
@@ -106,7 +137,7 @@ export const feedContract = {
     .output(
       z.object({
         items: z.array(feedItemSchema),
-        nextCursor: z.number().nullable(),
+        nextCursor: z.string().nullable(),
         hasMore: z.boolean(),
         types: z.array(z.string()),
         typeCounts: z.record(z.string(), z.number()),
@@ -149,7 +180,7 @@ export const filterContract = {
       z.object({
         body: z.object({
           name: z.string().min(1).max(100),
-          filterRule: z.string(),
+          filterRule: filterGroupSchema,
         }),
       }),
     )
@@ -161,7 +192,7 @@ export const filterContract = {
         params: z.object({ id: z.string() }),
         body: z.object({
           name: z.string().min(1).max(100).optional(),
-          filterRule: z.string().optional(),
+          filterRule: filterGroupSchema.optional(),
         }),
       }),
     )
@@ -170,13 +201,6 @@ export const filterContract = {
     .route({ method: 'DELETE', path: '/filter/{id}' })
     .input(z.object({ params: z.object({ id: z.string() }) }))
     .output(z.object({ success: z.literal(true) })),
-  getSchema: contract.route({ method: 'GET', path: '/filter/schema' }).output(
-    z.object({
-      schema: z.unknown(),
-      filterFnList: z.array(z.object({ name: z.string() })),
-      emptyFilterGroup: z.unknown(),
-    }),
-  ),
 }
 
 // Private data contract

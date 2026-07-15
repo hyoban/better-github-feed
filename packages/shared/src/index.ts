@@ -2,8 +2,8 @@ export {
   emptyFilterGroup,
   type FeedItemFilterSchema,
   feedItemFilterSchema,
+  filterGroupSchema,
   filterFnList,
   type FilterGroup,
-  serializeFilterGroup,
   type SingleFilter,
 } from './filter-schema.js'

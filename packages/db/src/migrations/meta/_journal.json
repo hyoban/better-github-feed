@@ -57,6 +57,13 @@
       "when": 1784113658596,
       "tag": "0007_mighty_lorna_dane",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784125355972,
+      "tag": "0008_rapid_proteus",
+      "breakpoints": true
     }
   ]
 }

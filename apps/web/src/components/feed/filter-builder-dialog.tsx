@@ -15,12 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  prepareFilterPayload,
-  prepareUpdateFilterPayload,
-  useCreateFilter,
-  useUpdateFilter,
-} from '@/hooks/use-filters'
+import { useCreateFilter, useUpdateFilter } from '@/hooks/use-filters'
 import { filterTheme } from '@/lib/filter-theme'
 
 type FilterBuilderDialogProps = {
@@ -103,12 +98,13 @@ export function FilterBuilderDialog({
 
     try {
       if (isEditing) {
-        const payload = prepareUpdateFilterPayload(editingFilter.id, name.trim(), filterRule)
-        await updateFilter.mutateAsync(payload)
+        await updateFilter.mutateAsync({
+          params: { id: editingFilter.id },
+          body: { name: name.trim(), filterRule },
+        })
         toast.success('Filter updated')
       } else {
-        const payload = prepareFilterPayload(name.trim(), filterRule)
-        await createFilter.mutateAsync(payload)
+        await createFilter.mutateAsync({ body: { name: name.trim(), filterRule } })
         toast.success('Filter created')
       }
 

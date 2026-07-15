@@ -1,24 +1,24 @@
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { orpc, queryClient } from '@/utils/orpc'
+import { feedMutations } from '@/utils/orpc'
 
 export function useClearData() {
-  const clearActivityMutation = useMutation(
-    orpc.feed.clear.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: orpc.feed.list.key() })
-        queryClient.invalidateQueries({ queryKey: orpc.subscription.list.queryKey() })
-        toast.success('Activity data cleared')
-      },
-      onError: error => {
-        toast.error(error.message)
-      },
-    }),
-  )
+  const clearActivityMutation = useMutation({
+    mutationFn: () => feedMutations.clearFeed(),
+    onSuccess: result => {
+      toast.success('Activity data cleared')
+      if (result.cacheStatus === 'stale') {
+        toast.warning('Activity cleared, but cached data could not be refreshed')
+      }
+    },
+    onError: error => {
+      toast.error(error.message)
+    },
+  })
 
   return {
-    clearActivity: clearActivityMutation.mutate,
+    clearActivity: () => clearActivityMutation.mutate(),
     isClearPending: clearActivityMutation.isPending,
   }
 }

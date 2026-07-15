@@ -1,4 +1,3 @@
-import type { FilterGroup } from '@fn-sphere/filter'
 import { countNumberOfRules } from '@fn-sphere/filter'
 import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import { useState } from 'react'
@@ -24,40 +23,37 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import type { UserFilterRule } from '@/hooks/use-filters'
 import { useDeleteFilter, useFilters } from '@/hooks/use-filters'
 
 import { Badge } from '../ui/badge'
 import { FilterBuilderDialog } from './filter-builder-dialog'
-
-type FilterRule = {
-  id: string
-  name: string
-  filterRule: FilterGroup
-  createdAt: Date
-  updatedAt: Date
-}
 
 function FilterRuleItem({
   filter,
   onEdit,
   onDelete,
 }: {
-  filter: FilterRule
+  filter: UserFilterRule
   onEdit: () => void
   onDelete: () => void
 }) {
-  const ruleCount = countNumberOfRules(filter.filterRule)
+  const ruleCount = filter.isValid ? countNumberOfRules(filter.filterRule) : 0
 
   return (
     <div className="flex items-center justify-between gap-2 rounded-md border bg-card p-3">
       <div className="flex min-w-0 flex-col gap-1">
         <span className="truncate font-medium">{filter.name}</span>
-        <span className="text-xs text-muted-foreground">
-          {ruleCount} {ruleCount === 1 ? 'rule' : 'rules'}
-        </span>
+        {filter.isValid ? (
+          <span className="text-xs text-muted-foreground">
+            {ruleCount} {ruleCount === 1 ? 'rule' : 'rules'}
+          </span>
+        ) : (
+          <Badge variant="destructive">Invalid rule</Badge>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <Button variant="ghost" size="icon-sm" onClick={onEdit}>
+        <Button variant="ghost" size="icon-sm" onClick={onEdit} disabled={!filter.isValid}>
           <PencilIcon className="size-4" />
         </Button>
         <Button variant="ghost" size="icon-sm" onClick={onDelete}>
@@ -72,8 +68,11 @@ export function FilterRulesList() {
   const { data: filters, isLoading } = useFilters()
   const deleteFilter = useDeleteFilter()
 
-  const [editingFilter, setEditingFilter] = useState<FilterRule | null>(null)
-  const [deletingFilter, setDeletingFilter] = useState<FilterRule | null>(null)
+  const [editingFilter, setEditingFilter] = useState<Extract<
+    UserFilterRule,
+    { isValid: true }
+  > | null>(null)
+  const [deletingFilter, setDeletingFilter] = useState<UserFilterRule | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const handleDelete = async () => {
@@ -107,7 +106,7 @@ export function FilterRulesList() {
                 <FilterRuleItem
                   key={filter.id}
                   filter={filter}
-                  onEdit={() => setEditingFilter(filter)}
+                  onEdit={() => filter.isValid && setEditingFilter(filter)}
                   onDelete={() => setDeletingFilter(filter)}
                 />
               ))}

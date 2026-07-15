@@ -196,37 +196,3 @@ export async function fetchGithubActivity(login: string) {
     githubId: extractGithubIdFromFeed(feedText),
   }
 }
-
-export type FeedItemRow = {
-  id: string
-  githubUserLogin: string
-  title: string
-  link: string | null
-  repo: string | null
-  type: string
-  summary: string | null
-  content: string | null
-  hidden?: boolean
-  publishedAt: Date
-  createdAt?: Date
-}
-
-export function mapFeedItemRow(row: FeedItemRow): ActivityItem {
-  const publishedAt = row.publishedAt instanceof Date ? row.publishedAt : new Date(row.publishedAt)
-  const publishedAtMs = publishedAt.getTime()
-  const safeDate = Number.isNaN(publishedAtMs) ? new Date() : publishedAt
-
-  return {
-    id: row.id,
-    actor: row.githubUserLogin,
-    title: row.title,
-    link: row.link,
-    repo: row.repo,
-    type: row.type,
-    publishedAt: safeDate.toISOString(),
-    publishedAtMs: Number.isNaN(publishedAtMs) ? safeDate.getTime() : publishedAtMs,
-    summary: row.summary,
-    content: row.content,
-    source: row.githubUserLogin,
-  }
-}

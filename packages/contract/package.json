@@ -10,6 +10,7 @@
     "type-check": "tsgo"
   },
   "dependencies": {
+    "@better-github-feed/shared": "workspace:*",
     "@orpc/contract": "catalog:",
     "zod": "catalog:"
   },

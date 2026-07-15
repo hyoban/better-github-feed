@@ -28,6 +28,7 @@
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",
     "hono": "catalog:",
+    "miniflare": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"
