@@ -3,6 +3,8 @@ import { useMemo } from 'react'
 
 import { orpc } from '@/utils/orpc'
 
+import { getActivityQueryOptions } from './activity-query-options'
+
 export function useActivity(
   userId: string | undefined,
   activeUsers: string[],
@@ -24,10 +26,12 @@ export function useActivity(
     getNextPageParam: lastPage => lastPage.nextCursor ?? undefined,
     enabled,
   })
-  const query = useInfiniteQuery({
-    ...options,
-    queryKey: [...options.queryKey, { userId }],
-  })
+  const query = useInfiniteQuery(
+    getActivityQueryOptions({
+      ...options,
+      queryKey: [...options.queryKey, { userId }],
+    }),
+  )
 
   const items = useMemo(
     () => (enabled ? (query.data?.pages.flatMap(page => page.items) ?? []) : []),
