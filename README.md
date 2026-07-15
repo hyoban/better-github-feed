@@ -35,6 +35,20 @@ vp help
 
 On Windows, install it from PowerShell with `irm https://vite.plus/ps1 | iex`. Vite+ reads the repository's `.node-version` and manages the matching Node.js runtime automatically.
 
+## Vite+ Workflow
+
+This repository has already been migrated to Vite+. For another existing Vite project, first upgrade it to Vite 8+ and Vitest 4.1+, then run the one-time migration from the workspace root:
+
+```sh
+vp migrate --no-interactive
+vp install
+vp check
+vp test
+vp build apps/web
+```
+
+Vite+ built-in commands and package scripts are intentionally separate: `vp build apps/web` runs the built-in Vite build for the Web app, while `vp run build` runs this repository's root `build` script. Because this is a monorepo, pass `apps/web` to built-in `vp dev`, `vp build`, and `vp preview` commands when running from the workspace root.
+
 ## Local Development
 
 Install dependencies:
@@ -71,6 +85,8 @@ vp run dev
 ```
 
 Wrangler creates a local D1 database, applies pending migrations, and Vite serves both the SPA and Worker at [http://localhost:5173](http://localhost:5173).
+
+`vp run dev` is the recommended local command because it applies D1 migrations before starting the app. Use `vp dev apps/web` when you only need the built-in development server.
 
 ## Deploy from a GitHub Repository
 

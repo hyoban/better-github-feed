@@ -537,21 +537,6 @@ export default defineConfig({
         jsPlugins: [],
       },
       {
-        files: ['**/package.json'],
-        rules: {},
-        jsPlugins: [],
-      },
-      {
-        files: ['**/[jt]sconfig.json', '**/[jt]sconfig.*.json'],
-        rules: {},
-        jsPlugins: [],
-      },
-      {
-        files: ['package.json', '**/package.json'],
-        rules: {},
-        jsPlugins: [],
-      },
-      {
         files: ['**/*.y?(a)ml'],
         rules: {},
         jsPlugins: [],
@@ -560,15 +545,6 @@ export default defineConfig({
         files: ['**/*.toml'],
         rules: {},
         jsPlugins: [],
-      },
-      {
-        files: ['**/*.md'],
-        rules: {},
-        jsPlugins: [],
-      },
-      {
-        files: ['**/*.md', '**/*.md/*.md'],
-        rules: {},
       },
       {
         files: ['**/*.md'],
@@ -642,15 +618,6 @@ export default defineConfig({
         rules: {
           'react/only-export-components': 'off',
         },
-      },
-      {
-        files: ['**/*.?([cm])[jt]s?(x)'],
-        rules: {},
-      },
-      {
-        files: ['**/*.md', '**/*.md/*.md'],
-        rules: {},
-        jsPlugins: [],
       },
     ],
   },
