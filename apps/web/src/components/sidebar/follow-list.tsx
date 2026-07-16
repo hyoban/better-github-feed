@@ -13,10 +13,11 @@ import { FollowUserItem } from './follow-user-item'
 const NO_FOLLOWS: readonly FollowingSummary[] = []
 
 type FollowListProps = {
+  comfortable?: boolean
   onUserSelect?: () => void
 }
 
-export function FollowList({ onUserSelect }: FollowListProps = {}) {
+export function FollowList({ comfortable, onUserSelect }: FollowListProps = {}) {
   const [sortBy] = useSortBy()
   const [activeUsers, setActiveUsers] = useActiveUsers()
   const [, setActiveId] = useActiveId()
@@ -147,6 +148,7 @@ export function FollowList({ onUserSelect }: FollowListProps = {}) {
             <div key={follow.actorKey} data-actor-key={follow.actorKey}>
               <FollowUserItem
                 follow={follow}
+                comfortable={comfortable}
                 isLast={index === follows.length - 1}
                 isActive={isActive}
                 isFocused={isFocused}

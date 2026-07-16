@@ -8,6 +8,7 @@ import type { FollowUserData } from './follow-user-item'
 
 type FollowUserCardProps = {
   follow: FollowUserData
+  comfortable?: boolean
   isLast: boolean
   isActive: boolean
   isFocused: boolean
@@ -17,6 +18,7 @@ type FollowUserCardProps = {
 
 export function FollowUserCard({
   follow,
+  comfortable = false,
   isLast,
   isActive,
   isFocused,
@@ -52,7 +54,8 @@ export function FollowUserCard({
       }}
       aria-pressed={isActive}
       className={cn(
-        'feed-row group flex w-full items-center gap-2 border-l px-3 py-2 text-left transition-colors',
+        'feed-row group flex w-full items-center border-l text-left transition-colors',
+        comfortable ? 'min-h-11 gap-3 px-4 py-2.5' : 'gap-2 px-3 py-2',
         !isLast && 'border-b',
         isFocused
           ? 'border-l-primary bg-sidebar-accent'
@@ -61,7 +64,7 @@ export function FollowUserCard({
             : 'border-l-transparent hover:bg-sidebar-accent/50',
       )}
     >
-      <Avatar className="size-5">
+      <Avatar className={comfortable ? 'size-6' : 'size-5'}>
         <AvatarImage
           src={
             follow.avatarUrl ??

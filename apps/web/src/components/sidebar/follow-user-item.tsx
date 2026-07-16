@@ -14,6 +14,7 @@ export type FollowUserData = FollowingSummary
 
 type FollowUserItemProps = {
   follow: FollowUserData
+  comfortable?: boolean
   isLast: boolean
   isActive: boolean
   isFocused: boolean
@@ -22,12 +23,21 @@ type FollowUserItemProps = {
 }
 
 export const FollowUserItem = memo(
-  ({ follow, isLast, isActive, isFocused, onToggle, onFocus }: FollowUserItemProps) => {
+  ({
+    follow,
+    comfortable,
+    isLast,
+    isActive,
+    isFocused,
+    onToggle,
+    onFocus,
+  }: FollowUserItemProps) => {
     return (
       <ContextMenu>
         <ContextMenuTrigger className="group/follow relative block">
           <FollowUserCard
             follow={follow}
+            comfortable={comfortable}
             isLast={isLast}
             isActive={isActive}
             isFocused={isFocused}
