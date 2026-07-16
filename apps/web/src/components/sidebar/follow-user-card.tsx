@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { formatRelativeTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -87,12 +86,7 @@ export function FollowUserCard({
         </span>
       </p>
       {itemCount > 0 && (
-        <Badge
-          variant="secondary"
-          className="h-5 shrink-0 px-1.5 font-medium text-muted-foreground"
-        >
-          {itemCount}
-        </Badge>
+        <span className="shrink-0 text-muted-foreground tabular-nums">{itemCount}</span>
       )}
     </button>
   )
