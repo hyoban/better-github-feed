@@ -15,7 +15,7 @@ export function DetailPanel() {
 
   return (
     <aside className="hidden h-full min-h-0 flex-col overflow-hidden bg-background/50 lg:flex">
-      <ActivityDetailLoader id={activeId} />
+      <ActivityDetailLoader id={activeId} showContext={false} />
     </aside>
   )
 }

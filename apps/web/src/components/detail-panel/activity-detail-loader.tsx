@@ -2,7 +2,13 @@ import { useActivity } from '@/hooks/use-local-feed'
 
 import { ActivityDetail } from './activity-detail'
 
-export function ActivityDetailLoader({ id }: { id: string }) {
+export function ActivityDetailLoader({
+  id,
+  showContext = true,
+}: {
+  id: string
+  showContext?: boolean
+}) {
   const snapshot = useActivity(id)
 
   if (snapshot.kind === 'opening-local') {
@@ -16,7 +22,7 @@ export function ActivityDetailLoader({ id }: { id: string }) {
   const result = snapshot.value
   switch (result.kind) {
     case 'available':
-      return <ActivityDetail item={result.activity} />
+      return <ActivityDetail item={result.activity} showContext={showContext} />
     case 'unavailable':
       return (
         <DetailMessage>

@@ -143,10 +143,6 @@
     padding-block: 0.5rem;
   }
 
-  .activity-content .tmp-p-3 {
-    padding: 0.75rem;
-  }
-
   .activity-content .mb-1 {
     margin-bottom: 0.25rem;
   }
@@ -161,13 +157,6 @@
 
   .activity-content .mr-2 {
     margin-right: 0.5rem;
-  }
-
-  .activity-content .message,
-  .activity-content .Box {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: color-mix(in oklab, var(--muted) 45%, transparent);
   }
 
   .activity-content .text-bold {

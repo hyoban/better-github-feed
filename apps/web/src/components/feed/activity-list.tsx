@@ -212,6 +212,7 @@ export function ActivityList() {
                     item={item}
                     isActive={activeId === item.id}
                     isFocused={focusedPanel === 'feed' && activeId === item.id}
+                    showActor={activeUsers.length !== 1}
                     onClick={() => {
                       setFocusedPanel('feed')
                       void setActiveId(item.id)
