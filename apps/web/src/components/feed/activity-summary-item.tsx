@@ -84,7 +84,7 @@ export const ActivitySummaryItem = memo(
                 <span className="font-medium text-foreground">{item.actor}</span>
                 <span>{formatRelativeTime(new Date(item.publishedAt))}</span>
               </div>
-              <p className="mt-1 line-clamp-2 leading-snug text-foreground/80">{title}</p>
+              <p className="mt-1 truncate leading-snug text-foreground/80">{title}</p>
             </div>
           </div>
         ) : (
