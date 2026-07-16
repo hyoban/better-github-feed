@@ -95,7 +95,7 @@ export function ActivityList() {
   const virtualizer = useVirtualizer({
     count: items.length + (hasMoreLocal && !renderedFrontierWasExtended ? 1 : 0),
     getScrollElement: () => scrollElement,
-    estimateSize: index => (index >= items.length ? 1 : 80),
+    estimateSize: index => (index >= items.length ? 1 : activeUsers.length === 1 ? 37 : 74),
     overscan: 10,
     enabled: !!scrollElement,
   })

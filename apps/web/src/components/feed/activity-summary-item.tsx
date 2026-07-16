@@ -53,6 +53,7 @@ export const ActivitySummaryItem = memo(
         }}
         className={cn(
           'w-full border-b border-l px-4 text-left',
+          showActor ? 'feed-row-double' : 'feed-row',
           showActor ? 'py-3' : 'py-2',
           isFocused
             ? 'border-l-foreground/50 bg-foreground/9'

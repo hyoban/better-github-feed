@@ -52,7 +52,7 @@ export function FollowUserCard({
       }}
       aria-pressed={isActive}
       className={cn(
-        'group flex w-full items-center gap-2 border-l px-3 py-2 text-left transition-colors',
+        'feed-row group flex w-full items-center gap-2 border-l px-3 py-2 text-left transition-colors',
         !isLast && 'border-b',
         isFocused
           ? 'border-l-primary bg-sidebar-accent'
