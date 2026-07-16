@@ -3,7 +3,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
 import { LocalFeedProvider } from '@/hooks/use-local-feed'
 import { authClient } from '@/lib/auth-client'
 import {
@@ -527,14 +526,7 @@ function AccountGate({
     </div>
   ) : null
   if (state.kind === 'opening-database' || state.kind === 'signing-out') {
-    return (
-      <main className="grid h-svh place-items-center p-6">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Spinner />
-          {state.kind === 'signing-out' ? 'Securing local data…' : 'Opening local feed…'}
-        </div>
-      </main>
-    )
+    return <main className="h-svh" aria-hidden />
   }
 
   if (state.kind === 'deleting-local-data') {

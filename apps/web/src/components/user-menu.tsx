@@ -98,14 +98,14 @@ export default function UserMenu() {
               disabled={working !== null || pendingOperations === null}
               onClick={() => void handleSignOut('retain-locked')}
             >
-              {working === 'retain' ? 'Locking…' : 'Keep Local Data'}
+              Keep Local Data
             </Button>
             <AlertDialogAction
               variant="destructive"
               disabled={working !== null || pendingOperations === null}
               onClick={() => void handleSignOut('delete')}
             >
-              {working === 'delete' ? 'Deleting…' : 'Delete & Sign Out'}
+              Delete & Sign Out
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

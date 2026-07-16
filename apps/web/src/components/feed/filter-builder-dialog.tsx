@@ -150,7 +150,7 @@ export function FilterBuilderDialog({
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isPending}>
-            {isPending ? 'Saving...' : isEditing ? 'Update' : 'Create'}
+            {isEditing ? 'Update' : 'Create'}
           </Button>
         </DialogFooter>
       </DialogContent>

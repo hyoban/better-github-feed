@@ -1,4 +1,3 @@
-import { Spinner } from '@/components/ui/spinner'
 import { useActivity } from '@/hooks/use-local-feed'
 
 import { ActivityDetail } from './activity-detail'
@@ -7,7 +6,7 @@ export function ActivityDetailLoader({ id }: { id: string }) {
   const snapshot = useActivity(id)
 
   if (snapshot.kind === 'opening-local') {
-    return <DetailMessage loading>Opening local activity…</DetailMessage>
+    return <div className="h-full min-h-48" aria-hidden />
   }
 
   if (snapshot.kind === 'failed') {
@@ -28,16 +27,9 @@ export function ActivityDetailLoader({ id }: { id: string }) {
   }
 }
 
-function DetailMessage({
-  children,
-  loading = false,
-}: {
-  children: React.ReactNode
-  loading?: boolean
-}) {
+function DetailMessage({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 p-8 text-center">
-      {loading && <Spinner className="text-muted-foreground" />}
       <p className="max-w-sm text-sm text-muted-foreground">{children}</p>
     </div>
   )

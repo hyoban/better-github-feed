@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import { canonicalizeActorSelection } from '@/hooks/actor-selection'
 import { userSelectionTransition } from '@/hooks/feed-selection-transition'
 import { useFocusedPanel, useKeyboardNavigation } from '@/hooks/use-keyboard-navigation'
@@ -115,7 +114,7 @@ export function FollowList() {
   }
 
   if (snapshot.kind === 'opening-local') {
-    return <FollowListSkeleton />
+    return <div className="min-h-0 flex-1" aria-hidden />
   }
 
   if (snapshot.kind === 'failed' || follows.length === 0) {
@@ -154,21 +153,6 @@ export function FollowList() {
             </div>
           )
         })}
-      </div>
-    </ScrollArea>
-  )
-}
-
-function FollowListSkeleton() {
-  return (
-    <ScrollArea className="min-h-0 flex-1">
-      <div>
-        {Array.from({ length: 8 }).map((_, index) => (
-          <div key={index} className="flex items-center gap-2 border-b px-3 py-2">
-            <div className="size-7 shrink-0 animate-pulse rounded-full bg-muted" />
-            <Skeleton className="h-4 flex-1" />
-          </div>
-        ))}
       </div>
     </ScrollArea>
   )

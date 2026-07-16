@@ -106,9 +106,7 @@ function FilterRulesList() {
 
         <span className="text-sm font-medium">Your Filters</span>
 
-        {snapshot.kind === 'opening-local' ? (
-          <div className="text-sm text-muted-foreground">Loading filters...</div>
-        ) : snapshot.kind === 'failed' ? (
+        {snapshot.kind === 'opening-local' ? null : snapshot.kind === 'failed' ? (
           <div className="text-sm text-destructive">Local filters could not be read.</div>
         ) : filters.length > 0 ? (
           <ScrollArea className="max-h-75">
@@ -158,7 +156,7 @@ function FilterRulesList() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -95,7 +95,7 @@ export function ActivityList() {
   const virtualizer = useVirtualizer({
     count: items.length + (hasMoreLocal && !renderedFrontierWasExtended ? 1 : 0),
     getScrollElement: () => scrollElement,
-    estimateSize: index => (index >= items.length ? 56 : 80),
+    estimateSize: index => (index >= items.length ? 1 : 80),
     overscan: 10,
     enabled: !!scrollElement,
   })
@@ -189,7 +189,7 @@ export function ActivityList() {
           }}
         >
           {virtualItems.map(virtualRow => {
-            const isLoaderRow = virtualRow.index >= items.length
+            const isWindowSentinel = virtualRow.index >= items.length
             const item = items[virtualRow.index]
 
             return (
@@ -205,10 +205,8 @@ export function ActivityList() {
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                {isLoaderRow || !item ? (
-                  <div className="flex justify-center border-b px-4 py-3 text-sm text-muted-foreground">
-                    Loading older activity…
-                  </div>
+                {isWindowSentinel || !item ? (
+                  <div className="h-px" aria-hidden />
                 ) : (
                   <ActivitySummaryItem
                     item={item}
