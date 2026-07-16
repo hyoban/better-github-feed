@@ -1,15 +1,9 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 
+import { shouldExtendActivityDemand } from '@/components/feed/automatic-demand'
 import { ActivitySummaryItem } from '@/components/feed/activity-summary-item'
-import { Button } from '@/components/ui/button'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from '@/components/ui/empty'
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toActorSelection, toTypeSelection } from '@/hooks/feed-view'
@@ -37,21 +31,36 @@ export function ActivityList() {
   const viewKey = JSON.stringify(view)
   const [demand, setDemand] = useState({ viewKey, first: INITIAL_DEMAND })
   const first = demand.viewKey === viewKey ? demand.first : INITIAL_DEMAND
-  const loadMore = useCallback(() => {
+  const extendDemand = useCallback(() => {
     setDemand(current => ({
       viewKey,
       first: (current.viewKey === viewKey ? current.first : INITIAL_DEMAND) + DEMAND_STEP,
     }))
   }, [viewKey])
   const snapshot = useVisibleFeed({ view, first })
+  const projectionState = useMemo(() => ({ snapshot, viewKey }), [snapshot, viewKey])
+  const deferredProjectionState = useDeferredValue(projectionState)
+  const renderedSnapshot =
+    snapshot.kind === 'opening-local' &&
+    deferredProjectionState.viewKey === viewKey &&
+    deferredProjectionState.snapshot.kind === 'ready'
+      ? deferredProjectionState.snapshot
+      : snapshot
 
-  const items = snapshot.kind === 'ready' ? snapshot.value.items : NO_ACTIVITIES
-  const coverage = snapshot.kind === 'ready' ? snapshot.value.coverage : null
-  const canLoadMore =
+  const items = renderedSnapshot.kind === 'ready' ? renderedSnapshot.value.items : NO_ACTIVITIES
+  const coverage = renderedSnapshot.kind === 'ready' ? renderedSnapshot.value.coverage : null
+  const hasMoreHistory =
     coverage !== null &&
     (coverage.hasMoreLocal ||
       coverage.demand === 'insufficient' ||
       coverage.remoteWindow !== 'exhausted')
+  const latestItems = snapshot.kind === 'ready' ? snapshot.value.items : NO_ACTIVITIES
+  const latestCoverage = snapshot.kind === 'ready' ? snapshot.value.coverage : null
+  const latestHasMoreHistory =
+    latestCoverage !== null &&
+    (latestCoverage.hasMoreLocal ||
+      latestCoverage.demand === 'insufficient' ||
+      latestCoverage.remoteWindow !== 'exhausted')
   const hasActiveFilters = activeUsers.length > 0 || activeTypes.length > 0
 
   const emptyMessage =
@@ -77,13 +86,29 @@ export function ActivityList() {
   }
 
   const virtualizer = useVirtualizer({
-    count: items.length + (canLoadMore ? 1 : 0),
+    count: items.length + (hasMoreHistory ? 1 : 0),
     getScrollElement: () => scrollElement,
     estimateSize: index => (index >= items.length ? 56 : 80),
     overscan: 10,
     enabled: !!scrollElement,
   })
   const virtualItems = virtualizer.getVirtualItems()
+  const lastVirtualIndex = virtualItems.at(-1)?.index
+
+  useEffect(() => {
+    if (snapshot.kind !== 'ready') return
+    if (
+      !shouldExtendActivityDemand({
+        hasMoreHistory: latestHasMoreHistory,
+        itemCount: latestItems.length,
+        lastVirtualIndex,
+      })
+    )
+      return
+
+    const frame = requestAnimationFrame(extendDemand)
+    return () => cancelAnimationFrame(frame)
+  }, [extendDemand, lastVirtualIndex, latestHasMoreHistory, latestItems.length, snapshot.kind])
 
   const handleNavigate = useCallback(
     (direction: 'up' | 'down') => {
@@ -122,7 +147,7 @@ export function ActivityList() {
     prevFocusedPanel.current = focusedPanel
   }, [activeId, focusedPanel, items, setActiveId, virtualizer])
 
-  if (snapshot.kind === 'opening-local') {
+  if (renderedSnapshot.kind === 'opening-local') {
     return <ActivityListSkeleton />
   }
 
@@ -133,13 +158,6 @@ export function ActivityList() {
           <EmptyTitle>No activity</EmptyTitle>
           <EmptyDescription>{emptyMessage}</EmptyDescription>
         </EmptyHeader>
-        {canLoadMore && (
-          <EmptyContent>
-            <Button variant="outline" size="sm" onClick={loadMore}>
-              Load more history
-            </Button>
-          </EmptyContent>
-        )}
       </Empty>
     )
   }
@@ -172,10 +190,8 @@ export function ActivityList() {
                 }}
               >
                 {isLoaderRow || !item ? (
-                  <div className="flex justify-center border-b px-4 py-3">
-                    <Button variant="ghost" size="sm" onClick={loadMore}>
-                      Load more
-                    </Button>
+                  <div className="flex justify-center border-b px-4 py-3 text-sm text-muted-foreground">
+                    Loading older activity…
                   </div>
                 ) : (
                   <ActivitySummaryItem

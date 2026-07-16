@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 
-import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { canonicalizeActorSelection } from '@/hooks/actor-selection'
@@ -11,36 +10,21 @@ import type { FollowingSummary } from '@/local-feed'
 
 import { FollowUserItem } from './follow-user-item'
 
-const INITIAL_DEMAND = 100
-const DEMAND_STEP = 100
-const LEGACY_URL_DEMAND = 1000
 const NO_FOLLOWS: readonly FollowingSummary[] = []
-
-function isStableActorKey(value: string) {
-  return value.startsWith('github:') || value.startsWith('legacy-atom-login:')
-}
 
 export function FollowList() {
   const [sortBy] = useSortBy()
   const [activeUsers, setActiveUsers] = useActiveUsers()
   const [, setActiveId] = useActiveId()
   const [focusedPanel, setFocusedPanel] = useFocusedPanel()
-  const [first, setFirst] = useState(() =>
-    activeUsers.some(value => !isStableActorKey(value)) ? LEGACY_URL_DEMAND : INITIAL_DEMAND,
-  )
-  const snapshot = useFollowing({ sort: sortBy, first })
+  const snapshot = useFollowing({ sort: sortBy })
   const follows = snapshot.kind === 'ready' ? snapshot.value.items : NO_FOLLOWS
   const coverage = snapshot.kind === 'ready' ? snapshot.value.coverage : null
-  const canLoadMore =
-    coverage !== null &&
-    (coverage.hasMoreLocal ||
-      coverage.demand === 'insufficient' ||
-      coverage.remoteWindow !== 'exhausted')
 
   const canonicalSelection = useMemo(() => {
     if (snapshot.kind !== 'ready') return activeUsers
-    return canonicalizeActorSelection(activeUsers, follows, !canLoadMore)
-  }, [activeUsers, canLoadMore, follows, snapshot.kind])
+    return canonicalizeActorSelection(activeUsers, follows, true)
+  }, [activeUsers, follows, snapshot.kind])
 
   useEffect(() => {
     if (snapshot.kind !== 'ready') return
@@ -159,17 +143,6 @@ export function FollowList() {
             </div>
           )
         })}
-        {canLoadMore && (
-          <div className="flex justify-center border-b px-3 py-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setFirst(value => value + DEMAND_STEP)}
-            >
-              Load more
-            </Button>
-          </div>
-        )}
       </div>
     </ScrollArea>
   )

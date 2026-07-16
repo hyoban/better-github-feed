@@ -206,7 +206,7 @@ function useProjection<P extends Projection>(
   ) as ProjectionSnapshot<ProjectionOutput<P>>
 }
 
-export function useFollowing(input: { sort: 'latest' | 'name'; first: number }) {
+export function useFollowing(input: { sort: 'latest' | 'name' }) {
   return useProjection({ kind: 'following', ...input })
 }
 

@@ -223,12 +223,12 @@ type LocalFeedBootState =
   | { kind: 'failed'; issue: 'migration-failed' | 'database-unavailable'; error: Error }
 ```
 
-`actors: 'following'` and `types: 'all'` are the explicit unfiltered states; empty arrays are invalid. At the `LocalFeed` boundary, explicit selections are deduplicated and bounded to 250 actor keys and 64 type keys, with each key limited to 256 UTF-16 code units, so a crafted URL cannot create unbounded IndexedDB query fan-out. Pagination is expressed by increasing `first`, for example `40 -> 60`. UI callers never see a D1 cursor, page number, ingestion sequence, ETag, retention generation, or coverage key.
+`actors: 'following'` and `types: 'all'` are the explicit unfiltered states; empty arrays are invalid. At the `LocalFeed` boundary, explicit selections are deduplicated and bounded to 250 actor keys and 64 type keys, with each key limited to 256 UTF-16 code units, so a crafted URL cannot create unbounded IndexedDB query fan-out. Following always returns the complete active local snapshot. Visible Feed automatically increases its internal `first` demand as the virtual scroll frontier becomes visible. UI callers never see a D1 cursor, page number, ingestion sequence, ETag, retention generation, or coverage key.
 
 The React adapter is intentionally thin:
 
 ```ts
-useFollowing({ sort, first })
+useFollowing({ sort })
 useVisibleFeed({ view, first })
 useActivity(id)
 useUserFilters()
@@ -303,7 +303,7 @@ Use one database per authenticated GitHub numeric viewer ID. The database name u
 
 The wire payload contains the full normalized Atom entry for every pulled Activity. Dexie splits the body from indexed headers to keep feed scans cheap. Images referenced by Atom HTML are not stored in these tables; they use Cache Storage.
 
-Feed visibility is materialized incrementally because Activity is permanent locally and content filters are not indexable. A filter, effective clear fence, sanitizer version, or Following membership-key change starts a fixed-high-water rebuild in bounded batches. Following-summary initialization, display-key refresh after a rename, and Activity scanning each have durable cursors; no warm projection read enumerates the full Following set. Visible Feed keeps the previous complete generation as a partial baseline and overlays the current membership/filter/clear fence so newly hidden content cannot leak; aggregate projections report conservative rebuilding values until the new generation atomically replaces it. A snapshot revision with identical membership keys does not rebuild Activity visibility; mutable login sort keys refresh separately in bounded batches. Status-only revisions invalidate only the sync-status projection.
+Feed visibility is materialized incrementally because Activity is permanent locally and content filters are not indexable. A filter, effective clear fence, sanitizer version, or Following membership-key change starts a fixed-high-water rebuild in bounded batches. Following-summary initialization, display-key refresh after a rename, and Activity scanning each have durable cursors, while the Following UI projection reads the complete active local snapshot. Visible Feed keeps the previous complete generation as a partial baseline and overlays the current membership/filter/clear fence so newly hidden content cannot leak; aggregate projections report conservative rebuilding values until the new generation atomically replaces it. A snapshot revision with identical membership keys does not rebuild Activity visibility; mutable login sort keys refresh separately in bounded batches. Status-only revisions invalidate only the sync-status projection.
 
 ### Required local transactions
 
@@ -544,7 +544,7 @@ An observer is both a local query and a declaration of network demand:
 
 While a local visibility generation is rebuilding, history demand pauses instead of treating the temporary local under-set as evidence that more cloud history is required. Promotion immediately re-evaluates active demand.
 
-The initial history/backfill safety budget is five pages, 500 raw entries, or two seconds of foreground work, whichever comes first. Page and item consumption is persisted against a canonical demand-and-visibility token, so projection rebuild yields, focus events, and the five-minute timer cannot silently start another five-page allowance. The two-second clock measures only the active foreground invocation; closing or hiding a tab does not consume a dormant budget. Increasing `first`, changing the visibility signature, or invoking Load more creates a new token and allowance. Hitting the budget leaves coverage as `demand: insufficient` and `remoteWindow: may-have-more`. Load more changes range demand and is not a refresh action. Head-delta catch-up continues in short yielded foreground cycles until it reaches the captured latest checkpoint, while still honoring visibility, connectivity, and retry fences.
+The initial history/backfill safety budget is five pages, 500 raw entries, or two seconds of foreground work, whichever comes first. Page and item consumption is persisted against a canonical demand-and-visibility token, so projection rebuild yields, focus events, and the five-minute timer cannot silently start another five-page allowance. The two-second clock measures only the active foreground invocation; closing or hiding a tab does not consume a dormant budget. Reaching the virtual scroll frontier automatically increases `first`, creating a new token and allowance; an empty active view continues automatically while retained history may still satisfy it. Hitting one budget leaves coverage as `demand: insufficient` and `remoteWindow: may-have-more` until that automatic demand extension occurs. Head-delta catch-up continues in short yielded foreground cycles until it reaches the captured latest checkpoint, while still honoring visibility, connectivity, and retry fences.
 
 Type filters and User Filters never narrow the server request. They are local-only so changing them offline can reveal Activity that is already present.
 

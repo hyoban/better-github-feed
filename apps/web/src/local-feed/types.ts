@@ -121,7 +121,7 @@ export type LocalSyncStatus =
 
 export type ProjectionMap = {
   following: {
-    input: { sort: 'latest' | 'name'; first: number }
+    input: { sort: 'latest' | 'name' }
     output: FollowingWindow
   }
   'visible-feed': {

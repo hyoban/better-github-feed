@@ -366,7 +366,6 @@ async function readVisibleFeed(
 async function readFollowing(
   database: LocalFeedDatabase,
   sort: 'latest' | 'name',
-  first: number,
   sanitizer?: ActivitySanitizerPort,
 ) {
   const [following, projectionContext] = await Promise.all([
@@ -411,7 +410,6 @@ async function readFollowing(
         true,
         true,
       )
-      .limit(first + 1)
       .toArray()
     const storedMembers = await database.followingMembers.bulkGet(
       orderedSummaries.map(summary => [revision, summary.actorKey]),
@@ -431,7 +429,6 @@ async function readFollowing(
         true,
         true,
       )
-      .limit(first + 1)
       .toArray()
     summaries =
       generation === null
@@ -458,12 +455,12 @@ async function readFollowing(
     }
   })
   return {
-    items: items.slice(0, first),
+    items,
     totalLocal,
     coverage: {
       bootstrap: following?.activeRevision ? ('initialized' as const) : ('never-synced' as const),
       demand: 'satisfied' as const,
-      hasMoreLocal: totalLocal > first,
+      hasMoreLocal: false,
       remoteWindow: 'exhausted' as const,
       integrity: 'continuous' as const,
     },
@@ -631,7 +628,7 @@ export async function readProjection<P extends Projection>(
       const value = await (async () => {
         switch (projection.kind) {
           case 'following':
-            return readFollowing(database, projection.sort, projection.first, sanitizer)
+            return readFollowing(database, projection.sort, sanitizer)
           case 'visible-feed':
             return readVisibleFeed(database, projection.view, projection.first, sanitizer)
           case 'activity':
