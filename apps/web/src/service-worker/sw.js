@@ -269,7 +269,7 @@ async function pruneMediaClientContexts(preserveClientId) {
 }
 
 globalThis.addEventListener('install', event => {
-  event.waitUntil(cacheShell().then(() => globalThis.skipWaiting()))
+  event.waitUntil(cacheShell())
 })
 
 globalThis.addEventListener('activate', event => {
@@ -293,9 +293,16 @@ globalThis.addEventListener('activate', event => {
 })
 
 globalThis.addEventListener('message', event => {
-  const sourceId = event.source?.id
   const message = event.data
-  if (!sourceId || !message || typeof message !== 'object') return
+  if (!message || typeof message !== 'object') return
+
+  if (message.type === 'SKIP_WAITING') {
+    event.waitUntil(globalThis.skipWaiting())
+    return
+  }
+
+  const sourceId = event.source?.id
+  if (!sourceId) return
 
   if (message.type === 'SET_MEDIA_ACCOUNT') {
     event.waitUntil(
