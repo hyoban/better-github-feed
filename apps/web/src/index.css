@@ -128,6 +128,22 @@ body {
 }
 
 @layer components {
+  .filter-sphere-single-filter-container {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 39.999rem) {
+    .filter-sphere-single-filter-container {
+      align-items: stretch !important;
+    }
+
+    .filter-sphere-single-filter-container > :where(input, select) {
+      flex: 1 1 100%;
+    }
+  }
+
   .mobile-safe-header {
     height: calc(3.5rem + env(safe-area-inset-top));
     padding-top: env(safe-area-inset-top);

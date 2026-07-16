@@ -16,5 +16,12 @@ export function FilterThemeInput({
     [onChange],
   )
 
-  return <Input className="h-8 min-w-30" onChange={handleChange} value={value ?? ''} {...props} />
+  return (
+    <Input
+      className="h-10 w-full min-w-0 sm:w-auto sm:min-w-30"
+      onChange={handleChange}
+      value={value ?? ''}
+      {...props}
+    />
+  )
 }

@@ -30,7 +30,7 @@ export const filterTheme = createFilterTheme({
       return (
         <select
           className={cn(
-            'h-10 min-w-25 rounded-md border border-input bg-background px-3 py-1.5 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
+            'h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1.5 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:w-auto sm:min-w-25',
             className,
           )}
           {...props}

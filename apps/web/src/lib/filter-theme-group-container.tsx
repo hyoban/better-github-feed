@@ -42,12 +42,12 @@ export function FilterThemeGroupContainer({
   return (
     <div
       className={cn(
-        'relative flex flex-col items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 pt-10',
-        isRoot ? 'mt-8' : 'mt-6',
+        'flex w-full min-w-0 flex-col items-stretch gap-3 rounded-md border bg-muted/30 p-3',
+        !isRoot && 'mt-3',
       )}
       {...props}
     >
-      <div className="absolute top-0 flex -translate-y-1/2 gap-2">
+      <div className="flex w-full flex-wrap gap-2">
         <Button variant="default" size="sm" onClick={handleToggleGroupOp}>
           {text}
         </Button>

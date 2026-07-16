@@ -127,7 +127,7 @@ export function FilterBuilderDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="min-w-xl">
+      <DialogContent className="max-h-[calc(100svh-2rem)] w-[calc(100vw-2rem)] min-w-0 overflow-y-auto sm:w-auto sm:max-w-2xl sm:min-w-xl">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Filter' : 'Create Filter'}</DialogTitle>
           <DialogDescription>
