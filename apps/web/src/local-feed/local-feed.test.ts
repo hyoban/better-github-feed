@@ -44,7 +44,7 @@ import {
   settleWithin,
   shouldRunForegroundSync,
 } from './incremental-sync'
-import { projectionDependsOn } from './local-feed'
+import { projectionDependsOn, projectionMaintenanceRequestsSync } from './local-feed'
 import { createOrpcCloudReplicaPort } from './orpc-cloud-replica'
 import type { LocalFeedV1OrpcClient } from './orpc-cloud-replica'
 import {
@@ -138,6 +138,17 @@ describe('LocalFeed pure invariants', () => {
         following: { revision: null },
       }),
       null,
+    )
+  })
+
+  it('does not request cloud sync when a local projection generation is promoted', () => {
+    assert.equal(
+      projectionMaintenanceRequestsSync({ promoted: true, recoveredStorage: false }),
+      false,
+    )
+    assert.equal(
+      projectionMaintenanceRequestsSync({ promoted: false, recoveredStorage: true }),
+      true,
     )
   })
 

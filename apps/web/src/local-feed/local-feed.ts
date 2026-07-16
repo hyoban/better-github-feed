@@ -46,6 +46,13 @@ export function projectionDependsOn(kind: Projection['kind'], scope: 'data' | 's
   return scope === 'data' || kind === 'sync-status'
 }
 
+export function projectionMaintenanceRequestsSync(input: {
+  promoted: boolean
+  recoveredStorage: boolean
+}) {
+  return input.recoveredStorage
+}
+
 export function projectionMaintenanceRetryDelay(failureCount: number) {
   return Math.min(30_000, 1_000 * 2 ** Math.max(0, Math.min(5, failureCount - 1)))
 }
@@ -554,8 +561,12 @@ class DexieLocalFeed implements LocalFeed {
         this.tabs.announce({ kind: 'projection-changed' })
         await this.refreshProjections('data')
       }
-      if (result.promoted && !this.#closed) this.#sync.requestSync()
-      else if (recoveredStorage && !this.#closed) this.#sync.requestSync()
+      if (
+        !this.#closed &&
+        projectionMaintenanceRequestsSync({ promoted: result.promoted, recoveredStorage })
+      ) {
+        this.#sync.requestSync()
+      }
     } catch (error) {
       if (isStorageQuotaError(error)) {
         this.#maintenanceFailures = 0
