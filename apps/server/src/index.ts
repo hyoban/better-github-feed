@@ -24,6 +24,34 @@ app.use(logger())
 
 app.on(['POST', 'GET'], '/api/auth/*', c => auth.handler(c.req.raw))
 
+async function runBackendMaintenance() {
+  return runScheduledMaintenance({
+    syncFollowing: syncAllGithubFollowings,
+    reconcileActivity: reconcileLegacyFeedItems,
+    refreshActivity: refreshAllUsersFeeds,
+    cleanupActivity: cleanupOldFeedItems,
+    compactUserState: compactUserStateSync,
+    // oxlint-disable-next-line no-console
+    log: event => console.log(JSON.stringify(event)),
+    // oxlint-disable-next-line no-console
+    logError: event => console.error(JSON.stringify(event)),
+  })
+}
+
+if (import.meta.env.DEV) {
+  app.post('/api/dev/sync', async c => {
+    const context = await createContext({ context: c })
+    if (!context.session?.user) return c.json({ message: 'Authentication required' }, 401)
+    try {
+      await runBackendMaintenance()
+      return c.json({ ok: true as const })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Backend sync failed'
+      return c.json({ message }, 500)
+    }
+  })
+}
+
 export const apiHandler = new OpenAPIHandler(appRouter, {
   plugins: [
     new OpenAPIReferencePlugin({
@@ -85,15 +113,6 @@ export default {
       }),
     )
 
-    await runScheduledMaintenance({
-      syncFollowing: syncAllGithubFollowings,
-      reconcileActivity: reconcileLegacyFeedItems,
-      refreshActivity: refreshAllUsersFeeds,
-      cleanupActivity: cleanupOldFeedItems,
-      compactUserState: compactUserStateSync,
-      // oxlint-disable-next-line no-console
-      log: event => console.log(JSON.stringify(event)),
-      logError: event => console.error(JSON.stringify(event)),
-    })
+    await runBackendMaintenance()
   },
 } satisfies ExportedHandler<Env>

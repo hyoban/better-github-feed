@@ -23,8 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useLocalFeedInstance, useLocalSyncStatus } from '@/hooks/use-local-feed'
-import { runDevBackendSync } from '@/lib/dev-backend-sync'
-import { client } from '@/utils/orpc'
+import { runDevBackendSync, triggerDevBackendSync } from '@/lib/dev-backend-sync'
 
 import { Button } from './ui/button'
 
@@ -49,24 +48,11 @@ export default function UserMenu() {
     setIsDevSyncing(true)
     const toastId = toast.loading('Syncing backend…')
     try {
-      const result = await runDevBackendSync({
-        syncFollowing: () => client.subscription.sync({}),
-        refreshFollowing: async () =>
-          (await client.feed.refresh({})) as AsyncIterable<
-            import('@better-github-feed/contract').RefreshProgressEvent
-          >,
+      await runDevBackendSync({
+        triggerBackendSync: triggerDevBackendSync,
         requestLocalSync: () => feed.requestSync(),
       })
-      const details = [
-        `${result.refreshed} refreshed`,
-        result.skipped > 0 ? `${result.skipped} skipped` : null,
-        result.failed > 0 ? `${result.failed} failed` : null,
-      ]
-        .filter(Boolean)
-        .join(', ')
-      const message = details ? `Backend sync completed: ${details}` : 'Backend sync completed'
-      if (result.failed > 0) toast.warning(message, { id: toastId })
-      else toast.success(message, { id: toastId })
+      toast.success('Backend sync completed', { id: toastId })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Backend sync failed', { id: toastId })
     } finally {
