@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp run --filter web dev",
-    "build": "vp build apps/web",
+    "build": "vp run --filter web build",
     "preview": "vp preview apps/web",
     "type-check": "vp run -r type-check",
     "dev:web": "vp run --filter web dev",

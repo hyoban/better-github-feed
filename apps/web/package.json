@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vp run db:migrate:local && vp dev",
-    "build": "vp build",
+    "build": "vp build && node ./scripts/verify-pwa-build.mjs",
     "preview": "vp preview",
     "type-check": "tsgo",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
@@ -55,6 +55,7 @@
     "sonner": "catalog:",
     "tailwind-merge": "catalog:",
     "vaul": "catalog:",
+    "workbox-precaching": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -69,6 +70,7 @@
     "tw-animate-css": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-pwa": "catalog:",
     "vite-plus": "catalog:",
     "wrangler": "catalog:"
   }

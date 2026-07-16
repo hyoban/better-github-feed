@@ -7,6 +7,23 @@ export type ServiceWorkerUpdateRegistration = EventTarget & {
   readonly waiting: ServiceWorkerUpdateTarget | null
 }
 
+export type WaitingUpdateState = {
+  readonly buildId: string
+  readonly clientCount: number
+}
+
+export function shouldActivateWaitingUpdate(
+  state: WaitingUpdateState | null,
+  lastAttemptedBuildId: string | null,
+) {
+  return (
+    state !== null &&
+    state.buildId.length > 0 &&
+    state.clientCount === 1 &&
+    state.buildId !== lastAttemptedBuildId
+  )
+}
+
 export function watchForServiceWorkerUpdate<T extends ServiceWorkerUpdateTarget>(
   registration: ServiceWorkerUpdateRegistration & {
     readonly installing: T | null

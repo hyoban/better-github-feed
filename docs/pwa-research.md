@@ -2,7 +2,13 @@
 
 Date: 2026-07-17
 
-Status: Research and implementation recommendation
+Status: Implemented on 2026-07-17
+
+## Implementation result
+
+The recommended architecture is now implemented. The production build emits a stable `/sw.js`, injects the Vite asset graph through Workbox, validates the generated PWA artifacts, and preserves the existing account-fenced media subsystem. The manifest now has a stable identity, separate maskable assets, and an Apple touch icon. Installation is exposed unobtrusively in the user menu, updates remain quiet until a sole-client full load, and developer diagnostics report storage persistence and coarse quota usage.
+
+The existing service worker remains JavaScript so the account-fencing migration does not combine a build-system change with a whole-file type migration. It is bundled and revisioned by `vite-plugin-pwa`; converting that already-tested module to TypeScript can be handled independently without changing PWA behavior.
 
 ## Executive decision
 
@@ -243,7 +249,7 @@ Do not include GitHub IDs, feed URLs, image URLs, OAuth state, or cached content
 
 - Add `vite-plugin-pwa` and Workbox modules.
 - Configure `strategies: 'injectManifest'`, `srcDir: 'src/service-worker'`, and `filename: 'sw.ts'`. The plugin resolves that source as `src/service-worker/sw.ts`, changes the TypeScript destination and registration filename to `sw.js`, and writes it into Vite's build output; with root scope/base it is served and registered as stable `/sw.js` ([vite-plugin-pwa option resolution source](https://github.com/vite-pwa/vite-plugin-pwa/blob/main/src/options.ts)).
-- Convert the worker to TypeScript and replace HTML-regex shell discovery/cache versioning with `precacheAndRoute(self.__WB_MANIFEST)` and Workbox cleanup.
+- Build the existing worker through the plugin and replace HTML-regex shell discovery/cache versioning with the injected Workbox precache manifest and cleanup.
 - Keep `/api/` and auth network-only. Add a network-first navigation route with a precached shell fallback.
 - Preserve the existing media account registry, write queue, generation fence, bounded pruning, and tests.
 - Configure deployment caching: revalidate `sw.js`/manifest, immutable hashed assets.

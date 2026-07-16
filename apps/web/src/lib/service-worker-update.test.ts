@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 
 import { describe, it } from 'vite-plus/test'
 
-import { watchForServiceWorkerUpdate } from './service-worker-update'
+import { shouldActivateWaitingUpdate, watchForServiceWorkerUpdate } from './service-worker-update'
 
 class FakeWorker extends EventTarget {
   state = 'installing'
@@ -65,5 +65,26 @@ describe('service worker update detection', () => {
     )
 
     assert.deepEqual(offered, [worker])
+  })
+})
+
+describe('quiet service worker activation', () => {
+  it('activates a waiting build only when the current page is the sole client', () => {
+    assert.equal(
+      shouldActivateWaitingUpdate({ buildId: 'build-b', clientCount: 1 }, 'build-a'),
+      true,
+    )
+    assert.equal(
+      shouldActivateWaitingUpdate({ buildId: 'build-b', clientCount: 2 }, 'build-a'),
+      false,
+    )
+  })
+
+  it('guards against reloading the same waiting build twice', () => {
+    assert.equal(
+      shouldActivateWaitingUpdate({ buildId: 'build-b', clientCount: 1 }, 'build-b'),
+      false,
+    )
+    assert.equal(shouldActivateWaitingUpdate(null, null), false)
   })
 })

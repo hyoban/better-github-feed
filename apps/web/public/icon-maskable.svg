@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Better GitHub Feed">
+  <rect width="512" height="512" fill="#0a0a0a" />
+  <path
+    d="M148 316c-8-51-7-119 5-178 34 42 65 73 97 90-54 14-89 43-102 88Zm216 0c8-51 7-119-5-178-34 42-65 73-97 90 54 14 89 43 102 88Z"
+    fill="#f4f1e8"
+  />
+  <circle cx="184" cy="344" r="34" fill="#f4f1e8" />
+  <circle cx="256" cy="344" r="34" fill="#8fa383" />
+  <circle cx="328" cy="344" r="34" fill="#f4f1e8" />
+</svg>

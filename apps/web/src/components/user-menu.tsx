@@ -1,5 +1,11 @@
-import { ChevronDownIcon, RefreshCwIcon } from 'lucide-react'
-import { useState } from 'react'
+import {
+  ChevronDownIcon,
+  DownloadIcon,
+  HardDriveIcon,
+  RefreshCwIcon,
+  Share2Icon,
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { useLocalFirstAccount } from '@/components/local-feed/local-first-account'
@@ -23,7 +29,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useLocalFeedInstance, useLocalSyncStatus } from '@/hooks/use-local-feed'
+import { usePwaInstall } from '@/hooks/use-pwa-install'
 import { runDevBackendSync, triggerDevBackendSync } from '@/lib/dev-backend-sync'
+import { readPwaDiagnostics } from '@/lib/pwa-diagnostics'
+import type { PwaDiagnostics } from '@/lib/pwa-diagnostics'
 
 import { Button } from './ui/button'
 
@@ -31,9 +40,16 @@ export default function UserMenu() {
   const account = useLocalFirstAccount()
   const feed = useLocalFeedInstance()
   const syncStatus = useLocalSyncStatus()
+  const pwaInstall = usePwaInstall()
   const [signOutOpen, setSignOutOpen] = useState(false)
   const [working, setWorking] = useState<'delete' | 'retain' | null>(null)
   const [isDevSyncing, setIsDevSyncing] = useState(false)
+  const [pwaDiagnostics, setPwaDiagnostics] = useState<PwaDiagnostics | null>(null)
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    void readPwaDiagnostics().then(setPwaDiagnostics)
+  }, [])
 
   const pendingOperations =
     syncStatus.kind === 'ready' ? syncStatus.value.pendingUserOperations : null
@@ -60,6 +76,14 @@ export default function UserMenu() {
     }
   }
 
+  async function handleInstall() {
+    try {
+      await pwaInstall.install()
+    } catch {
+      toast.error('The app could not be installed.')
+    }
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -83,6 +107,21 @@ export default function UserMenu() {
             <DropdownMenuItem disabled>
               {account.sessionProfile?.email ?? `GitHub ID ${account.ownerGithubId}`}
             </DropdownMenuItem>
+            {pwaInstall.canInstall ? (
+              <DropdownMenuItem onClick={() => void handleInstall()}>
+                <DownloadIcon />
+                Install app
+              </DropdownMenuItem>
+            ) : pwaInstall.canExplainManualInstall ? (
+              <DropdownMenuItem
+                onClick={() =>
+                  toast.info('Open the browser Share menu, then choose Add to Home Screen.')
+                }
+              >
+                <Share2Icon />
+                Add to Home Screen
+              </DropdownMenuItem>
+            ) : null}
             {import.meta.env.DEV ? (
               <>
                 <DropdownMenuSeparator />
@@ -90,6 +129,22 @@ export default function UserMenu() {
                 <DropdownMenuItem disabled={isDevSyncing} onClick={() => void handleDevSync()}>
                   <RefreshCwIcon className={isDevSyncing ? 'animate-spin' : undefined} />
                   {isDevSyncing ? 'Syncing backend…' : 'Sync backend now'}
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled>
+                  <HardDriveIcon />
+                  {pwaDiagnostics
+                    ? `${
+                        pwaDiagnostics.persisted === null
+                          ? 'Unknown'
+                          : pwaDiagnostics.persisted
+                            ? 'Persistent'
+                            : 'Best-effort'
+                      } storage${
+                        pwaDiagnostics.quotaUsagePercent === null
+                          ? ''
+                          : ` · ${pwaDiagnostics.quotaUsagePercent}% used`
+                      }`
+                    : 'Inspecting storage…'}
                 </DropdownMenuItem>
               </>
             ) : null}

@@ -1,3 +1,5 @@
+import { cleanupOutdatedCaches, matchPrecache, precache } from 'workbox-precaching'
+
 import {
   adoptOrTouchMediaCacheEntry,
   createMediaClientRegistry,
@@ -10,13 +12,16 @@ import {
   stageMediaCacheEntry,
 } from './sw-media-context.js'
 
-const SHELL_CACHE_PREFIX = 'better-github-feed-shell-v3:'
-const WORKER_URL = new URL(globalThis.location.href)
-const SHELL_VERSION = WORKER_URL.searchParams.get('shell') ?? 'unversioned'
-const SHELL_CACHE = `${SHELL_CACHE_PREFIX}${encodeURIComponent(
-  `${WORKER_URL.pathname}\0${SHELL_VERSION}`,
-)}`
-const SHELL_ROOT = '/'
+const PRECACHE_MANIFEST = globalThis.__WB_MANIFEST
+const BUILD_ID = PRECACHE_MANIFEST.map(
+  entry => `${typeof entry === 'string' ? entry : entry.url}:${entry.revision ?? ''}`,
+)
+  .sort()
+  .join('|')
+
+precache(PRECACHE_MANIFEST)
+cleanupOutdatedCaches()
+
 const MEDIA_CACHE_PREFIX = 'better-github-feed-media-v1:'
 const MEDIA_METADATA_CACHE_PREFIX = 'better-github-feed-media-metadata-v1:'
 const MAX_MEDIA_ENTRIES = 120
@@ -231,33 +236,6 @@ async function serveAccountMedia(account, clientId, request) {
   return response
 }
 
-async function cacheShell() {
-  await caches.delete(SHELL_CACHE)
-  try {
-    const response = await fetch(SHELL_ROOT, { cache: 'no-cache' })
-    if (!response.ok) throw new Error(`Shell root returned ${response.status}`)
-    const html = await response.clone().text()
-    const assetPaths = []
-    for (const match of html.matchAll(/(?:src|href)="(\/[^"#?]+)(?:[?#][^"]*)?"/g)) {
-      const path = match[1]
-      if (path && !path.startsWith('/api/')) assetPaths.push(path)
-    }
-    const assets = await Promise.all(
-      [...new Set(assetPaths)].map(async path => {
-        const asset = await fetch(path, { cache: 'no-cache' })
-        if (!asset.ok) throw new Error(`Shell asset ${path} returned ${asset.status}`)
-        return [path, asset]
-      }),
-    )
-    const cache = await caches.open(SHELL_CACHE)
-    await cache.put(SHELL_ROOT, response)
-    await Promise.all(assets.map(([path, asset]) => cache.put(path, asset)))
-  } catch (error) {
-    await caches.delete(SHELL_CACHE)
-    throw error
-  }
-}
-
 async function pruneMediaClientContexts(preserveClientId) {
   const clients = await globalThis.clients.matchAll({
     includeUncontrolled: true,
@@ -268,21 +246,17 @@ async function pruneMediaClientContexts(preserveClientId) {
   await mediaClientRegistry.prune(activeClientIds)
 }
 
-globalThis.addEventListener('install', event => {
-  event.waitUntil(cacheShell())
-})
-
 globalThis.addEventListener('activate', event => {
   event.waitUntil(
     Promise.all([
       caches.keys().then(async keys => {
-        const deletions = []
+        const legacyShellDeletes = []
         for (const key of keys) {
-          if (key.startsWith('better-github-feed-shell-') && key !== SHELL_CACHE) {
-            deletions.push(caches.delete(key))
+          if (key.startsWith('better-github-feed-shell-')) {
+            legacyShellDeletes.push(caches.delete(key))
           }
         }
-        await Promise.all(deletions)
+        await Promise.all(legacyShellDeletes)
       }),
       (async () => {
         await pruneMediaClientContexts()
@@ -298,6 +272,18 @@ globalThis.addEventListener('message', event => {
 
   if (message.type === 'SKIP_WAITING') {
     event.waitUntil(globalThis.skipWaiting())
+    return
+  }
+
+  if (message.type === 'GET_UPDATE_ACTIVATION_STATE') {
+    event.waitUntil(
+      globalThis.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then(clients =>
+        event.ports[0]?.postMessage({
+          buildId: BUILD_ID,
+          clientCount: clients.length,
+        }),
+      ),
+    )
     return
   }
 
@@ -381,8 +367,7 @@ globalThis.addEventListener('fetch', event => {
       fetch(request)
         .then(response => response)
         .catch(async error => {
-          const cache = await caches.open(SHELL_CACHE)
-          const fallback = (await cache.match(request)) ?? (await cache.match(SHELL_ROOT))
+          const fallback = await matchPrecache('/index.html')
           if (fallback) return fallback
           throw error
         }),
@@ -391,10 +376,10 @@ globalThis.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    caches.open(SHELL_CACHE).then(async cache => {
-      const cached = await cache.match(request)
+    (async () => {
+      const cached = await matchPrecache(request)
       if (cached) return cached
       return fetch(request)
-    }),
+    })(),
   )
 })
