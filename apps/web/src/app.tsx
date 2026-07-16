@@ -8,7 +8,7 @@ export function App() {
   return (
     <NuqsAdapter>
       <LocalFirstAccountBoundary>
-        <div className="h-svh overflow-hidden">
+        <div className="min-h-svh lg:h-svh lg:overflow-hidden">
           <Outlet />
         </div>
       </LocalFirstAccountBoundary>

@@ -9,7 +9,7 @@ import { FocusedPanelProvider } from '@/hooks/focused-panel-provider'
 export function Home() {
   return (
     <FocusedPanelProvider>
-      <div className="flex h-full min-h-0 flex-col overflow-hidden lg:flex-row">
+      <div className="flex min-h-svh flex-col lg:h-full lg:min-h-0 lg:flex-row lg:overflow-hidden">
         {/* Mobile Header */}
         <MobileHeader />
 
@@ -21,8 +21,8 @@ export function Home() {
           <div className="min-w-0 border-b">
             <TypeFilter />
           </div>
-          <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[420px_1fr]">
-            <main className="h-full overflow-hidden bg-background/50 text-foreground lg:border-r">
+          <div className="grid min-h-0 flex-1 lg:grid-cols-[420px_1fr] lg:overflow-hidden">
+            <main className="bg-background/50 text-foreground lg:h-full lg:overflow-hidden lg:border-r">
               <ActivityList />
             </main>
             <DetailPanel />

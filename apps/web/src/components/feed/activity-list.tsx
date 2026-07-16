@@ -1,4 +1,4 @@
-import { useVirtualizer } from '@tanstack/react-virtual'
+import { useVirtualizer, useWindowVirtualizer } from '@tanstack/react-virtual'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { selectStableProjectionSnapshot } from '@/components/local-feed/stable-projection-state'
@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { toActorSelection, toTypeSelection } from '@/hooks/feed-view'
 import { useFocusedPanel, useKeyboardNavigation } from '@/hooks/use-keyboard-navigation'
 import { useVisibleFeed } from '@/hooks/use-local-feed'
+import { useIsDesktop } from '@/hooks/use-mobile'
 import { useActiveId, useActiveTypes, useActiveUsers } from '@/hooks/use-query-state'
 import type { ActivitySummary, FeedView, VisibleFeedWindow } from '@/local-feed'
 
@@ -22,6 +23,7 @@ function activityFrontierKey(items: readonly ActivitySummary[]) {
 }
 
 export function ActivityList() {
+  const isDesktop = useIsDesktop()
   const [activeTypes] = useActiveTypes()
   const [activeUsers] = useActiveUsers()
   const [activeId, setActiveId] = useActiveId()
@@ -34,16 +36,17 @@ export function ActivityList() {
     [activeTypes, activeUsers],
   )
   const viewKey = JSON.stringify(view)
-  const [window, setWindow] = useState({
+  const [activityWindow, setActivityWindow] = useState({
     viewKey,
     first: INITIAL_WINDOW,
     extendedFrontierKey: null as string | null,
   })
-  const first = window.viewKey === viewKey ? window.first : INITIAL_WINDOW
-  const extendedFrontierKey = window.viewKey === viewKey ? window.extendedFrontierKey : null
+  const first = activityWindow.viewKey === viewKey ? activityWindow.first : INITIAL_WINDOW
+  const extendedFrontierKey =
+    activityWindow.viewKey === viewKey ? activityWindow.extendedFrontierKey : null
   const extendWindow = useCallback(
     (frontierKey: string) => {
-      setWindow(current => ({
+      setActivityWindow(current => ({
         viewKey,
         first: (current.viewKey === viewKey ? current.first : INITIAL_WINDOW) + WINDOW_STEP,
         extendedFrontierKey: frontierKey,
@@ -92,13 +95,30 @@ export function ActivityList() {
     }
   }
 
-  const virtualizer = useVirtualizer({
-    count: items.length + (hasMoreLocal && !renderedFrontierWasExtended ? 1 : 0),
+  const virtualCount = items.length + (hasMoreLocal && !renderedFrontierWasExtended ? 1 : 0)
+  const estimateVirtualRow = (index: number) =>
+    index >= items.length ? 1 : activeUsers.length === 1 ? 37 : 74
+  const elementVirtualizer = useVirtualizer({
+    count: virtualCount,
     getScrollElement: () => scrollElement,
-    estimateSize: index => (index >= items.length ? 1 : activeUsers.length === 1 ? 37 : 74),
+    estimateSize: estimateVirtualRow,
     overscan: 10,
-    enabled: !!scrollElement,
+    enabled: isDesktop && !!scrollElement,
   })
+  const [windowScrollMargin, setWindowScrollMargin] = useState(0)
+  const windowListRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return
+    const nextMargin = node.getBoundingClientRect().top + window.scrollY
+    setWindowScrollMargin(current => (current === nextMargin ? current : nextMargin))
+  }, [])
+  const windowVirtualizer = useWindowVirtualizer({
+    count: virtualCount,
+    estimateSize: estimateVirtualRow,
+    overscan: 10,
+    scrollMargin: windowScrollMargin,
+    enabled: !isDesktop,
+  })
+  const virtualizer = isDesktop ? elementVirtualizer : windowVirtualizer
   const virtualItems = virtualizer.getVirtualItems()
   const lastVirtualIndex = virtualItems.at(-1)?.index
 
@@ -178,56 +198,66 @@ export function ActivityList() {
     )
   }
 
+  const virtualContent = (
+    <div
+      style={{
+        height: `${virtualizer.getTotalSize()}px`,
+        width: '100%',
+        position: 'relative',
+      }}
+    >
+      {virtualItems.map(virtualRow => {
+        const isWindowSentinel = virtualRow.index >= items.length
+        const item = items[virtualRow.index]
+
+        return (
+          <div
+            key={virtualRow.key}
+            data-index={virtualRow.index}
+            ref={virtualizer.measureElement}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualRow.start - (isDesktop ? 0 : windowScrollMargin)}px)`,
+            }}
+          >
+            {isWindowSentinel || !item ? (
+              <div className="h-px" aria-hidden />
+            ) : (
+              <ActivitySummaryItem
+                item={item}
+                isActive={activeId === item.id}
+                isFocused={focusedPanel === 'feed' && activeId === item.id}
+                showActor={activeUsers.length !== 1}
+                onClick={() => {
+                  setFocusedPanel('feed')
+                  void setActiveId(item.id)
+                }}
+                onFocus={() => {
+                  setFocusedPanel('feed')
+                  void setActiveId(item.id)
+                }}
+              />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+
+  if (!isDesktop) {
+    return (
+      <div ref={windowListRef} className="relative min-h-0 flex-1">
+        {virtualContent}
+      </div>
+    )
+  }
+
   return (
     <div ref={scrollAreaRef} className="relative h-full min-h-0 flex-1">
-      <ScrollArea className="h-full">
-        <div
-          style={{
-            height: `${virtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {virtualItems.map(virtualRow => {
-            const isWindowSentinel = virtualRow.index >= items.length
-            const item = items[virtualRow.index]
-
-            return (
-              <div
-                key={virtualRow.key}
-                data-index={virtualRow.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                {isWindowSentinel || !item ? (
-                  <div className="h-px" aria-hidden />
-                ) : (
-                  <ActivitySummaryItem
-                    item={item}
-                    isActive={activeId === item.id}
-                    isFocused={focusedPanel === 'feed' && activeId === item.id}
-                    showActor={activeUsers.length !== 1}
-                    onClick={() => {
-                      setFocusedPanel('feed')
-                      void setActiveId(item.id)
-                    }}
-                    onFocus={() => {
-                      setFocusedPanel('feed')
-                      void setActiveId(item.id)
-                    }}
-                  />
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </ScrollArea>
+      <ScrollArea className="h-full">{virtualContent}</ScrollArea>
     </div>
   )
 }
