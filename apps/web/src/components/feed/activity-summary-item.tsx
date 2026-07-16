@@ -10,12 +10,21 @@ type ActivitySummaryItemProps = {
   isActive: boolean
   isFocused: boolean
   showActor: boolean
+  omitActorFromTitle: boolean
   onClick: () => void
   onFocus: () => void
 }
 
 export const ActivitySummaryItem = memo(
-  ({ item, isActive, isFocused, showActor, onClick, onFocus }: ActivitySummaryItemProps) => {
+  ({
+    item,
+    isActive,
+    isFocused,
+    showActor,
+    omitActorFromTitle,
+    onClick,
+    onFocus,
+  }: ActivitySummaryItemProps) => {
     const buttonRef = useRef<HTMLButtonElement>(null)
     const isClickRef = useRef(false)
     const actorPrefix = `${item.actor} `
@@ -23,7 +32,7 @@ export const ActivitySummaryItem = memo(
       item.title.slice(0, actorPrefix.length).toLocaleLowerCase() ===
       actorPrefix.toLocaleLowerCase()
     const title =
-      !showActor && titleStartsWithActor ? item.title.slice(actorPrefix.length) : item.title
+      omitActorFromTitle && titleStartsWithActor ? item.title.slice(actorPrefix.length) : item.title
 
     useEffect(() => {
       if (isFocused) {

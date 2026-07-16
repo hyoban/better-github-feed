@@ -72,6 +72,8 @@ export function ActivityList() {
   const renderedFrontierWasExtended = extendedFrontierKey === renderedFrontierKey
   const latestFrontierWasExtended = extendedFrontierKey === latestFrontierKey
   const hasActiveFilters = activeUsers.length > 0 || activeTypes.length > 0
+  const hasSingleActor = activeUsers.length === 1
+  const showActor = !hasInlineDetail || !hasSingleActor
 
   const emptyMessage =
     snapshot.kind === 'failed'
@@ -96,8 +98,7 @@ export function ActivityList() {
   }
 
   const virtualCount = items.length + (hasMoreLocal && !renderedFrontierWasExtended ? 1 : 0)
-  const estimateVirtualRow = (index: number) =>
-    index >= items.length ? 1 : activeUsers.length === 1 ? 48 : 80
+  const estimateVirtualRow = (index: number) => (index >= items.length ? 1 : showActor ? 80 : 48)
   const elementVirtualizer = useVirtualizer({
     count: virtualCount,
     getScrollElement: () => scrollElement,
@@ -230,7 +231,8 @@ export function ActivityList() {
                 item={item}
                 isActive={activeId === item.id}
                 isFocused={focusedPanel === 'feed' && activeId === item.id}
-                showActor={activeUsers.length !== 1}
+                showActor={showActor}
+                omitActorFromTitle={hasSingleActor}
                 onClick={() => {
                   setFocusedPanel('feed')
                   void setActiveId(item.id)
