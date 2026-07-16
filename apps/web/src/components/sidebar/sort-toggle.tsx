@@ -1,12 +1,21 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { sortSelectionTransition } from '@/hooks/feed-selection-transition'
 import type { SortOption } from '@/hooks/use-query-state'
-import { useSortBy } from '@/hooks/use-query-state'
+import { useActiveId, useActiveUsers, useSortBy } from '@/hooks/use-query-state'
 
 export function SortToggle() {
   const [sortBy, setSortBy] = useSortBy()
+  const [, setActiveUsers] = useActiveUsers()
+  const [, setActiveId] = useActiveId()
 
   const handleSortChange = (value: string) => {
-    void setSortBy(value as SortOption)
+    const transition = sortSelectionTransition(sortBy, value as SortOption)
+    if (!transition) return
+    void Promise.all([
+      setSortBy(transition.sort),
+      setActiveUsers(transition.users),
+      setActiveId(transition.id),
+    ])
   }
 
   return (

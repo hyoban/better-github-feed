@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { canonicalizeActorSelection } from '@/hooks/actor-selection'
+import { userSelectionTransition } from '@/hooks/feed-selection-transition'
 import { useFocusedPanel, useKeyboardNavigation } from '@/hooks/use-keyboard-navigation'
 import { useFollowing } from '@/hooks/use-local-feed'
 import { useActiveId, useActiveUsers, useSortBy } from '@/hooks/use-query-state'
@@ -25,6 +26,15 @@ export function FollowList() {
     if (snapshot.kind !== 'ready') return activeUsers
     return canonicalizeActorSelection(activeUsers, follows, true)
   }, [activeUsers, follows, snapshot.kind])
+
+  const updateUserSelection = useCallback(
+    (next: readonly string[]) => {
+      const transition = userSelectionTransition(canonicalSelection, next)
+      if (!transition) return
+      void Promise.all([setActiveUsers(transition.users), setActiveId(transition.id)])
+    },
+    [canonicalSelection, setActiveId, setActiveUsers],
+  )
 
   useEffect(() => {
     if (snapshot.kind !== 'ready') return
@@ -57,9 +67,9 @@ export function FollowList() {
             ? actorKeys.length - 1
             : currentIndex + 1
       const newActorKey = actorKeys[newIndex]
-      if (newActorKey) void setActiveUsers([newActorKey])
+      if (newActorKey) updateUserSelection([newActorKey])
     },
-    [canonicalSelection, focusedPanel, follows, setActiveUsers],
+    [canonicalSelection, focusedPanel, follows, updateUserSelection],
   )
 
   useKeyboardNavigation(handleNavigate)
@@ -72,10 +82,10 @@ export function FollowList() {
       canonicalSelection.length === 0 &&
       follows[0]
     ) {
-      void setActiveUsers([follows[0].actorKey])
+      updateUserSelection([follows[0].actorKey])
     }
     prevFocusedPanel.current = focusedPanel
-  }, [canonicalSelection, focusedPanel, follows, setActiveUsers])
+  }, [canonicalSelection, focusedPanel, follows, updateUserSelection])
 
   const listRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -91,7 +101,7 @@ export function FollowList() {
   const toggleUser = (actorKey: string, multiSelect: boolean) => {
     setFocusedPanel('sidebar')
     if (multiSelect) {
-      void setActiveUsers(
+      updateUserSelection(
         selectedActorKeySet.has(actorKey)
           ? canonicalSelection.filter(item => item !== actorKey)
           : [...canonicalSelection, actorKey],
@@ -99,7 +109,7 @@ export function FollowList() {
       return
     }
 
-    void setActiveUsers(
+    updateUserSelection(
       canonicalSelection.length === 1 && canonicalSelection[0] === actorKey ? [] : [actorKey],
     )
   }
@@ -137,7 +147,7 @@ export function FollowList() {
                 onToggle={toggleUser}
                 onFocus={() => {
                   setFocusedPanel('sidebar')
-                  void setActiveUsers([follow.actorKey])
+                  updateUserSelection([follow.actorKey])
                 }}
               />
             </div>
