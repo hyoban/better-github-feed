@@ -51,11 +51,11 @@ export function ActivityDetail({ item, showContext = true }: ActivityDetailProps
                   href={`https://github.com/${item.actor}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-semibold text-foreground hover:underline"
+                  className="font-medium text-foreground hover:underline"
                 >
                   {item.actor}
                 </a>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground/80">
                   {item.type}
                 </span>
               </div>

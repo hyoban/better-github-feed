@@ -76,7 +76,7 @@ export function FollowUserCard({
         <AvatarFallback>{follow.login.slice(0, 2).toUpperCase()}</AvatarFallback>
       </Avatar>
       <p className="min-w-0 flex-1 truncate">
-        <span className="font-medium">{follow.login}</span>
+        <span>{follow.login}</span>
         <span className="text-muted-foreground">
           {' '}
           {formatRelativeTime(
@@ -85,7 +85,7 @@ export function FollowUserCard({
         </span>
       </p>
       {itemCount > 0 && (
-        <span className="shrink-0 text-muted-foreground tabular-nums">{itemCount}</span>
+        <span className="shrink-0 text-muted-foreground/70 tabular-nums">{itemCount}</span>
       )}
     </button>
   )

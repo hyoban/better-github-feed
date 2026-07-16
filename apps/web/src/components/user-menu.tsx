@@ -68,7 +68,7 @@ export default function UserMenu() {
             <Button
               variant="ghost"
               size="sm"
-              className="min-w-0 flex-1 justify-between px-2"
+              className="min-w-0 flex-1 justify-between px-2 font-normal"
               aria-label="User menu"
             />
           }

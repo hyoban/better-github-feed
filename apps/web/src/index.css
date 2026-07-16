@@ -126,7 +126,7 @@
   }
 
   .activity-content {
-    color: color-mix(in oklab, var(--foreground) 82%, transparent);
+    color: var(--foreground);
     line-height: 1.5;
     overflow-wrap: anywhere;
   }
@@ -227,7 +227,7 @@
   }
 
   .activity-content blockquote > strong:first-child {
-    color: color-mix(in oklab, var(--foreground) 55%, transparent);
+    color: var(--muted-foreground);
     font-weight: 500;
     margin-right: 0.25rem;
   }
