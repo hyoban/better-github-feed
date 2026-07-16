@@ -20,6 +20,7 @@ import {
   LocalFeedCursorError,
   createLocalFeedSync,
 } from './local-feed-sync'
+import { manifestSessionConstraint } from './session-consistency'
 
 const schema = { ...authSchema, ...githubSchema }
 
@@ -114,7 +115,9 @@ function toActivityScope(query: {
 export const localFeedV1Router = {
   getManifest: protectedProcedure.localFeedV1.getManifest.handler(async ({ context, input }) => {
     try {
-      let currentSession = createSyncSession(input.query?.bookmark)
+      // A browser bookmark only guarantees monotonic reads for that browser.
+      // Manifest checks must start on the primary to observe writes from other devices.
+      let currentSession = createSyncSession(manifestSessionConstraint(input.query?.bookmark))
       let manifest = await currentSession.sync.getManifest(context.session.user.id)
       if (manifest.following.revision === null || manifest.following.reauthRequiredAt !== null) {
         const isAuthorizationRecovery = manifest.following.reauthRequiredAt !== null
