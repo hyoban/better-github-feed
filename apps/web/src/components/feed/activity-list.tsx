@@ -16,6 +16,10 @@ const INITIAL_DEMAND = 40
 const DEMAND_STEP = 20
 const NO_ACTIVITIES: readonly ActivitySummary[] = []
 
+function activityFrontierKey(items: readonly ActivitySummary[]) {
+  return JSON.stringify([items.length, items.at(-1)?.id ?? null])
+}
+
 export function ActivityList() {
   const [activeTypes] = useActiveTypes()
   const [activeUsers] = useActiveUsers()
@@ -29,14 +33,23 @@ export function ActivityList() {
     [activeTypes, activeUsers],
   )
   const viewKey = JSON.stringify(view)
-  const [demand, setDemand] = useState({ viewKey, first: INITIAL_DEMAND })
+  const [demand, setDemand] = useState({
+    viewKey,
+    first: INITIAL_DEMAND,
+    extendedFrontierKey: null as string | null,
+  })
   const first = demand.viewKey === viewKey ? demand.first : INITIAL_DEMAND
-  const extendDemand = useCallback(() => {
-    setDemand(current => ({
-      viewKey,
-      first: (current.viewKey === viewKey ? current.first : INITIAL_DEMAND) + DEMAND_STEP,
-    }))
-  }, [viewKey])
+  const extendedFrontierKey = demand.viewKey === viewKey ? demand.extendedFrontierKey : null
+  const extendDemand = useCallback(
+    (frontierKey: string) => {
+      setDemand(current => ({
+        viewKey,
+        first: (current.viewKey === viewKey ? current.first : INITIAL_DEMAND) + DEMAND_STEP,
+        extendedFrontierKey: frontierKey,
+      }))
+    },
+    [viewKey],
+  )
   const snapshot = useVisibleFeed({ view, first })
   const projectionState = useMemo(() => ({ snapshot, viewKey }), [snapshot, viewKey])
   const deferredProjectionState = useDeferredValue(projectionState)
@@ -61,6 +74,10 @@ export function ActivityList() {
     (latestCoverage.hasMoreLocal ||
       latestCoverage.demand === 'insufficient' ||
       latestCoverage.remoteWindow !== 'exhausted')
+  const renderedFrontierKey = activityFrontierKey(items)
+  const latestFrontierKey = activityFrontierKey(latestItems)
+  const renderedFrontierWasExtended = extendedFrontierKey === renderedFrontierKey
+  const latestFrontierWasExtended = extendedFrontierKey === latestFrontierKey
   const hasActiveFilters = activeUsers.length > 0 || activeTypes.length > 0
 
   const emptyMessage =
@@ -86,7 +103,7 @@ export function ActivityList() {
   }
 
   const virtualizer = useVirtualizer({
-    count: items.length + (hasMoreHistory ? 1 : 0),
+    count: items.length + (hasMoreHistory && !renderedFrontierWasExtended ? 1 : 0),
     getScrollElement: () => scrollElement,
     estimateSize: index => (index >= items.length ? 56 : 80),
     overscan: 10,
@@ -99,6 +116,7 @@ export function ActivityList() {
     if (snapshot.kind !== 'ready') return
     if (
       !shouldExtendActivityDemand({
+        alreadyExtendedAtFrontier: latestFrontierWasExtended,
         hasMoreHistory: latestHasMoreHistory,
         itemCount: latestItems.length,
         lastVirtualIndex,
@@ -106,9 +124,17 @@ export function ActivityList() {
     )
       return
 
-    const frame = requestAnimationFrame(extendDemand)
+    const frame = requestAnimationFrame(() => extendDemand(latestFrontierKey))
     return () => cancelAnimationFrame(frame)
-  }, [extendDemand, lastVirtualIndex, latestHasMoreHistory, latestItems.length, snapshot.kind])
+  }, [
+    extendDemand,
+    lastVirtualIndex,
+    latestFrontierWasExtended,
+    latestHasMoreHistory,
+    latestFrontierKey,
+    latestItems.length,
+    snapshot.kind,
+  ])
 
   const handleNavigate = useCallback(
     (direction: 'up' | 'down') => {
