@@ -4,6 +4,9 @@
   "main": "../server/src/index.ts",
   "compatibility_date": "2026-01-28",
   "compatibility_flags": ["nodejs_compat"],
+  "placement": {
+    "mode": "smart",
+  },
   "assets": {
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"],

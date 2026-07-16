@@ -49,6 +49,7 @@ export const feedItem = sqliteTable(
       table.publishedAt,
       table.id,
     ),
+    index('feed_item_hidden_published_at_id_idx').on(table.hidden, table.publishedAt, table.id),
     // 支持纯时间排序的游标分页
     index('feed_item_published_at_idx').on(table.publishedAt),
     // 支持类型过滤 + 时间排序

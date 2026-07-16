@@ -127,6 +127,13 @@
       "when": 1784187252310,
       "tag": "0017_legacy_user_state_bridge",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1784208821018,
+      "tag": "0018_polite_frank_castle",
+      "breakpoints": true
     }
   ]
 }

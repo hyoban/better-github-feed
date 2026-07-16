@@ -768,6 +768,38 @@ describe('Local Feed Sync', () => {
     )
   })
 
+  it('pages Following history in publication order without a temporary sort', async () => {
+    const testDatabase = await createTestDatabase()
+    disposers.push(testDatabase.dispose)
+    const { database } = testDatabase
+
+    const plan = await database.all<{ detail: string }>(sql`
+      explain query plan
+      select ${feedItem.id}
+      from ${feedItem}
+      inner join ${activityChange}
+        on ${activityChange.source} = ${feedItem.source}
+        and ${activityChange.activityId} = ${feedItem.id}
+      where ${feedItem.actorKey} in (
+        select value from json_each('["github:1","github:2"]')
+      )
+        and ${feedItem.hidden} = 0
+        and ${activityChange.seq} <= 100
+      order by ${feedItem.publishedAt} desc, ${feedItem.id} desc
+      limit 251
+    `)
+
+    assert.equal(
+      plan.some(step => step.detail.includes('USE TEMP B-TREE')),
+      false,
+      JSON.stringify(plan),
+    )
+    assert.ok(
+      plan.some(step => step.detail.includes('feed_item_hidden_published_at_id_idx')),
+      JSON.stringify(plan),
+    )
+  })
+
   it('stops cleanup when the rollout gate changes between actor batches', async () => {
     const testDatabase = await createTestDatabase()
     disposers.push(testDatabase.dispose)

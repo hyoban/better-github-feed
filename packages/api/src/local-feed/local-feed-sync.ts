@@ -1170,7 +1170,7 @@ export function createLocalFeedSync({
         resolvedScope.actorKeys.length === 0
           ? sql`false`
           : sql`
-              ${activityChange.actorKey}
+              ${feedItem.actorKey}
               in (select value from json_each(${JSON.stringify(resolvedScope.actorKeys)}))
             `
       const rows = await database
