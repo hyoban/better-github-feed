@@ -1,6 +1,5 @@
 // oxlint-disable-next-line import/default -- Vite supplies the URL export for worker&url imports.
 import serviceWorkerUrl from '../service-worker/sw.js?worker&url'
-import { toast } from 'sonner'
 
 import { shellMarkupVersion } from './service-worker-version'
 import { watchForServiceWorkerUpdate } from './service-worker-update'
@@ -18,31 +17,10 @@ export function registerServiceWorker() {
         scope: '/',
         type: 'module',
       })
-      let reloadRequested = false
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (reloadRequested) window.location.reload()
-      })
       watchForServiceWorkerUpdate(
         registration,
         () => navigator.serviceWorker.controller !== null,
-        worker => {
-          toast.info('Update available', {
-            id: 'app-update',
-            description: 'Reload to use the latest version.',
-            duration: Number.POSITIVE_INFINITY,
-            action: {
-              label: 'Reload',
-              onClick: () => {
-                if (worker.state === 'activated') {
-                  window.location.reload()
-                  return
-                }
-                reloadRequested = true
-                worker.postMessage({ type: 'SKIP_WAITING' })
-              },
-            },
-          })
-        },
+        worker => worker.postMessage({ type: 'SKIP_WAITING' }),
       )
     })().catch(error => {
       console.error('Service Worker registration failed', error)
