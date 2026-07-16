@@ -526,14 +526,12 @@ function AccountGate({
       </Button>
     </div>
   ) : null
-  if (state.kind === 'opening-database') return null
-
-  if (state.kind === 'signing-out') {
+  if (state.kind === 'opening-database' || state.kind === 'signing-out') {
     return (
       <main className="grid h-svh place-items-center p-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Spinner />
-          Securing local data…
+          {state.kind === 'signing-out' ? 'Securing local data…' : 'Opening local feed…'}
         </div>
       </main>
     )
