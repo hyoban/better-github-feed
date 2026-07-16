@@ -5,10 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import UserMenu from '@/components/user-menu'
 
-import { RefreshAllUsersButton } from '../feed/refresh-activity'
 import { FollowList } from '../sidebar/follow-list'
 import { SortToggle } from '../sidebar/sort-toggle'
-import { SyncFollowingButton } from '../sidebar/sync-following-button'
+import { SyncStatusIndicator } from '../sidebar/sync-status'
 
 const LG_BREAKPOINT = 1024
 
@@ -35,14 +34,11 @@ export function MobileSidebar() {
       <SheetContent side="left" className="flex w-80 flex-col p-0" showCloseButton={false}>
         <div className="flex items-center border-b">
           <SortToggle />
-          <div className="pr-2">
-            <RefreshAllUsersButton />
-          </div>
         </div>
         <FollowList />
-        <div className="flex gap-2 border-t p-2">
+        <div className="flex flex-col gap-1 border-t p-2">
+          <SyncStatusIndicator />
           <UserMenu />
-          <SyncFollowingButton />
         </div>
       </SheetContent>
     </Sheet>

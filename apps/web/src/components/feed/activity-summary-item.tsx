@@ -3,21 +3,10 @@ import { memo, useEffect, useRef } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { formatRelativeTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
-
-export type ActivityItemData = {
-  id: string
-  source: string
-  title: string
-  link: string | null
-  content: string | null
-  publishedAt: Date | string | null
-  type: string
-  repo: string | null
-}
+import type { ActivitySummary } from '@/local-feed'
 
 type ActivitySummaryItemProps = {
-  item: ActivityItemData
-  githubId?: string
+  item: ActivitySummary
   isActive: boolean
   isFocused: boolean
   onClick: () => void
@@ -25,7 +14,7 @@ type ActivitySummaryItemProps = {
 }
 
 export const ActivitySummaryItem = memo(
-  ({ item, githubId, isActive, isFocused, onClick, onFocus }: ActivitySummaryItemProps) => {
+  ({ item, isActive, isFocused, onClick, onFocus }: ActivitySummaryItemProps) => {
     const buttonRef = useRef<HTMLButtonElement>(null)
     const isClickRef = useRef(false)
 
@@ -65,23 +54,24 @@ export const ActivitySummaryItem = memo(
           <Avatar className="size-8 shrink-0">
             <AvatarImage
               src={
-                githubId
-                  ? `https://avatars-githubusercontent-webp.webp.se/u/${githubId}`
-                  : `https://github.com/${item.source}.png`
+                item.actorAvatarUrl ??
+                (item.actorGithubId
+                  ? `https://avatars-githubusercontent-webp.webp.se/u/${item.actorGithubId}`
+                  : `https://github.com/${item.actor}.png`)
               }
-              alt={`${item.source} avatar`}
+              alt={`${item.actor} avatar`}
               width={32}
               height={32}
             />
             <AvatarFallback className="text-xs">
-              {item.source.slice(0, 2).toUpperCase()}
+              {item.actor.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{item.source}</span>
+              <span className="font-medium text-foreground">{item.actor}</span>
               <span>&middot;</span>
-              <span>{formatRelativeTime(item.publishedAt)}</span>
+              <span>{formatRelativeTime(new Date(item.publishedAt))}</span>
             </div>
             <p className="mt-1 line-clamp-2 text-sm/snug text-foreground/90">{item.title}</p>
           </div>

@@ -1,0 +1,90 @@
+export {
+  activateVerifiedLocalAccount,
+  openLocalFeed,
+  type OpenLocalFeedOptions,
+} from './local-feed'
+export {
+  advanceAccountDeletionIntent,
+  advanceAccountLockIntent,
+  createIndexedDbAccountGenerationPort,
+  createMemoryAccountGenerationPort,
+  createMemoryAccountRegistryTransactionPort,
+  createTransactionalAccountGenerationPort,
+  readOfflineActiveAccount,
+  readPendingAccountDeletions,
+  AccountActivationRejectedError,
+  StaleAccountGenerationError,
+  type AccountActivation,
+  type AccountGeneration,
+  type AccountGenerationPort,
+  type AccountLifecycleState,
+  type AccountRegistryState,
+  type AccountRegistryTransactionPort,
+  type IndexedDbAccountGenerationOptions,
+  type VerifiedAccountActivation,
+} from './account-generation'
+export { runBoundedDatabaseDelete } from './database'
+export {
+  CloudReplicaError,
+  type ActivityDeltaPage,
+  type ActivityHistoryPage,
+  type ActivitySanitizerPort,
+  type CloudReplicaPort,
+  type FeedStateReplica,
+  type FilterReplica,
+  type FollowingPage,
+  type RevisionManifest,
+  type RemoteAtomActivity,
+  type UserMutationResult,
+  type UserStateMutation,
+  type UserStatePage,
+} from './cloud-replica'
+export {
+  createBroadcastTabCoordinator,
+  createDexieTabCoordinator,
+  createSingleTabCoordinator,
+  type LeadershipFence,
+  type TabAnnouncement,
+  type TabCoordinatorPort,
+} from './tab-coordinator'
+export {
+  createBrowserSyncLifecyclePort,
+  createManualSyncLifecyclePort,
+  type ManualSyncLifecyclePort,
+  type SyncLifecyclePort,
+  type SyncTrigger,
+} from './sync-lifecycle'
+export {
+  createBrowserStoragePersistencePort,
+  type StoragePersistencePort,
+  type StoragePersistenceResult,
+} from './storage-persistence'
+export { createOrpcCloudReplicaPort, type LocalFeedV1OrpcClient } from './orpc-cloud-replica'
+export { canonicalProjectionKey, canonicalizeProjection } from './incremental-sync'
+export type {
+  ActivityResult,
+  ActivitySummary,
+  ActorSummary,
+  CloseReason,
+  CloseResult,
+  CommitReceipt,
+  CoverageFacts,
+  EditableUserFilter,
+  FeedView,
+  FollowingSummary,
+  FollowingWindow,
+  LiveProjection,
+  LocalCommand,
+  LocalFeed,
+  LocalFeedBootState,
+  LocalFeedStatistics,
+  LocalSyncStatus,
+  LocalUserFilter,
+  NonEmpty,
+  Projection,
+  ProjectionMap,
+  ProjectionOutput,
+  ProjectionSnapshot,
+  RawAtomActivity,
+  VisibleFeedWindow,
+} from './types'

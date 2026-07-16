@@ -2,9 +2,10 @@ import type { Database } from '@better-github-feed/db'
 import { userFilter } from '@better-github-feed/db/schema/github'
 import type { FilterGroup } from '@better-github-feed/shared'
 import { filterGroupSchema } from '@better-github-feed/shared'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 
-import { deserializeFilterGroup, serializeFilterGroup } from './drizzle-transform'
+import { deserializeFilterGroup } from './drizzle-transform'
+import { createLocalFeedSync } from '../local-feed/local-feed-sync'
 
 export class UserFilterNotFoundError extends Error {
   constructor() {
@@ -14,25 +15,31 @@ export class UserFilterNotFoundError extends Error {
 }
 
 export function createUserFilters(database: Database) {
+  const localFeedSync = createLocalFeedSync({ database })
+
   return {
     async create(userId: string, input: { name: string; filterRule: FilterGroup }) {
       const filterRule = filterGroupSchema.parse(input.filterRule)
-      const now = new Date()
-      const row = {
-        id: crypto.randomUUID(),
-        userId,
-        name: input.name,
-        filterRule: serializeFilterGroup(filterRule),
-        createdAt: now,
-        updatedAt: now,
+      const id = crypto.randomUUID()
+      const result = await localFeedSync.applyLegacyUserMutation(userId, {
+        kind: 'filter.put',
+        mutationId: crypto.randomUUID(),
+        attemptId: crypto.randomUUID(),
+        baseVersion: 0,
+        filter: { id, name: input.name, filterRule },
+      })
+      if (result.kind === 'conflict' || result.entityKind !== 'filter') {
+        throw new Error('User Filter create conflicted')
       }
 
-      await database.insert(userFilter).values(row)
-
       return {
-        ...row,
+        id: result.replica.id,
+        userId,
+        name: result.replica.name,
+        createdAt: new Date(result.replica.createdAt),
+        updatedAt: new Date(result.replica.updatedAt),
         isValid: true as const,
-        filterRule,
+        filterRule: filterGroupSchema.parse(result.replica.filterRule),
       }
     },
 
@@ -40,7 +47,7 @@ export function createUserFilters(database: Database) {
       const rows = await database
         .select()
         .from(userFilter)
-        .where(eq(userFilter.userId, userId))
+        .where(and(eq(userFilter.userId, userId), isNull(userFilter.deletedAt)))
         .orderBy(userFilter.createdAt)
 
       return rows.map(row => {
@@ -64,38 +71,61 @@ export function createUserFilters(database: Database) {
       const existing = await database
         .select()
         .from(userFilter)
-        .where(and(eq(userFilter.id, id), eq(userFilter.userId, userId)))
+        .where(
+          and(eq(userFilter.id, id), eq(userFilter.userId, userId), isNull(userFilter.deletedAt)),
+        )
         .limit(1)
       if (!existing[0]) {
         throw new UserFilterNotFoundError()
       }
 
       const filterRule = input.filterRule ? filterGroupSchema.parse(input.filterRule) : undefined
-      const updatedAt = new Date()
-      await database
-        .update(userFilter)
-        .set({
-          name: input.name,
-          filterRule: filterRule ? serializeFilterGroup(filterRule) : undefined,
-          updatedAt,
-        })
-        .where(and(eq(userFilter.id, id), eq(userFilter.userId, userId)))
-
       const row = existing[0]
+      const result = await localFeedSync.applyLegacyUserMutation(userId, {
+        kind: 'filter.put',
+        mutationId: crypto.randomUUID(),
+        attemptId: crypto.randomUUID(),
+        baseVersion: row.entityVersion,
+        filter: {
+          id,
+          name: input.name ?? row.name,
+          filterRule: filterRule ?? deserializeFilterGroup(row.filterRule),
+        },
+      })
+      if (result.kind === 'conflict' || result.entityKind !== 'filter') {
+        throw new Error('User Filter update conflicted')
+      }
       return {
-        ...row,
-        name: input.name ?? row.name,
-        updatedAt,
+        id: result.replica.id,
+        userId,
+        name: result.replica.name,
+        createdAt: new Date(result.replica.createdAt),
+        updatedAt: new Date(result.replica.updatedAt),
         isValid: true as const,
-        filterRule: filterRule ?? deserializeFilterGroup(row.filterRule),
+        filterRule: filterGroupSchema.parse(result.replica.filterRule),
       }
     },
 
     async delete(userId: string, id: string) {
-      const result = await database
-        .delete(userFilter)
-        .where(and(eq(userFilter.id, id), eq(userFilter.userId, userId)))
-      if (result.meta.changes === 0) {
+      const rows = await database
+        .select({ version: userFilter.entityVersion })
+        .from(userFilter)
+        .where(
+          and(eq(userFilter.id, id), eq(userFilter.userId, userId), isNull(userFilter.deletedAt)),
+        )
+        .limit(1)
+      const current = rows[0]
+      if (!current) {
+        throw new UserFilterNotFoundError()
+      }
+      const result = await localFeedSync.applyLegacyUserMutation(userId, {
+        kind: 'filter.delete',
+        mutationId: crypto.randomUUID(),
+        attemptId: crypto.randomUUID(),
+        baseVersion: current.version,
+        id,
+      })
+      if (result.kind === 'conflict') {
         throw new UserFilterNotFoundError()
       }
       return { success: true as const }

@@ -6,13 +6,42 @@ const GITHUB_FOLLOWING_URL = 'https://api.github.com/user/following?per_page=100
 const GITHUB_FOLLOWING_TIMEOUT_MS = 60 * 1000
 
 export class GithubFollowingError extends Error {
-  readonly status: number | undefined
-
-  constructor(message: string, status?: number) {
+  constructor(
+    message: string,
+    readonly status?: number,
+    readonly retryAt?: number,
+  ) {
     super(message)
     this.name = 'GithubFollowingError'
-    this.status = status
   }
+}
+
+function parseRateLimitRetryAt(headers: Headers, now = Date.now()) {
+  const retryAfter = headers.get('retry-after')
+  if (retryAfter) {
+    const seconds = Number(retryAfter)
+    if (Number.isFinite(seconds) && seconds >= 0) return now + seconds * 1000
+    const date = Date.parse(retryAfter)
+    if (Number.isFinite(date) && date > now) return date
+  }
+  const resetSeconds = Number(headers.get('x-ratelimit-reset'))
+  return Number.isFinite(resetSeconds) && resetSeconds > 0 ? resetSeconds * 1000 : undefined
+}
+
+function getRateLimitRetryAt(status: number, headers: Headers, body: string, now = Date.now()) {
+  const retryAt = parseRateLimitRetryAt(headers, now)
+  if (status === 429) {
+    return retryAt
+  }
+  if (status !== 403) {
+    return undefined
+  }
+
+  const isRateLimited =
+    headers.get('x-ratelimit-remaining')?.trim() === '0' ||
+    headers.has('retry-after') ||
+    /secondary rate limit/i.test(body)
+  return isRateLimited ? (retryAt ?? now + 60_000) : undefined
 }
 
 function parseFollowingPage(value: unknown): GithubFollowingUser[] {
@@ -104,9 +133,11 @@ export async function fetchGithubFollowing(
     }
 
     if (!response.ok) {
+      const errorBody = response.status === 403 ? await response.text() : ''
       throw new GithubFollowingError(
         `GitHub following request failed with status ${response.status}`,
         response.status,
+        getRateLimitRetryAt(response.status, response.headers, errorBody),
       )
     }
 

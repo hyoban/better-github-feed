@@ -30,27 +30,12 @@ catalogs:
     '@orpc/server':
       specifier: ^1.14.8
       version: 1.14.8
-    '@orpc/tanstack-query':
-      specifier: ^1.14.8
-      version: 1.14.8
     '@orpc/zod':
       specifier: ^1.14.8
       version: 1.14.8
     '@tailwindcss/vite':
       specifier: ^4.3.2
       version: 4.3.2
-    '@tanstack/query-async-storage-persister':
-      specifier: ^5.101.2
-      version: 5.101.2
-    '@tanstack/react-query':
-      specifier: ^5.101.2
-      version: 5.101.2
-    '@tanstack/react-query-devtools':
-      specifier: ^5.101.2
-      version: 5.101.2
-    '@tanstack/react-query-persist-client':
-      specifier: ^5.101.2
-      version: 5.101.2
     '@tanstack/react-virtual':
       specifier: ^3.14.6
       version: 3.14.6
@@ -81,6 +66,9 @@ catalogs:
     date-fns:
       specifier: ^4.4.0
       version: 4.4.0
+    dexie:
+      specifier: ^4.4.4
+      version: 4.4.4
     dompurify:
       specifier: ^3.4.12
       version: 3.4.12
@@ -96,9 +84,6 @@ catalogs:
     hono:
       specifier: ^4.12.30
       version: 4.12.30
-    idb-keyval:
-      specifier: ^6.3.0
-      version: 6.3.0
     lucide-react:
       specifier: ^1.24.0
       version: 1.24.0
@@ -249,18 +234,6 @@ importers:
       '@orpc/client':
         specifier: 'catalog:'
         version: 1.14.8
-      '@orpc/tanstack-query':
-        specifier: 'catalog:'
-        version: 1.14.8(@orpc/client@1.14.8)(@tanstack/query-core@5.101.2)
-      '@tanstack/query-async-storage-persister':
-        specifier: 'catalog:'
-        version: 5.101.2
-      '@tanstack/react-query':
-        specifier: 'catalog:'
-        version: 5.101.2(react@19.2.7)
-      '@tanstack/react-query-persist-client':
-        specifier: 'catalog:'
-        version: 5.101.2(@tanstack/react-query@5.101.2(react@19.2.7))(react@19.2.7)
       '@tanstack/react-virtual':
         specifier: 'catalog:'
         version: 3.14.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -276,12 +249,12 @@ importers:
       date-fns:
         specifier: 'catalog:'
         version: 4.4.0
+      dexie:
+        specifier: 'catalog:'
+        version: 4.4.4
       dompurify:
         specifier: 'catalog:'
         version: 3.4.12
-      idb-keyval:
-        specifier: 'catalog:'
-        version: 6.3.0
       lucide-react:
         specifier: 'catalog:'
         version: 1.24.0(react@19.2.7)
@@ -322,9 +295,6 @@ importers:
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.3.2(@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(typescript@7.0.2)(yaml@2.8.2))
-      '@tanstack/react-query-devtools':
-        specifier: 'catalog:'
-        version: 5.101.2(@tanstack/react-query@5.101.2(react@19.2.7))(react@19.2.7)
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.1
@@ -1720,12 +1690,6 @@ packages:
   '@orpc/standard-server@1.14.8':
     resolution: {integrity: sha512-v0iqvzJ6NzoVRYhk/GJl3/SqC124hSwcDOjPotZbILvx8XwfBlG4V/uhyaZ8baj+l5h79afrhia6Dq9QzFomEQ==}
 
-  '@orpc/tanstack-query@1.14.8':
-    resolution: {integrity: sha512-F/tcJRS/62Whx99bwWFhLnjaw7cr8SB7U/22GfojaTZndXZzianqaHeTJ9uGVYmDIeuRF/W0ZdrqQ1ub+1EvnQ==}
-    peerDependencies:
-      '@orpc/client': 1.14.8
-      '@tanstack/query-core': '>=5.80.2'
-
   '@orpc/zod@1.14.8':
     resolution: {integrity: sha512-Gf7oywZziLst/MS0WOC4GHi51QoI399OQrPYqjSle2ks7nrmQp4e9JOZq1HKcNVZJ87NWXz24KA7mFwkS1LrJA==}
     peerDependencies:
@@ -2439,35 +2403,6 @@ packages:
     resolution: {integrity: sha512-eHpMeX4JXfVNJDEcsouTeCBubJBTcTLigeaw/NTUW6PB5ATKKXdyonnXgTBX2VuRbjz1hjfz6C5XAhr52ImQXA==}
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7 || ^8
-
-  '@tanstack/query-async-storage-persister@5.101.2':
-    resolution: {integrity: sha512-jf7zvVKZ5q2j/xuhbTIBUpw5xt6cw/ioOFQquxK7fRY0AmMQP8A0JVMOgYoeQLA4PKdeT7RxsuLAF0Lft9oJ8Q==}
-
-  '@tanstack/query-core@5.101.2':
-    resolution: {integrity: sha512-hH5MLoJhF7KaIGd7q3xTXGXvslI+GYlM1Z/35aSHHWaCJWB7XvTSHYuV3eM7tw+aE0mT/xMro4M4Q9rCGHT0lw==}
-
-  '@tanstack/query-devtools@5.101.2':
-    resolution: {integrity: sha512-o+wHcqgN7Pp0s8v1i0UGq/ZrrEKrxdIiMQmKRdYb2w7NPtylYSJ4+wg/tIn71m9DLstwUwdEGAvROdly6HXP6w==}
-
-  '@tanstack/query-persist-client-core@5.101.2':
-    resolution: {integrity: sha512-rgMsbvBVpSPDUsprC9FYxojdG0Q1LH6yq1i3DXz2aps4VEqv2l4Msj3YDqIifU3xkl/DrYe9YWntZAJLrM6xTg==}
-
-  '@tanstack/react-query-devtools@5.101.2':
-    resolution: {integrity: sha512-eU7HctdA9gDjqoERoEdzLbw9DiqnBDfh5+Hu0u26gjqoHJezOpQAuiesDL2VvkU+2cPV76zgv0tMZsOrI4LjnQ==}
-    peerDependencies:
-      '@tanstack/react-query': ^5.101.2
-      react: ^18 || ^19
-
-  '@tanstack/react-query-persist-client@5.101.2':
-    resolution: {integrity: sha512-19UpaRtf0lvB2QAJ2MoixxtGf3osMOd508g99EsttUj4+3eLs+ulnNgYjB7AkQMHrRlcbVXqpVNqWkB4a7g8Zw==}
-    peerDependencies:
-      '@tanstack/react-query': ^5.101.2
-      react: ^18 || ^19
-
-  '@tanstack/react-query@5.101.2':
-    resolution: {integrity: sha512-seDkr6kzGzX1okaaTtZPtgA688CDPlXUz1C6xSg0ESqn04Vuc8tlrYms1s3de+znBqhPVxFRfpAfUf+6XvfPWg==}
-    peerDependencies:
-      react: ^18 || ^19
 
   '@tanstack/react-virtual@3.14.6':
     resolution: {integrity: sha512-4+Uq8m0/gzO4kMCHUEpTtGX1RnONK0C+g88b2ltwPMWUBiaVarBuWKoPJaz7gj1cKCVRAdyu+U8GcKhwCc2beA==}
@@ -3211,6 +3146,9 @@ packages:
   detect-node-es@1.1.0:
     resolution: {integrity: sha512-ypdmJU/TbBby2Dxibuv7ZLW3Bs1QEmM7nHjEANfohJLvE0XVujisn1qPJcZxg+qDucsr+bP6fLD1rPS3AhJ7EQ==}
 
+  dexie@4.4.4:
+    resolution: {integrity: sha512-jIwsYI8Os2hgnqc6O49YwFDKGc5v5QjGx0wPVp543ip1F53VFAKMLthV2pQosQcVTv3eAskTWYspOx195PM0FQ==}
+
   diff@8.0.3:
     resolution: {integrity: sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ==}
     engines: {node: '>=0.3.1'}
@@ -3632,9 +3570,6 @@ packages:
   iconv-lite@0.7.2:
     resolution: {integrity: sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==}
     engines: {node: '>=0.10.0'}
-
-  idb-keyval@6.3.0:
-    resolution: {integrity: sha512-um+2dgAWmYsu615EXpWVwSmapJhON0G43t3Ka/EVaohzPQXSMqKEqeDK/oIW3Ow+BXaF2PvSc+oBTFp793A5Ow==}
 
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
@@ -5962,14 +5897,6 @@ snapshots:
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/tanstack-query@1.14.8(@orpc/client@1.14.8)(@tanstack/query-core@5.101.2)':
-    dependencies:
-      '@orpc/client': 1.14.8
-      '@orpc/shared': 1.14.8
-      '@tanstack/query-core': 5.101.2
-    transitivePeerDependencies:
-      - '@opentelemetry/api'
-
   '@orpc/zod@1.14.8(@orpc/contract@1.14.8)(@orpc/server@1.14.8(ws@8.21.1))(ws@8.21.1)(zod@4.4.3)':
     dependencies:
       '@orpc/contract': 1.14.8
@@ -6420,36 +6347,6 @@ snapshots:
       '@tailwindcss/oxide': 4.3.2
       tailwindcss: 4.3.2
       vite: '@voidzero-dev/vite-plus-core@0.2.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(typescript@7.0.2)(yaml@2.8.2)'
-
-  '@tanstack/query-async-storage-persister@5.101.2':
-    dependencies:
-      '@tanstack/query-core': 5.101.2
-      '@tanstack/query-persist-client-core': 5.101.2
-
-  '@tanstack/query-core@5.101.2': {}
-
-  '@tanstack/query-devtools@5.101.2': {}
-
-  '@tanstack/query-persist-client-core@5.101.2':
-    dependencies:
-      '@tanstack/query-core': 5.101.2
-
-  '@tanstack/react-query-devtools@5.101.2(@tanstack/react-query@5.101.2(react@19.2.7))(react@19.2.7)':
-    dependencies:
-      '@tanstack/query-devtools': 5.101.2
-      '@tanstack/react-query': 5.101.2(react@19.2.7)
-      react: 19.2.7
-
-  '@tanstack/react-query-persist-client@5.101.2(@tanstack/react-query@5.101.2(react@19.2.7))(react@19.2.7)':
-    dependencies:
-      '@tanstack/query-persist-client-core': 5.101.2
-      '@tanstack/react-query': 5.101.2(react@19.2.7)
-      react: 19.2.7
-
-  '@tanstack/react-query@5.101.2(react@19.2.7)':
-    dependencies:
-      '@tanstack/query-core': 5.101.2
-      react: 19.2.7
 
   '@tanstack/react-virtual@3.14.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
@@ -7010,6 +6907,8 @@ snapshots:
 
   detect-node-es@1.1.0: {}
 
+  dexie@4.4.4: {}
+
   diff@8.0.3: {}
 
   dom-accessibility-api@0.5.16: {}
@@ -7435,8 +7334,6 @@ snapshots:
   iconv-lite@0.7.2:
     dependencies:
       safer-buffer: 2.1.2
-
-  idb-keyval@6.3.0: {}
 
   ignore@5.3.2: {}
 

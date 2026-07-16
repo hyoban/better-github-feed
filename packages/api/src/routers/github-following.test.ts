@@ -56,11 +56,96 @@ describe('fetchGithubFollowing', () => {
             },
           })
         }
-        return new Response('rate limited', { status: 429 })
+        return new Response('rate limited', {
+          status: 429,
+          headers: { 'x-ratelimit-reset': '9000000000' },
+        })
       }),
       (error: unknown) => {
         assert.ok(error instanceof GithubFollowingError)
         assert.equal(error.status, 429)
+        assert.equal(error.retryAt, 9_000_000_000_000)
+        return true
+      },
+    )
+  })
+
+  it('does not treat an ordinary forbidden response as a rate limit', async () => {
+    await assert.rejects(
+      fetchGithubFollowing('secret-token', async () => {
+        return new Response(JSON.stringify({ message: 'Resource not accessible by integration' }), {
+          status: 403,
+          headers: {
+            'x-ratelimit-remaining': '42',
+            'x-ratelimit-reset': '9000000000',
+          },
+        })
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof GithubFollowingError)
+        assert.equal(error.status, 403)
+        assert.equal(error.retryAt, undefined)
+        return true
+      },
+    )
+  })
+
+  it('uses the primary rate-limit reset only when GitHub reports no remaining requests', async () => {
+    await assert.rejects(
+      fetchGithubFollowing('secret-token', async () => {
+        return new Response(JSON.stringify({ message: 'API rate limit exceeded' }), {
+          status: 403,
+          headers: {
+            'x-ratelimit-remaining': '0',
+            'x-ratelimit-reset': '9000000000',
+          },
+        })
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof GithubFollowingError)
+        assert.equal(error.status, 403)
+        assert.equal(error.retryAt, 9_000_000_000_000)
+        return true
+      },
+    )
+  })
+
+  it('honors Retry-After on a forbidden response', async () => {
+    const retryAt = Date.parse('2037-10-21T07:28:00.000Z')
+    await assert.rejects(
+      fetchGithubFollowing('secret-token', async () => {
+        return new Response(JSON.stringify({ message: 'Please retry later' }), {
+          status: 403,
+          headers: {
+            'retry-after': new Date(retryAt).toUTCString(),
+            'x-ratelimit-remaining': '42',
+          },
+        })
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof GithubFollowingError)
+        assert.equal(error.status, 403)
+        assert.equal(error.retryAt, retryAt)
+        return true
+      },
+    )
+  })
+
+  it('backs off an explicit secondary rate limit even without rate-limit headers', async () => {
+    const requestedAt = Date.now()
+    await assert.rejects(
+      fetchGithubFollowing('secret-token', async () => {
+        return new Response(
+          JSON.stringify({ message: 'You have exceeded a secondary rate limit.' }),
+          { status: 403 },
+        )
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof GithubFollowingError)
+        assert.equal(error.status, 403)
+        assert.ok(error.retryAt)
+        assert.ok(error.retryAt >= requestedAt + 60_000)
+        assert.ok(error.retryAt <= Date.now() + 60_000)
         return true
       },
     )

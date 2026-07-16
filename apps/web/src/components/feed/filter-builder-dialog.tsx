@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useCreateFilter, useUpdateFilter } from '@/hooks/use-filters'
+import { useUserFilterActions } from '@/hooks/use-local-feed'
 import { filterTheme } from '@/lib/filter-theme'
 
 type FilterBuilderDialogProps = {
@@ -24,7 +24,7 @@ type FilterBuilderDialogProps = {
   editingFilter?: {
     id: string
     name: string
-    filterRule: FilterGroup
+    rule: FilterGroup
   } | null
 }
 
@@ -54,6 +54,7 @@ function FilterBuilderContent({
         <Label htmlFor="filter-name">Filter Name</Label>
         <Input
           id="filter-name"
+          maxLength={100}
           placeholder="e.g., Hide bot repos"
           value={name}
           onChange={e => setName(e.target.value)}
@@ -75,17 +76,21 @@ export function FilterBuilderDialog({
   editingFilter,
 }: FilterBuilderDialogProps) {
   const [name, setName] = useState(editingFilter?.name ?? '')
-  const filterRuleRef = useRef<FilterGroup>(editingFilter?.filterRule ?? emptyFilterGroup)
+  const filterRuleRef = useRef<FilterGroup>(editingFilter?.rule ?? emptyFilterGroup)
 
-  const createFilter = useCreateFilter()
-  const updateFilter = useUpdateFilter()
+  const filterActions = useUserFilterActions()
+  const [isPending, setIsPending] = useState(false)
 
   const isEditing = !!editingFilter
-  const isPending = createFilter.isPending || updateFilter.isPending
 
   const handleSave = async () => {
-    if (!name.trim()) {
+    const normalizedName = name.trim()
+    if (!normalizedName) {
       toast.error('Please enter a filter name')
+      return
+    }
+    if (normalizedName.length > 100) {
+      toast.error('Filter names must be 100 characters or fewer')
       return
     }
 
@@ -94,23 +99,20 @@ export function FilterBuilderDialog({
       return
     }
 
+    setIsPending(true)
     try {
-      if (isEditing) {
-        await updateFilter.mutateAsync({
-          params: { id: editingFilter.id },
-          body: { name: name.trim(), filterRule: filterRuleRef.current },
-        })
-        toast.success('Filter updated')
-      } else {
-        await createFilter.mutateAsync({
-          body: { name: name.trim(), filterRule: filterRuleRef.current },
-        })
-        toast.success('Filter created')
-      }
+      await filterActions.put({
+        id: editingFilter?.id,
+        name: normalizedName,
+        rule: filterRuleRef.current,
+      })
+      toast.success(isEditing ? 'Filter updated locally' : 'Filter created locally')
 
       onOpenChange(false)
     } catch {
-      toast.error(isEditing ? 'Failed to update filter' : 'Failed to create filter')
+      toast.error(isEditing ? 'Failed to update local filter' : 'Failed to create local filter')
+    } finally {
+      setIsPending(false)
     }
   }
 
@@ -118,7 +120,7 @@ export function FilterBuilderDialog({
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
       setName(editingFilter?.name ?? '')
-      filterRuleRef.current = editingFilter?.filterRule ?? emptyFilterGroup
+      filterRuleRef.current = editingFilter?.rule ?? emptyFilterGroup
     }
     onOpenChange(newOpen)
   }
@@ -137,7 +139,7 @@ export function FilterBuilderDialog({
         <FilterBuilderContent
           name={name}
           setName={setName}
-          defaultRule={editingFilter?.filterRule ?? emptyFilterGroup}
+          defaultRule={editingFilter?.rule ?? emptyFilterGroup}
           onFilterChange={rule => {
             filterRuleRef.current = rule
           }}

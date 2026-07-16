@@ -1,126 +1,118 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import { ActivitySummaryItem } from '@/components/feed/activity-summary-item'
+import { Button } from '@/components/ui/button'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '@/components/ui/empty'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Spinner } from '@/components/ui/spinner'
-import { useActivity } from '@/hooks/use-activity'
+import { toActorSelection, toTypeSelection } from '@/hooks/feed-view'
 import { useFocusedPanel, useKeyboardNavigation } from '@/hooks/use-keyboard-navigation'
+import { useVisibleFeed } from '@/hooks/use-local-feed'
 import { useActiveId, useActiveTypes, useActiveUsers } from '@/hooks/use-query-state'
-import { useSubscriptionList } from '@/hooks/use-subscription-list'
-import { authClient } from '@/lib/auth-client'
+import type { ActivitySummary, FeedView } from '@/local-feed'
 
-import { ActivitySummaryItem } from './activity-summary-item'
+const INITIAL_DEMAND = 40
+const DEMAND_STEP = 20
+const NO_ACTIVITIES: readonly ActivitySummary[] = []
 
 export function ActivityList() {
-  const { data: session, isPending: isSessionPending } = authClient.useSession()
   const [activeTypes] = useActiveTypes()
   const [activeUsers] = useActiveUsers()
   const [activeId, setActiveId] = useActiveId()
   const [focusedPanel, setFocusedPanel] = useFocusedPanel()
+  const view = useMemo<FeedView>(
+    () => ({
+      actors: toActorSelection(activeUsers),
+      types: toTypeSelection(activeTypes),
+    }),
+    [activeTypes, activeUsers],
+  )
+  const viewKey = JSON.stringify(view)
+  const [demand, setDemand] = useState({ viewKey, first: INITIAL_DEMAND })
+  const first = demand.viewKey === viewKey ? demand.first : INITIAL_DEMAND
+  const loadMore = useCallback(() => {
+    setDemand(current => ({
+      viewKey,
+      first: (current.viewKey === viewKey ? current.first : INITIAL_DEMAND) + DEMAND_STEP,
+    }))
+  }, [viewKey])
+  const snapshot = useVisibleFeed({ view, first })
 
-  const userId = session?.user.id
-  const isAuthenticated = !!userId
-  const { follows, isLoading: isFollowsLoading } = useSubscriptionList(userId)
-  const { items, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useActivity(userId, activeUsers, activeTypes)
-
-  const hasFollows = follows.length > 0
-
-  // Create a map from login to githubUserId for avatar URLs
-  const githubIdMap = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const follow of follows) {
-      if (follow.githubUserId) {
-        map.set(follow.githubUserLogin, follow.githubUserId)
-      }
-    }
-    return map
-  }, [follows])
-
+  const items = snapshot.kind === 'ready' ? snapshot.value.items : NO_ACTIVITIES
+  const coverage = snapshot.kind === 'ready' ? snapshot.value.coverage : null
+  const canLoadMore =
+    coverage !== null &&
+    (coverage.hasMoreLocal ||
+      coverage.demand === 'insufficient' ||
+      coverage.remoteWindow !== 'exhausted')
   const hasActiveFilters = activeUsers.length > 0 || activeTypes.length > 0
-  const emptyMessage = !isAuthenticated
-    ? 'Sign in with GitHub to see activity from the people you follow.'
-    : !hasFollows
-      ? 'Sync your GitHub following to start building your feed.'
-      : hasActiveFilters
-        ? 'No activity matches your filters yet.'
-        : 'No cached activity yet. Refresh a followed user to fetch their latest activity.'
-  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null)
-  const loadMoreTriggered = useRef(false)
-  const wasFetchingNextPage = useRef(isFetchingNextPage)
 
+  const emptyMessage =
+    snapshot.kind === 'failed'
+      ? 'Local activity could not be read.'
+      : snapshot.kind === 'ready' && snapshot.value.rejectedActorKeys.length > 0
+        ? 'The selected people are not in your current GitHub Following snapshot.'
+        : coverage?.bootstrap === 'never-synced'
+          ? 'Your GitHub Following snapshot is syncing automatically.'
+          : hasActiveFilters
+            ? 'No locally available activity matches your filters yet.'
+            : coverage?.remoteWindow === 'exhausted'
+              ? 'No activity is available in your local or retained cloud history yet.'
+              : 'Activity will appear here as the local feed catches up.'
+
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null)
   const scrollAreaRef = (node: HTMLDivElement | null) => {
-    if (node) {
-      const viewport = node.querySelector('[data-slot="scroll-area-viewport"]')
-      if (viewport && viewport !== scrollElement) {
-        setScrollElement(viewport as HTMLElement)
-      }
+    if (!node) return
+    const viewport = node.querySelector('[data-slot="scroll-area-viewport"]')
+    if (viewport && viewport !== scrollElement) {
+      setScrollElement(viewport as HTMLElement)
     }
   }
 
   const virtualizer = useVirtualizer({
-    count: items.length + (hasNextPage ? 1 : 0),
+    count: items.length + (canLoadMore ? 1 : 0),
     getScrollElement: () => scrollElement,
-    estimateSize: () => 80,
+    estimateSize: index => (index >= items.length ? 56 : 80),
     overscan: 10,
     enabled: !!scrollElement,
   })
   const virtualItems = virtualizer.getVirtualItems()
-  const isLoaderVisible =
-    !isSessionPending &&
-    !isFollowsLoading &&
-    !isLoading &&
-    items.length > 0 &&
-    virtualItems.some(virtualRow => virtualRow.index >= items.length)
 
-  useEffect(() => {
-    if (wasFetchingNextPage.current && !isFetchingNextPage) {
-      loadMoreTriggered.current = false
-    }
-    wasFetchingNextPage.current = isFetchingNextPage
-  }, [isFetchingNextPage])
-
-  useEffect(() => {
-    if (isLoaderVisible && hasNextPage && !isFetchingNextPage && !loadMoreTriggered.current) {
-      loadMoreTriggered.current = true
-      void fetchNextPage()
-    }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, isLoaderVisible])
-
-  // Keyboard navigation
   const handleNavigate = useCallback(
     (direction: 'up' | 'down') => {
       if (focusedPanel !== 'feed' || items.length === 0) return
 
       const ids = items.map(item => item.id)
       const currentIndex = activeId ? ids.indexOf(activeId) : -1
-
-      let newIndex: number
-      if (direction === 'up') {
-        newIndex = currentIndex <= 0 ? 0 : currentIndex - 1
-      } else {
-        newIndex = currentIndex >= ids.length - 1 ? ids.length - 1 : currentIndex + 1
-      }
-
+      const newIndex =
+        direction === 'up'
+          ? currentIndex <= 0
+            ? 0
+            : currentIndex - 1
+          : currentIndex >= ids.length - 1
+            ? ids.length - 1
+            : currentIndex + 1
       const newId = ids[newIndex]
-      if (newId) {
-        void setActiveId(newId)
-        // Scroll to the item
-        virtualizer.scrollToIndex(newIndex, { align: 'auto' })
-      }
+      if (!newId) return
+
+      void setActiveId(newId)
+      virtualizer.scrollToIndex(newIndex, { align: 'auto' })
     },
-    [focusedPanel, items, activeId, setActiveId, virtualizer],
+    [activeId, focusedPanel, items, setActiveId, virtualizer],
   )
 
   useKeyboardNavigation(handleNavigate)
 
-  // Auto-select first item when switching to this panel (only if no valid selection)
   const prevFocusedPanel = useRef(focusedPanel)
   useEffect(() => {
     if (prevFocusedPanel.current !== 'feed' && focusedPanel === 'feed') {
-      // Switched to feed - only select first item if there's no valid selection
       const hasValidSelection = activeId && items.some(item => item.id === activeId)
       if (items.length > 0 && !hasValidSelection) {
         void setActiveId(items[0].id)
@@ -128,31 +120,10 @@ export function ActivityList() {
       }
     }
     prevFocusedPanel.current = focusedPanel
-  }, [focusedPanel, items, activeId, setActiveId, virtualizer])
+  }, [activeId, focusedPanel, items, setActiveId, virtualizer])
 
-  if (isSessionPending || isFollowsLoading || isLoading) {
-    return (
-      <ScrollArea className="h-full min-h-0 flex-1">
-        <div>
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="border-b border-l border-l-transparent px-4 py-3">
-              <div className="flex gap-3">
-                <Skeleton className="size-8 shrink-0 rounded-full" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 text-xs">
-                    <Skeleton className="h-3.5 w-16" />
-                    <Skeleton className="size-1 shrink-0 rounded-full" />
-                    <Skeleton className="h-3.5 w-10" />
-                  </div>
-                  <Skeleton className="mt-1.5 h-4 w-full" />
-                  <Skeleton className="mt-1 h-4 w-2/3" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
-    )
+  if (snapshot.kind === 'opening-local') {
+    return <ActivityListSkeleton />
   }
 
   if (items.length === 0) {
@@ -162,19 +133,19 @@ export function ActivityList() {
           <EmptyTitle>No activity</EmptyTitle>
           <EmptyDescription>{emptyMessage}</EmptyDescription>
         </EmptyHeader>
+        {canLoadMore && (
+          <EmptyContent>
+            <Button variant="outline" size="sm" onClick={loadMore}>
+              Load more history
+            </Button>
+          </EmptyContent>
+        )}
       </Empty>
     )
   }
 
-  const showRefreshing = isFetching && !isLoading
-
   return (
     <div ref={scrollAreaRef} className="relative h-full min-h-0 flex-1">
-      {showRefreshing && (
-        <div className="absolute top-2 right-2 z-10 rounded-md bg-muted/80 p-1.5 backdrop-blur-sm">
-          <Spinner className="size-3.5 text-muted-foreground" />
-        </div>
-      )}
       <ScrollArea className="h-full">
         <div
           style={{
@@ -201,26 +172,14 @@ export function ActivityList() {
                 }}
               >
                 {isLoaderRow || !item ? (
-                  isFetchingNextPage ? (
-                    <div className="border-b border-l border-l-transparent px-4 py-3">
-                      <div className="flex gap-3">
-                        <Skeleton className="size-8 shrink-0 rounded-full" />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 text-xs">
-                            <Skeleton className="h-3.5 w-16" />
-                            <Skeleton className="size-1 shrink-0 rounded-full" />
-                            <Skeleton className="h-3.5 w-10" />
-                          </div>
-                          <Skeleton className="mt-1.5 h-4 w-full" />
-                          <Skeleton className="mt-1 h-4 w-2/3" />
-                        </div>
-                      </div>
-                    </div>
-                  ) : null
+                  <div className="flex justify-center border-b px-4 py-3">
+                    <Button variant="ghost" size="sm" onClick={loadMore}>
+                      Load more
+                    </Button>
+                  </div>
                 ) : (
                   <ActivitySummaryItem
                     item={item}
-                    githubId={githubIdMap.get(item.source)}
                     isActive={activeId === item.id}
                     isFocused={focusedPanel === 'feed' && activeId === item.id}
                     onClick={() => {
@@ -239,5 +198,30 @@ export function ActivityList() {
         </div>
       </ScrollArea>
     </div>
+  )
+}
+
+function ActivityListSkeleton() {
+  return (
+    <ScrollArea className="h-full min-h-0 flex-1">
+      <div>
+        {Array.from({ length: 8 }).map((_, index) => (
+          <div key={index} className="border-b border-l border-l-transparent px-4 py-3">
+            <div className="flex gap-3">
+              <Skeleton className="size-8 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-xs">
+                  <Skeleton className="h-3.5 w-16" />
+                  <Skeleton className="size-1 shrink-0 rounded-full" />
+                  <Skeleton className="h-3.5 w-10" />
+                </div>
+                <Skeleton className="mt-1.5 h-4 w-full" />
+                <Skeleton className="mt-1 h-4 w-2/3" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </ScrollArea>
   )
 }

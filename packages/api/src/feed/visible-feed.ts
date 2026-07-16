@@ -6,10 +6,11 @@ import {
   userFeedState,
   userFilter,
 } from '@better-github-feed/db/schema/github'
-import { and, desc, eq, gt, inArray, lt, not, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, isNull, lt, not, or, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 
 import { deserializeFilterGroup, filterRuleToDrizzleWhere } from '../filter/drizzle-transform'
+import { createLocalFeedSync } from '../local-feed/local-feed-sync'
 
 type VisibleFeedInput = {
   userId: string
@@ -74,7 +75,10 @@ function mapVisibleFeedItem(row: {
 }
 
 async function getVisibleCondition(database: Database, userId: string): Promise<SQL | undefined> {
-  const rows = await database.select().from(userFilter).where(eq(userFilter.userId, userId))
+  const rows = await database
+    .select()
+    .from(userFilter)
+    .where(and(eq(userFilter.userId, userId), isNull(userFilter.deletedAt)))
   const matches: SQL[] = []
 
   for (const row of rows) {
@@ -265,13 +269,7 @@ export function createVisibleFeed(database: Database) {
     },
 
     async clear(userId: string, clearedAt = new Date()) {
-      await database
-        .insert(userFeedState)
-        .values({ userId, activityClearedAt: clearedAt })
-        .onConflictDoUpdate({
-          target: userFeedState.userId,
-          set: { activityClearedAt: clearedAt },
-        })
+      await createLocalFeedSync({ database, now: () => clearedAt }).commitLegacyClear(userId)
       return { ok: true as const }
     },
   }

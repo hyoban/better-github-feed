@@ -20,10 +20,10 @@ const FOLLOWING_SYNC_RETRY_ATTEMPTS = 70
 const FOLLOWING_SYNC_RETRY_DELAY_MS = 1000
 const visibleFeed = createVisibleFeed(db)
 
-async function getGithubAccessToken(userId: string) {
+async function getGithubAccessToken(userId: string, githubAccountId: string) {
   try {
     const { accessToken } = await auth.api.getAccessToken({
-      body: { providerId: 'github', userId },
+      body: { providerId: 'github', accountId: githubAccountId, userId },
     })
     if (!accessToken) {
       throw new FollowingAuthorizationError()
@@ -50,6 +50,8 @@ async function getGithubFollowing(accessToken: string) {
     throw new FollowingUnavailableError(
       'Failed to load GitHub Following',
       error.status === 403 || error.status === 429 || error.status === undefined,
+      error.status === 429 || (error.status === 403 && error.retryAt !== undefined),
+      error.retryAt,
     )
   }
 }
@@ -59,6 +61,10 @@ const followingSync = createFollowingSync({
   getAccessToken: getGithubAccessToken,
   getFollowing: getGithubFollowing,
 })
+
+export function ensureInitialGithubFollowing(userId: string) {
+  return followingSync.sync(userId)
+}
 
 function mapFollowingSyncError(error: unknown): never {
   if (error instanceof FollowingSyncInProgressError) {
@@ -71,6 +77,12 @@ function mapFollowingSyncError(error: unknown): never {
     throw new ORPCError('PAYLOAD_TOO_LARGE', { message: error.message })
   }
   if (error instanceof FollowingUnavailableError) {
+    if (error.rateLimited) {
+      throw new ORPCError('TOO_MANY_REQUESTS', {
+        message: error.message,
+        data: { retryAt: error.retryAt ?? Date.now() + 60_000 },
+      })
+    }
     throw new ORPCError(error.retryable ? 'SERVICE_UNAVAILABLE' : 'BAD_GATEWAY', {
       message: error.message,
     })
@@ -133,6 +145,7 @@ export const subscriptionRouter = {
     return visibleFeed.listFollowing(context.session.user.id)
   }),
 
+  /** @deprecated Retained temporarily for compatibility with legacy clients during rollout. */
   sync: protectedProcedure.subscription.sync.handler(async ({ context }) => {
     try {
       return await followingSync.sync(context.session.user.id)

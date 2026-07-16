@@ -11,7 +11,7 @@ type FollowUserCardProps = {
   follow: FollowUserData
   isActive: boolean
   isFocused: boolean
-  onToggle: (login: string, multiSelect: boolean) => void
+  onToggle: (actorKey: string, multiSelect: boolean) => void
   onFocus: () => void
 }
 
@@ -41,7 +41,7 @@ export function FollowUserCard({
       }}
       onClick={e => {
         isClickRef.current = false
-        onToggle(follow.githubUserLogin, e.metaKey || e.ctrlKey)
+        onToggle(follow.actorKey, e.metaKey || e.ctrlKey)
       }}
       onFocus={() => {
         // Only trigger onFocus for keyboard navigation (Tab), not for clicks
@@ -62,21 +62,28 @@ export function FollowUserCard({
       <Avatar className="size-5">
         <AvatarImage
           src={
-            follow.githubUserId
-              ? `https://avatars-githubusercontent-webp.webp.se/u/${follow.githubUserId}`
-              : `https://github.com/${follow.githubUserLogin}.png`
+            follow.avatarUrl ??
+            (follow.githubId
+              ? `https://avatars-githubusercontent-webp.webp.se/u/${follow.githubId}`
+              : `https://github.com/${follow.login}.png`)
           }
-          alt={`${follow.githubUserLogin} avatar`}
+          alt={`${follow.login} avatar`}
           width={28}
           height={28}
         />
         <AvatarFallback className="text-xs">
-          {follow.githubUserLogin.slice(0, 2).toUpperCase()}
+          {follow.login.slice(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <p className="min-w-0 flex-1 truncate text-sm">
-        {follow.githubUserLogin}
-        <span className="text-muted-foreground"> ·{formatRelativeTime(follow.latestEntryAt)}</span>
+        {follow.login}
+        <span className="text-muted-foreground">
+          {' '}
+          ·
+          {formatRelativeTime(
+            follow.latestEntryAt === null ? null : new Date(follow.latestEntryAt),
+          )}
+        </span>
       </p>
       {itemCount > 0 && (
         <Badge variant="secondary" className="h-5 shrink-0 px-1.5 text-[10px] font-semibold">

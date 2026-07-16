@@ -1,0 +1,1 @@
+ALTER TABLE `following_sync_state` ADD `reauth_required_at` integer;

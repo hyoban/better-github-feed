@@ -1,61 +1,14 @@
 import type { AppRouterClient } from '@better-github-feed/api/routers/index'
 import { createORPCClient } from '@orpc/client'
 import { RPCLink } from '@orpc/client/fetch'
-import { createTanstackQueryUtils } from '@orpc/tanstack-query'
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
-import { QueryCache, QueryClient } from '@tanstack/react-query'
-import { del, get, set } from 'idb-keyval'
-import { toast } from 'sonner'
 
-import { createFeedMutationCache, createFeedMutations } from '@/lib/feed-mutations'
+import { deleteIndexedDbDatabase } from './indexeddb-delete'
 
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      gcTime: 1000 * 60 * 60 * 24, // 24 hours
-      staleTime: 1000 * 60 * 5, // 5 minutes
-    },
-  },
-  queryCache: new QueryCache({
-    onError: (error, query) => {
-      toast.error(`Error: ${error.message}`, {
-        action: {
-          label: 'retry',
-          onClick: () => query.invalidate(),
-        },
-      })
-    },
-  }),
-})
-
-// Use IndexedDB for larger storage capacity (via idb-keyval)
-const idbStorage =
-  typeof window !== 'undefined'
-    ? {
-        getItem: async (key: string) => {
-          const value = await get<string>(key)
-          return value ?? null
-        },
-        setItem: async (key: string, value: string) => {
-          await set(key, value)
-        },
-        removeItem: async (key: string) => {
-          await del(key)
-        },
-      }
-    : undefined
-
-const CACHE_KEY = 'REACT_QUERY_OFFLINE_CACHE'
-
-export const persister = createAsyncStoragePersister({
-  storage: idbStorage,
-  key: CACHE_KEY,
-})
+const LEGACY_CACHE_DATABASE = 'keyval-store'
 
 export async function clearPersistedCache() {
-  if (idbStorage) {
-    await idbStorage.removeItem(CACHE_KEY)
-  }
+  if (!('indexedDB' in window)) return
+  await deleteIndexedDbDatabase(window.indexedDB, LEGACY_CACHE_DATABASE)
 }
 
 export const link = new RPCLink({
@@ -69,25 +22,3 @@ export const link = new RPCLink({
 })
 
 export const client: AppRouterClient = createORPCClient(link)
-
-export const orpc = createTanstackQueryUtils(client)
-
-export const feedMutations = createFeedMutations({
-  remote: {
-    syncFollowing: () => client.subscription.sync({}),
-    refreshOne: login => client.feed.refreshOne({ params: { login } }),
-    refreshFollowing: async () =>
-      (await client.feed.refresh({})) as AsyncIterable<
-        import('@better-github-feed/contract').RefreshProgressEvent
-      >,
-    clearFeed: () => client.feed.clear({}),
-    createFilter: input => client.filter.create({ body: input }),
-    updateFilter: (id, input) => client.filter.update({ params: { id }, body: input }),
-    deleteFilter: id => client.filter.delete({ params: { id } }),
-  },
-  cache: createFeedMutationCache(queryClient, {
-    feed: orpc.feed.list.key(),
-    following: orpc.subscription.list.queryKey(),
-    filters: orpc.filter.list.queryKey(),
-  }),
-})

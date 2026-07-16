@@ -1,10 +1,19 @@
 import type { Database } from '@better-github-feed/db'
 import { user as appUser } from '@better-github-feed/db/schema/auth'
-import { feedItem, githubUser, subscription } from '@better-github-feed/db/schema/github'
-import { and, asc, eq, isNull, lt, or } from 'drizzle-orm'
+import {
+  activityChange,
+  feedItem,
+  githubUser,
+  subscription,
+} from '@better-github-feed/db/schema/github'
+import type { BatchItem } from 'drizzle-orm/batch'
+import { and, asc, eq, isNull, lt, or, sql } from 'drizzle-orm'
 
 const REFRESH_COOLDOWN_MS = 5 * 60 * 1000
 const REFRESH_CLAIM_TIMEOUT_MS = 10 * 60 * 1000
+const REFRESH_WRITE_CHUNK_SIZE = 8
+const D1_JSON_CHUNK_MAX_BYTES = 1_800_000
+const textEncoder = new TextEncoder()
 
 type ActivityItem = {
   id: string
@@ -26,14 +35,29 @@ function shouldSkipRefresh(lastRefreshedAt: Date | null, refreshClaimedAt: Date 
   return wasRefreshedRecently || isRefreshInProgress
 }
 
-function chunkArray<T>(items: T[], size: number) {
-  if (items.length <= size) {
-    return [items]
-  }
-
+function chunkArray<T>(items: T[], size: number, serialize: (item: T) => unknown) {
   const chunks: T[][] = []
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
+  let current: T[] = []
+  let currentBytes = 2
+  for (const item of items) {
+    const itemBytes = textEncoder.encode(JSON.stringify(serialize(item))).byteLength
+    if (itemBytes + 2 > D1_JSON_CHUNK_MAX_BYTES) {
+      throw new RangeError('Atom Activity exceeds the D1 JSON chunk size')
+    }
+    const separatorBytes = current.length > 0 ? 1 : 0
+    if (
+      current.length >= size ||
+      currentBytes + separatorBytes + itemBytes > D1_JSON_CHUNK_MAX_BYTES
+    ) {
+      chunks.push(current)
+      current = []
+      currentBytes = 2
+    }
+    currentBytes += (current.length > 0 ? 1 : 0) + itemBytes
+    current.push(item)
+  }
+  if (current.length > 0) {
+    chunks.push(current)
   }
   return chunks
 }
@@ -51,6 +75,7 @@ export class FeedRefreshTargetNotFoundError extends Error {
 
 type RefreshCandidate = {
   login: string
+  githubId: string | null
   lastRefreshedAt: Date | null
   refreshClaimedAt: Date | null
 }
@@ -76,6 +101,7 @@ export function createFeedRefresh({
     return database
       .select({
         login: subscription.githubUserLogin,
+        githubId: githubUser.id,
         lastRefreshedAt: githubUser.lastRefreshedAt,
         refreshClaimedAt: githubUser.refreshClaimedAt,
       })
@@ -117,9 +143,16 @@ export function createFeedRefresh({
   async function refresh(user: RefreshCandidate, claimedAt: Date) {
     try {
       const { items, githubId } = await getActivity(user.login)
+      const resolvedGithubId = githubId ?? user.githubId
+      const actorKey = resolvedGithubId
+        ? `github:${resolvedGithubId}`
+        : `legacy-atom-login:${user.login}`
       const rows = items.map(item => ({
         id: item.id,
         githubUserLogin: user.login,
+        actorKey,
+        actorGithubId: resolvedGithubId,
+        source: 'github-atom-v1',
         title: item.title,
         link: item.link,
         repo: item.repo,
@@ -129,22 +162,90 @@ export function createFeedRefresh({
         publishedAt: new Date(item.publishedAtMs),
       }))
 
-      for (const rowsChunk of chunkArray(rows, 8)) {
-        if (rowsChunk.length > 0) {
-          await database.insert(feedItem).values(rowsChunk).onConflictDoNothing()
-        }
-      }
-
       const refreshedAt = now()
-      const result = await database
-        .update(githubUser)
-        .set({
-          id: githubId ?? undefined,
-          lastRefreshedAt: refreshedAt,
-          refreshClaimedAt: null,
-        })
-        .where(and(eq(githubUser.login, user.login), eq(githubUser.refreshClaimedAt, claimedAt)))
-      if (result.meta.changes === 0) {
+      const statements: BatchItem<'sqlite'>[] = []
+      for (const rowsChunk of chunkArray(rows, REFRESH_WRITE_CHUNK_SIZE, row => ({
+        ...row,
+        publishedAt: row.publishedAt.getTime(),
+      }))) {
+        const rowsJson = JSON.stringify(
+          rowsChunk.map(row => ({ ...row, publishedAt: row.publishedAt.getTime() })),
+        )
+        const changeRowsJson = JSON.stringify(
+          rowsChunk.map(row => ({
+            id: row.id,
+            source: row.source,
+            actorKey: row.actorKey,
+            actorGithubId: row.actorGithubId,
+          })),
+        )
+        statements.push(
+          database
+            .insert(feedItem)
+            .select(sql`
+              select
+                json_extract(value, '$.id'),
+                json_extract(value, '$.githubUserLogin'),
+                json_extract(value, '$.actorKey'),
+                json_extract(value, '$.actorGithubId'),
+                json_extract(value, '$.source'),
+                json_extract(value, '$.title'),
+                json_extract(value, '$.link'),
+                json_extract(value, '$.repo'),
+                json_extract(value, '$.type'),
+                json_extract(value, '$.summary'),
+                json_extract(value, '$.content'),
+                0,
+                json_extract(value, '$.publishedAt'),
+                ${refreshedAt.getTime()}
+              from json_each(${rowsJson})
+              where exists (
+                select 1 from ${githubUser}
+                where ${githubUser.login} = ${user.login}
+                  and ${githubUser.refreshClaimedAt} = ${claimedAt.getTime()}
+              )
+            `)
+            .onConflictDoNothing(),
+          database
+            .insert(activityChange)
+            .select(sql`
+              select
+                null,
+                json_extract(value, '$.source'),
+                json_extract(value, '$.id'),
+                json_extract(value, '$.actorKey'),
+                json_extract(value, '$.actorGithubId'),
+                ${refreshedAt.getTime()}
+              from json_each(${changeRowsJson})
+              where exists (
+                select 1 from ${githubUser}
+                where ${githubUser.login} = ${user.login}
+                  and ${githubUser.refreshClaimedAt} = ${claimedAt.getTime()}
+              )
+                and not exists (
+                  select 1 from ${activityChange}
+                  where ${activityChange.source} = json_extract(value, '$.source')
+                    and ${activityChange.activityId} = json_extract(value, '$.id')
+                )
+            `)
+            .onConflictDoNothing(),
+        )
+      }
+      statements.push(
+        database
+          .update(githubUser)
+          .set({
+            id: resolvedGithubId ?? undefined,
+            lastRefreshedAt: refreshedAt,
+            refreshClaimedAt: null,
+          })
+          .where(and(eq(githubUser.login, user.login), eq(githubUser.refreshClaimedAt, claimedAt))),
+      )
+      const results = await database.batch(
+        statements as [BatchItem<'sqlite'>, ...BatchItem<'sqlite'>[]],
+      )
+      const result = results.at(-1) as { meta: { changes: number } } | undefined
+      if (!result || result.meta.changes === 0) {
         throw new Error(`Feed Refresh for ${user.login} was superseded`)
       }
 
@@ -225,6 +326,7 @@ export function createFeedRefresh({
       const users = await database
         .select({
           login: githubUser.login,
+          githubId: githubUser.id,
           lastRefreshedAt: githubUser.lastRefreshedAt,
           refreshClaimedAt: githubUser.refreshClaimedAt,
         })
@@ -271,6 +373,7 @@ export function createFeedRefresh({
       const rows = await database
         .select({
           login: subscription.githubUserLogin,
+          githubId: githubUser.id,
           lastRefreshedAt: githubUser.lastRefreshedAt,
           refreshClaimedAt: githubUser.refreshClaimedAt,
         })

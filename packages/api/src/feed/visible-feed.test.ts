@@ -4,6 +4,7 @@ import {
   feedItem,
   githubUser,
   subscription,
+  userFeedState,
   userFilter,
 } from '@better-github-feed/db/schema/github'
 import type { FilterGroup } from '@better-github-feed/shared'
@@ -214,5 +215,21 @@ describe('Visible Feed', () => {
       (await visibleFeed.list({ userId: 'other' })).items.map(item => item.id),
       ['alice-push'],
     )
+  })
+
+  it('rebases concurrent legacy clear requests after CAS conflicts', async () => {
+    const testDatabase = await createTestDatabase()
+    disposers.push(testDatabase.dispose)
+    const { database } = testDatabase
+    const visibleFeed = createVisibleFeed(database)
+    const clearTimes = Array.from(
+      { length: 6 },
+      (_, index) => new Date(Date.parse('2026-07-15T12:00:00.000Z') + index),
+    )
+
+    await Promise.all(clearTimes.map(clearedAt => visibleFeed.clear('viewer', clearedAt)))
+
+    const states = await database.select().from(userFeedState)
+    assert.equal(states[0]?.activityClearedAt.getTime(), clearTimes.at(-1)?.getTime())
   })
 })

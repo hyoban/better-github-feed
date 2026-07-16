@@ -1,158 +1,139 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
+import { canonicalizeActorSelection } from '@/hooks/actor-selection'
 import { useFocusedPanel, useKeyboardNavigation } from '@/hooks/use-keyboard-navigation'
+import { useFollowing } from '@/hooks/use-local-feed'
 import { useActiveId, useActiveUsers, useSortBy } from '@/hooks/use-query-state'
-import { refreshSingleFeed } from '@/hooks/use-refresh'
-import { useSubscriptionList } from '@/hooks/use-subscription-list'
-import { authClient } from '@/lib/auth-client'
+import type { FollowingSummary } from '@/local-feed'
 
 import { FollowUserItem } from './follow-user-item'
 
+const INITIAL_DEMAND = 100
+const DEMAND_STEP = 100
+const LEGACY_URL_DEMAND = 1000
+const NO_FOLLOWS: readonly FollowingSummary[] = []
+
+function isStableActorKey(value: string) {
+  return value.startsWith('github:') || value.startsWith('legacy-atom-login:')
+}
+
 export function FollowList() {
-  const { data: session, isPending: isSessionPending } = authClient.useSession()
-  const { follows, isLoading, isSuccess } = useSubscriptionList(session?.user.id)
   const [sortBy] = useSortBy()
   const [activeUsers, setActiveUsers] = useActiveUsers()
   const [, setActiveId] = useActiveId()
   const [focusedPanel, setFocusedPanel] = useFocusedPanel()
+  const [first, setFirst] = useState(() =>
+    activeUsers.some(value => !isStableActorKey(value)) ? LEGACY_URL_DEMAND : INITIAL_DEMAND,
+  )
+  const snapshot = useFollowing({ sort: sortBy, first })
+  const follows = snapshot.kind === 'ready' ? snapshot.value.items : NO_FOLLOWS
+  const coverage = snapshot.kind === 'ready' ? snapshot.value.coverage : null
+  const canLoadMore =
+    coverage !== null &&
+    (coverage.hasMoreLocal ||
+      coverage.demand === 'insufficient' ||
+      coverage.remoteWindow !== 'exhausted')
 
-  // Filter activeUsers to only include valid users
-  const validActiveUsers = useMemo(() => {
-    if (follows.length === 0) return []
-    const available = new Set(
-      follows.flatMap(follow => (follow.githubUserLogin ? [follow.githubUserLogin] : [])),
-    )
-    return activeUsers.filter(login => available.has(login))
-  }, [follows, activeUsers])
-  const validActiveUserSet = useMemo(() => new Set(validActiveUsers), [validActiveUsers])
+  const canonicalSelection = useMemo(() => {
+    if (snapshot.kind !== 'ready') return activeUsers
+    return canonicalizeActorSelection(activeUsers, follows, !canLoadMore)
+  }, [activeUsers, canLoadMore, follows, snapshot.kind])
 
   useEffect(() => {
-    if (
-      !session ||
-      isSessionPending ||
-      !isSuccess ||
-      validActiveUsers.length === activeUsers.length
-    ) {
-      return
-    }
+    if (snapshot.kind !== 'ready') return
 
-    void setActiveUsers(validActiveUsers)
-    void setActiveId(null)
-  }, [
-    activeUsers,
-    isSessionPending,
-    isSuccess,
-    session,
-    setActiveId,
-    setActiveUsers,
-    validActiveUsers,
-  ])
+    const isSame =
+      canonicalSelection.length === activeUsers.length &&
+      canonicalSelection.every((value, index) => value === activeUsers[index])
+    if (isSame) return
 
-  // Sort follows based on sortBy
-  const sortedFollows = useMemo(() => {
-    const filtered = follows.filter(f => f.githubUserLogin)
-    switch (sortBy) {
-      case 'latest':
-        return [...filtered].sort((a, b) => {
-          const aTime = a.latestEntryAt ? new Date(a.latestEntryAt).getTime() : 0
-          const bTime = b.latestEntryAt ? new Date(b.latestEntryAt).getTime() : 0
-          return bTime - aTime
-        })
-      default:
-        return [...filtered].sort((a, b) => a.githubUserLogin.localeCompare(b.githubUserLogin))
-    }
-  }, [follows, sortBy])
+    const removedSelection = canonicalSelection.length < activeUsers.length
+    void setActiveUsers(canonicalSelection)
+    if (removedSelection) void setActiveId(null)
+  }, [activeUsers, canonicalSelection, setActiveId, setActiveUsers, snapshot.kind])
 
-  // Keyboard navigation
+  const selectedActorKeySet = useMemo(() => new Set(canonicalSelection), [canonicalSelection])
+
   const handleNavigate = useCallback(
     (direction: 'up' | 'down') => {
-      if (focusedPanel !== 'sidebar' || sortedFollows.length === 0) return
+      if (focusedPanel !== 'sidebar' || follows.length === 0) return
 
-      const logins = sortedFollows.map(f => f.githubUserLogin)
-      const currentLogin = validActiveUsers[0]
-      const currentIndex = currentLogin ? logins.indexOf(currentLogin) : -1
-
-      let newIndex: number
-      if (direction === 'up') {
-        newIndex = currentIndex <= 0 ? 0 : currentIndex - 1
-      } else {
-        newIndex = currentIndex >= logins.length - 1 ? logins.length - 1 : currentIndex + 1
-      }
-
-      const newLogin = logins[newIndex]
-      if (newLogin) {
-        void setActiveUsers([newLogin])
-      }
+      const actorKeys = follows.map(follow => follow.actorKey)
+      const currentActorKey = canonicalSelection[0]
+      const currentIndex = currentActorKey ? actorKeys.indexOf(currentActorKey) : -1
+      const newIndex =
+        direction === 'up'
+          ? currentIndex <= 0
+            ? 0
+            : currentIndex - 1
+          : currentIndex >= actorKeys.length - 1
+            ? actorKeys.length - 1
+            : currentIndex + 1
+      const newActorKey = actorKeys[newIndex]
+      if (newActorKey) void setActiveUsers([newActorKey])
     },
-    [focusedPanel, sortedFollows, validActiveUsers, setActiveUsers],
+    [canonicalSelection, focusedPanel, follows, setActiveUsers],
   )
 
   useKeyboardNavigation(handleNavigate)
 
-  // Auto-select first item when switching to this panel
   const prevFocusedPanel = useRef(focusedPanel)
   useEffect(() => {
-    if (prevFocusedPanel.current !== 'sidebar' && focusedPanel === 'sidebar') {
-      // Switched to sidebar
-      if (validActiveUsers.length === 0 && sortedFollows.length > 0) {
-        void setActiveUsers([sortedFollows[0].githubUserLogin])
-      }
+    if (
+      prevFocusedPanel.current !== 'sidebar' &&
+      focusedPanel === 'sidebar' &&
+      canonicalSelection.length === 0 &&
+      follows[0]
+    ) {
+      void setActiveUsers([follows[0].actorKey])
     }
     prevFocusedPanel.current = focusedPanel
-  }, [focusedPanel, validActiveUsers, sortedFollows, setActiveUsers])
+  }, [canonicalSelection, focusedPanel, follows, setActiveUsers])
 
-  // Scroll to focused item
   const listRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (focusedPanel === 'sidebar' && validActiveUsers[0] && listRef.current) {
-      const element = listRef.current.querySelector(`[data-user-login="${validActiveUsers[0]}"]`)
-      element?.scrollIntoView({ block: 'nearest' })
-    }
-  }, [focusedPanel, validActiveUsers])
+    const selectedActorKey = canonicalSelection[0]
+    if (focusedPanel !== 'sidebar' || !selectedActorKey || !listRef.current) return
 
-  // Toggle user selection
-  const toggleUser = (login: string, multiSelect: boolean) => {
+    const element = [...listRef.current.querySelectorAll<HTMLElement>('[data-actor-key]')].find(
+      candidate => candidate.dataset.actorKey === selectedActorKey,
+    )
+    element?.scrollIntoView({ block: 'nearest' })
+  }, [canonicalSelection, focusedPanel])
+
+  const toggleUser = (actorKey: string, multiSelect: boolean) => {
     setFocusedPanel('sidebar')
     if (multiSelect) {
-      if (validActiveUserSet.has(login)) {
-        void setActiveUsers(validActiveUsers.filter(item => item !== login))
-      } else {
-        void setActiveUsers([...validActiveUsers, login])
-      }
-    } else {
-      if (validActiveUsers.length === 1 && validActiveUsers[0] === login) {
-        void setActiveUsers([])
-      } else {
-        void setActiveUsers([login])
-      }
+      void setActiveUsers(
+        selectedActorKeySet.has(actorKey)
+          ? canonicalSelection.filter(item => item !== actorKey)
+          : [...canonicalSelection, actorKey],
+      )
+      return
     }
-  }
 
-  if (isSessionPending || isLoading) {
-    return (
-      <ScrollArea className="min-h-0 flex-1">
-        <div>
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-2 border-b px-3 py-2">
-              <div className="size-7 shrink-0 animate-pulse rounded-full bg-muted" />
-              <Skeleton className="h-4 flex-1" />
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
+    void setActiveUsers(
+      canonicalSelection.length === 1 && canonicalSelection[0] === actorKey ? [] : [actorKey],
     )
   }
 
-  if (follows.length === 0) {
+  if (snapshot.kind === 'opening-local') {
+    return <FollowListSkeleton />
+  }
+
+  if (snapshot.kind === 'failed' || follows.length === 0) {
+    const message =
+      snapshot.kind === 'failed'
+        ? 'Local Following data could not be read.'
+        : coverage?.bootstrap === 'never-synced'
+          ? 'Your GitHub Following snapshot is syncing automatically.'
+          : 'Your GitHub Following snapshot is empty.'
     return (
       <div className="flex min-h-0 flex-1 items-start px-4 pt-4">
-        <p className="text-sm text-muted-foreground">
-          {session
-            ? 'Sync your GitHub following to start building your feed.'
-            : 'Sign in with GitHub to sync the people you follow.'}
-        </p>
+        <p className="text-sm text-muted-foreground">{message}</p>
       </div>
     )
   }
@@ -160,12 +141,11 @@ export function FollowList() {
   return (
     <ScrollArea className="min-h-0 flex-1">
       <div ref={listRef}>
-        {sortedFollows.map(follow => {
-          const isActive = validActiveUserSet.has(follow.githubUserLogin)
-          const isFocused =
-            focusedPanel === 'sidebar' && validActiveUsers[0] === follow.githubUserLogin
+        {follows.map(follow => {
+          const isActive = selectedActorKeySet.has(follow.actorKey)
+          const isFocused = focusedPanel === 'sidebar' && canonicalSelection[0] === follow.actorKey
           return (
-            <div key={follow.id} data-user-login={follow.githubUserLogin}>
+            <div key={follow.actorKey} data-actor-key={follow.actorKey}>
               <FollowUserItem
                 follow={follow}
                 isActive={isActive}
@@ -173,13 +153,38 @@ export function FollowList() {
                 onToggle={toggleUser}
                 onFocus={() => {
                   setFocusedPanel('sidebar')
-                  void setActiveUsers([follow.githubUserLogin])
+                  void setActiveUsers([follow.actorKey])
                 }}
-                onRefresh={refreshSingleFeed}
               />
             </div>
           )
         })}
+        {canLoadMore && (
+          <div className="flex justify-center border-b px-3 py-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFirst(value => value + DEMAND_STEP)}
+            >
+              Load more
+            </Button>
+          </div>
+        )}
+      </div>
+    </ScrollArea>
+  )
+}
+
+function FollowListSkeleton() {
+  return (
+    <ScrollArea className="min-h-0 flex-1">
+      <div>
+        {Array.from({ length: 8 }).map((_, index) => (
+          <div key={index} className="flex items-center gap-2 border-b px-3 py-2">
+            <div className="size-7 shrink-0 animate-pulse rounded-full bg-muted" />
+            <Skeleton className="h-4 flex-1" />
+          </div>
+        ))}
       </div>
     </ScrollArea>
   )

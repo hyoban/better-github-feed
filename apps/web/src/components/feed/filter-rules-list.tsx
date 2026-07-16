@@ -23,8 +23,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import type { UserFilterRule } from '@/hooks/use-filters'
-import { useDeleteFilter, useFilters } from '@/hooks/use-filters'
+import { useUserFilterActions, useUserFilters } from '@/hooks/use-local-feed'
+import type { LocalUserFilter } from '@/local-feed'
 
 import { Badge } from '../ui/badge'
 import { FilterBuilderDialog } from './filter-builder-dialog'
@@ -34,11 +34,11 @@ function FilterRuleItem({
   onEdit,
   onDelete,
 }: {
-  filter: UserFilterRule
+  filter: LocalUserFilter
   onEdit: () => void
   onDelete: () => void
 }) {
-  const ruleCount = filter.isValid ? countNumberOfRules(filter.filterRule) : 0
+  const ruleCount = filter.isValid ? countNumberOfRules(filter.rule) : 0
 
   return (
     <div className="flex items-center justify-between gap-2 rounded-md border bg-card p-3">
@@ -49,8 +49,12 @@ function FilterRuleItem({
             {ruleCount} {ruleCount === 1 ? 'rule' : 'rules'}
           </span>
         ) : (
-          <Badge variant="destructive">Invalid rule</Badge>
+          <Badge variant="destructive" title="This legacy rule is ignored until it can be repaired">
+            Invalid rule · ignored
+          </Badge>
         )}
+        {filter.sync === 'pending' && <Badge variant="secondary">Pending sync</Badge>}
+        {filter.sync === 'conflict-copy' && <Badge variant="outline">Conflict copy</Badge>}
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <Button variant="ghost" size="icon-sm" onClick={onEdit} disabled={!filter.isValid}>
@@ -65,25 +69,30 @@ function FilterRuleItem({
 }
 
 function FilterRulesList() {
-  const { data: filters, isLoading } = useFilters()
-  const deleteFilter = useDeleteFilter()
+  const snapshot = useUserFilters()
+  const filters = snapshot.kind === 'ready' ? snapshot.value : []
+  const filterActions = useUserFilterActions()
 
   const [editingFilter, setEditingFilter] = useState<Extract<
-    UserFilterRule,
+    LocalUserFilter,
     { isValid: true }
   > | null>(null)
-  const [deletingFilter, setDeletingFilter] = useState<UserFilterRule | null>(null)
+  const [deletingFilter, setDeletingFilter] = useState<LocalUserFilter | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const handleDelete = async () => {
     if (!deletingFilter) return
 
+    setIsDeleting(true)
     try {
-      await deleteFilter.mutateAsync({ params: { id: deletingFilter.id } })
-      toast.success('Filter deleted')
+      await filterActions.delete(deletingFilter.id)
+      toast.success('Filter deleted locally')
       setDeletingFilter(null)
     } catch {
-      toast.error('Failed to delete filter')
+      toast.error('Failed to delete local filter')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -97,9 +106,11 @@ function FilterRulesList() {
 
         <span className="text-sm font-medium">Your Filters</span>
 
-        {isLoading ? (
+        {snapshot.kind === 'opening-local' ? (
           <div className="text-sm text-muted-foreground">Loading filters...</div>
-        ) : filters && filters.length > 0 ? (
+        ) : snapshot.kind === 'failed' ? (
+          <div className="text-sm text-destructive">Local filters could not be read.</div>
+        ) : filters.length > 0 ? (
           <ScrollArea className="max-h-75">
             <div className="flex flex-col gap-2">
               {filters.map(filter => (
@@ -146,8 +157,8 @@ function FilterRulesList() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleteFilter.isPending}>
-              {deleteFilter.isPending ? 'Deleting...' : 'Delete'}
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -157,8 +168,8 @@ function FilterRulesList() {
 }
 
 export function FilterManagementDialog() {
-  const { data: filters } = useFilters()
-  const filterCount = filters?.length ?? 0
+  const snapshot = useUserFilters()
+  const filterCount = snapshot.kind === 'ready' ? snapshot.value.length : 0
 
   return (
     <Dialog>

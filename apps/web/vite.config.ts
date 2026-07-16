@@ -7,6 +7,15 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  worker: {
+    format: 'es',
+    rollupOptions: {
+      output: {
+        // A root-scoped, content-addressed worker covers both sw.js and its bundled helpers.
+        entryFileNames: '[name]-[hash].js',
+      },
+    },
+  },
   plugins: lazyPlugins(() => [
     cloudflare({
       configPath: './wrangler.jsonc',

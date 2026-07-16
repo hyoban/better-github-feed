@@ -1,20 +1,12 @@
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
-import { useActivity } from '@/hooks/use-activity'
 import { useIsDesktop } from '@/hooks/use-mobile'
-import { useActiveId, useActiveTypes, useActiveUsers } from '@/hooks/use-query-state'
-import { authClient } from '@/lib/auth-client'
+import { useActiveId } from '@/hooks/use-query-state'
 
-import { ActivityDetail } from '../detail-panel/activity-detail'
+import { ActivityDetailLoader } from '../detail-panel/activity-detail-loader'
 
 export function MobileDetailDrawer() {
-  const { data: session } = authClient.useSession()
   const [activeId, setActiveId] = useActiveId()
-  const [activeTypes] = useActiveTypes()
-  const [activeUsers] = useActiveUsers()
-  const { items } = useActivity(session?.user.id, activeUsers, activeTypes)
   const isDesktop = useIsDesktop()
-
-  const selectedItem = items.find(item => item.id === activeId)
 
   // Don't show drawer on desktop (xl+), DetailPanel handles it there
   if (isDesktop) {
@@ -23,7 +15,7 @@ export function MobileDetailDrawer() {
 
   return (
     <Drawer
-      open={!!selectedItem}
+      open={!!activeId}
       onOpenChange={open => {
         if (!open) {
           void setActiveId(null)
@@ -32,7 +24,7 @@ export function MobileDetailDrawer() {
     >
       <DrawerContent className="max-h-[85vh]">
         <DrawerTitle className="sr-only">Activity Details</DrawerTitle>
-        {selectedItem && <ActivityDetail item={selectedItem} />}
+        {activeId && <ActivityDetailLoader id={activeId} />}
       </DrawerContent>
     </Drawer>
   )

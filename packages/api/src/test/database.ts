@@ -13,7 +13,7 @@ const migrationsDirectory = resolve(
 )
 const schema = { ...authSchema, ...githubSchema }
 
-export async function createTestDatabase() {
+export async function createTestDatabase(options: { throughMigration?: string } = {}) {
   const miniflare = new Miniflare({
     modules: true,
     script: 'export default { fetch() { return new Response("ok") } }',
@@ -23,6 +23,7 @@ export async function createTestDatabase() {
   const migrationFiles = (await readdir(migrationsDirectory))
     .filter(file => file.endsWith('.sql'))
     .sort()
+    .filter(file => !options.throughMigration || file <= options.throughMigration)
 
   for (const migrationFile of migrationFiles) {
     const migration = await readFile(resolve(migrationsDirectory, migrationFile), 'utf8')

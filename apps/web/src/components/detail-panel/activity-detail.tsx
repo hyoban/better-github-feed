@@ -4,20 +4,10 @@ import { useMemo } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { convertRelativeLinksToAbsolute, formatRelativeTime } from '@/lib/format'
-
-type ActivityItemData = {
-  id: string
-  source: string
-  title: string
-  link: string | null
-  content: string | null
-  publishedAt: Date | string | null
-  type: string
-  repo: string | null
-}
+import type { RawAtomActivity } from '@/local-feed'
 
 type ActivityDetailProps = {
-  item: ActivityItemData
+  item: RawAtomActivity
 }
 
 export function ActivityDetail({ item }: ActivityDetailProps) {
@@ -38,20 +28,25 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
         <div className="flex items-start gap-3">
           <Avatar className="size-12 ring-2 ring-background">
             <AvatarImage
-              src={`https://github.com/${item.source}.png`}
-              alt={`${item.source} avatar`}
+              src={
+                item.actorAvatarUrl ??
+                (item.actorGithubId
+                  ? `https://avatars-githubusercontent-webp.webp.se/u/${item.actorGithubId}`
+                  : `https://github.com/${item.actor}.png`)
+              }
+              alt={`${item.actor} avatar`}
             />
-            <AvatarFallback>{item.source.slice(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{item.actor.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
             <div className="flex items-center gap-2">
               <a
-                href={`https://github.com/${item.source}`}
+                href={`https://github.com/${item.actor}`}
                 target="_blank"
                 rel="noreferrer"
                 className="font-semibold text-foreground hover:underline"
               >
-                {item.source}
+                {item.actor}
               </a>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                 {item.type}
@@ -71,7 +66,7 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
                   <span>&middot;</span>
                 </>
               )}
-              <span>{formatRelativeTime(item.publishedAt)}</span>
+              <span>{formatRelativeTime(new Date(item.publishedAt))}</span>
             </div>
           </div>
         </div>

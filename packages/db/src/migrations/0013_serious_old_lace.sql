@@ -1,0 +1,1 @@
+CREATE INDEX `github_user_id_idx` ON `github_user` (`id`);

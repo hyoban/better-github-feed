@@ -1,8 +1,8 @@
 import { db } from '@better-github-feed/db'
-import { feedItem, githubUser } from '@better-github-feed/db/schema/github'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, lt } from 'drizzle-orm'
 
+import { createActivityCleanup } from '../feed/activity-cleanup'
+import { createActivityReconciliation } from '../feed/activity-reconciliation'
 import { createFeedRefresh, FeedRefreshTargetNotFoundError } from '../feed/feed-refresh'
 import { createVisibleFeed } from '../feed/visible-feed'
 import { adminProcedure, protectedProcedure } from '../index'
@@ -10,6 +10,8 @@ import { fetchGithubActivity } from './utils'
 
 const visibleFeed = createVisibleFeed(db)
 const feedRefresh = createFeedRefresh({ database: db, getActivity: fetchGithubActivity })
+const activityCleanup = createActivityCleanup(db)
+const activityReconciliation = createActivityReconciliation(db)
 
 export const feedRouter = {
   list: protectedProcedure.feed.list.handler(async ({ context, input }) => {
@@ -22,6 +24,7 @@ export const feedRouter = {
     })
   }),
 
+  /** @deprecated Retained temporarily for compatibility with legacy clients during rollout. */
   refresh: protectedProcedure.feed.refresh.handler(async function* ({ context }) {
     for await (const outcome of feedRefresh.refreshFollowing(context.session.user.id)) {
       if (outcome.type === 'refreshed') {
@@ -34,6 +37,7 @@ export const feedRouter = {
     }
   }),
 
+  /** @deprecated Retained temporarily for compatibility with legacy clients during rollout. */
   refreshOne: protectedProcedure.feed.refreshOne.handler(async ({ context, input }) => {
     try {
       const result = await feedRefresh.refreshOne(context.session.user.id, input.params.login)
@@ -61,41 +65,11 @@ export const feedRouter = {
  * Keeps only the most recent N items per GitHub user
  */
 export async function cleanupOldFeedItems(maxItemsPerUser = 200) {
-  // Get all github users
-  const users = await db.select({ login: githubUser.login }).from(githubUser)
+  return activityCleanup.cleanup(maxItemsPerUser)
+}
 
-  let totalDeleted = 0
-
-  for (const user of users) {
-    const login = user.login
-
-    // Get the publishedAt of the Nth newest item (the cutoff point)
-    // Cleanup is serialized to avoid issuing an unbounded burst of D1 reads and writes.
-    // oxlint-disable-next-line react-doctor/async-await-in-loop
-    const cutoffResult = await db
-      .select({ publishedAt: feedItem.publishedAt })
-      .from(feedItem)
-      .where(eq(feedItem.githubUserLogin, login))
-      .orderBy(desc(feedItem.publishedAt))
-      .limit(1)
-      .offset(maxItemsPerUser - 1)
-
-    const cutoff = cutoffResult[0]?.publishedAt
-    if (!cutoff) {
-      // Less than maxItems, nothing to delete
-      continue
-    }
-
-    // Delete items older than the cutoff
-    // oxlint-disable-next-line react-doctor/async-await-in-loop
-    const deleted = await db
-      .delete(feedItem)
-      .where(and(eq(feedItem.githubUserLogin, login), lt(feedItem.publishedAt, cutoff)))
-
-    totalDeleted += deleted.meta.changes
-  }
-
-  return { deleted: totalDeleted }
+export async function reconcileLegacyFeedItems() {
+  return activityReconciliation.reconcile()
 }
 
 /**

@@ -1,0 +1,19 @@
+// oxlint-disable-next-line import/default -- Vite supplies the URL export for worker&url imports.
+import serviceWorkerUrl from '../service-worker/sw.js?worker&url'
+import { shellMarkupVersion } from './service-worker-version'
+
+export function registerServiceWorker() {
+  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
+
+  // Capture the server-rendered shell before React can add account-specific DOM.
+  const shellMarkup = document.documentElement.outerHTML
+  window.addEventListener('load', () => {
+    void (async () => {
+      const scriptUrl = new URL(serviceWorkerUrl, window.location.origin)
+      scriptUrl.searchParams.set('shell', await shellMarkupVersion(shellMarkup))
+      await navigator.serviceWorker.register(scriptUrl, { scope: '/', type: 'module' })
+    })().catch(error => {
+      console.error('Service Worker registration failed', error)
+    })
+  })
+}

@@ -6,29 +6,22 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
+import type { FollowingSummary } from '@/local-feed'
 
 import { FollowUserCard } from './follow-user-card'
 
-export type FollowUserData = {
-  id: string
-  githubUserLogin: string
-  githubUserId: string | null
-  itemCount: number | null
-  lastRefreshedAt: Date | string | null
-  latestEntryAt: Date | string | null
-}
+export type FollowUserData = FollowingSummary
 
 type FollowUserItemProps = {
   follow: FollowUserData
   isActive: boolean
   isFocused: boolean
-  onToggle: (login: string, multiSelect: boolean) => void
+  onToggle: (actorKey: string, multiSelect: boolean) => void
   onFocus: () => void
-  onRefresh: (login: string) => void
 }
 
 export const FollowUserItem = memo(
-  ({ follow, isActive, isFocused, onToggle, onFocus, onRefresh }: FollowUserItemProps) => {
+  ({ follow, isActive, isFocused, onToggle, onFocus }: FollowUserItemProps) => {
     return (
       <ContextMenu>
         <ContextMenuTrigger className="group/follow relative block">
@@ -44,17 +37,14 @@ export const FollowUserItem = memo(
           <ContextMenuItem
             render={
               <a
-                href={`https://github.com/${follow.githubUserLogin}`}
+                href={`https://github.com/${follow.login}`}
                 target="_blank"
                 rel="noreferrer"
-                aria-label={`Open ${follow.githubUserLogin} on GitHub`}
+                aria-label={`Open ${follow.login} on GitHub`}
               />
             }
           >
             Open GitHub
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => onRefresh(follow.githubUserLogin)}>
-            Refresh
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>

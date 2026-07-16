@@ -1,0 +1,1 @@
+CREATE INDEX `feed_item_actor_key_published_at_id_idx` ON `feed_item` (`actor_key`,`published_at`,`id`);

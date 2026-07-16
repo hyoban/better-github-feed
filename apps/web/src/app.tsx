@@ -1,34 +1,19 @@
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { NuqsAdapter } from 'nuqs/adapters/react-router'
 import { isRouteErrorResponse, Outlet, useRouteError } from 'react-router-dom'
 
+import { LocalFirstAccountBoundary } from './components/local-feed/local-first-account'
 import { Toaster } from './components/ui/sonner'
-import { persister, queryClient } from './utils/orpc'
 
 export function App() {
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{
-        persister,
-        buster: 'visible-feed-cursor-v2',
-        dehydrateOptions: {
-          shouldDehydrateQuery: query => {
-            // Persist all successful queries
-            return query.state.status === 'success'
-          },
-        },
-      }}
-    >
-      <NuqsAdapter>
+    <NuqsAdapter>
+      <LocalFirstAccountBoundary>
         <div className="h-svh overflow-hidden">
           <Outlet />
         </div>
-      </NuqsAdapter>
+      </LocalFirstAccountBoundary>
       <Toaster richColors />
-      <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
-    </PersistQueryClientProvider>
+    </NuqsAdapter>
   )
 }
 

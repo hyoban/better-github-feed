@@ -1,29 +1,30 @@
 import { useMemo } from 'react'
 
+import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { useActivity } from '@/hooks/use-activity'
+import { Spinner } from '@/components/ui/spinner'
+import { toActorSelection } from '@/hooks/feed-view'
+import { useLocalFeedStatistics } from '@/hooks/use-local-feed'
 import { useActiveTypes, useActiveUsers } from '@/hooks/use-query-state'
-import { authClient } from '@/lib/auth-client'
 import { formatTypeLabel } from '@/lib/format'
 
 import { Button } from '../ui/button'
 import { FilterManagementDialog } from './filter-rules-list'
 
 export function TypeFilter() {
-  const { data: session } = authClient.useSession()
   const [activeTypes, setActiveTypes] = useActiveTypes()
   const [activeUsers] = useActiveUsers()
-
-  const { types, typeCounts } = useActivity(session?.user.id, activeUsers, activeTypes)
-
-  // Filter activeTypes to only include valid types
-  const validActiveTypes = useMemo(() => {
-    if (types.length === 0) return []
-    const available = new Set(types)
-    return activeTypes.filter(type => available.has(type))
-  }, [types, activeTypes])
-  const validActiveTypeSet = useMemo(() => new Set(validActiveTypes), [validActiveTypes])
+  const statistics = useLocalFeedStatistics({ actors: toActorSelection(activeUsers) })
+  const typeCounts = useMemo(
+    () => new Map(Object.entries(statistics.kind === 'ready' ? statistics.value.typeCounts : {})),
+    [statistics],
+  )
+  const types = useMemo(
+    () => [...new Set([...typeCounts.keys(), ...activeTypes])],
+    [typeCounts, activeTypes],
+  )
+  const activeTypeSet = useMemo(() => new Set(activeTypes), [activeTypes])
 
   const pinnedTypes = ['star', 'pr_merged']
   const sortedTypes = [...types].sort((a, b) => {
@@ -45,15 +46,23 @@ export function TypeFilter() {
         <FilterManagementDialog />
         <Button
           size="sm"
-          variant={validActiveTypes.length === 0 ? 'default' : 'outline'}
+          variant={activeTypes.length === 0 ? 'default' : 'outline'}
           className="h-7 shrink-0 rounded-full"
           onClick={() => void setActiveTypes([])}
         >
           All
         </Button>
         <Separator orientation="vertical" />
+        {statistics.kind === 'ready' && statistics.value.computation === 'rebuilding' && (
+          <Spinner className="size-3.5 shrink-0 text-muted-foreground" />
+        )}
+        {statistics.kind === 'ready' && statistics.value.coverage === 'partial' && (
+          <Badge variant="outline" title="Counts cover locally available activity only">
+            Partial counts
+          </Badge>
+        )}
         {sortedTypes.map(type => {
-          const isActive = validActiveTypeSet.has(type)
+          const isActive = activeTypeSet.has(type)
           return (
             <Button
               key={type}
@@ -64,9 +73,7 @@ export function TypeFilter() {
                 const isMultiSelect = e.metaKey || e.ctrlKey
                 if (isMultiSelect) {
                   void setActiveTypes(
-                    isActive
-                      ? validActiveTypes.filter(t => t !== type)
-                      : [...validActiveTypes, type],
+                    isActive ? activeTypes.filter(t => t !== type) : [...activeTypes, type],
                   )
                 } else {
                   void setActiveTypes(isActive ? [] : [type])

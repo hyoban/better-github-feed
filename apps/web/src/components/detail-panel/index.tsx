@@ -1,19 +1,11 @@
-import { useActivity } from '@/hooks/use-activity'
-import { useActiveId, useActiveTypes, useActiveUsers } from '@/hooks/use-query-state'
-import { authClient } from '@/lib/auth-client'
+import { useActiveId } from '@/hooks/use-query-state'
 
-import { ActivityDetail } from './activity-detail'
+import { ActivityDetailLoader } from './activity-detail-loader'
 
 export function DetailPanel() {
-  const { data: session } = authClient.useSession()
   const [activeId] = useActiveId()
-  const [activeTypes] = useActiveTypes()
-  const [activeUsers] = useActiveUsers()
-  const { items } = useActivity(session?.user.id, activeUsers, activeTypes)
 
-  const selectedItem = items.find(item => item.id === activeId)
-
-  if (!selectedItem) {
+  if (!activeId) {
     return (
       <aside className="hidden h-full min-h-0 flex-col items-center justify-center bg-background/50 p-8 text-center lg:flex">
         <p className="text-sm text-muted-foreground">Select an activity to view details</p>
@@ -23,7 +15,7 @@ export function DetailPanel() {
 
   return (
     <aside className="hidden h-full min-h-0 flex-col overflow-hidden bg-background/50 lg:flex">
-      <ActivityDetail item={selectedItem} />
+      <ActivityDetailLoader id={activeId} />
     </aside>
   )
 }
