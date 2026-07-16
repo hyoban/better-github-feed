@@ -151,7 +151,9 @@
     margin-right: 0.75rem;
   }
 
-  .activity-content div:has(> span:first-child img[width='32']) > span:not(:first-child) {
+  .activity-content
+    div:has(> span:first-child img[width='32'])
+    > span:last-of-type:not(:first-child) {
     display: block;
     margin-left: 2.75rem;
     color: var(--muted-foreground);
