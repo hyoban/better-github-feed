@@ -1,3 +1,4 @@
+import NumberFlow from '@number-flow/react'
 import { CircleAlertIcon, CloudIcon, CloudOffIcon } from 'lucide-react'
 
 import { useLocalSyncStatus } from '@/hooks/use-local-feed'
@@ -33,9 +34,18 @@ function getStatusIcon(icon: SyncStatusIcon, progress?: number) {
   switch (icon) {
     case 'progress':
       return (
-        <span className="font-medium text-foreground tabular-nums" aria-hidden>
-          {progress ?? 1}%
-        </span>
+        <NumberFlow
+          value={progress ?? 1}
+          suffix="%"
+          trend={1}
+          isolate
+          willChange
+          transformTiming={{ duration: 180, easing: 'cubic-bezier(0.77, 0, 0.175, 1)' }}
+          spinTiming={{ duration: 180, easing: 'cubic-bezier(0.77, 0, 0.175, 1)' }}
+          opacityTiming={{ duration: 120, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }}
+          className="font-medium text-foreground tabular-nums"
+          aria-hidden
+        />
       )
     case 'cloud':
       return <CloudIcon className="size-3.5" />

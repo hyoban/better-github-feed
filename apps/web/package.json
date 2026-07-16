@@ -37,6 +37,7 @@
     "@better-github-feed/contract": "workspace:*",
     "@better-github-feed/shared": "workspace:*",
     "@fn-sphere/filter": "catalog:",
+    "@number-flow/react": "catalog:",
     "@orpc/client": "catalog:",
     "@tanstack/react-virtual": "catalog:",
     "better-auth": "catalog:",
