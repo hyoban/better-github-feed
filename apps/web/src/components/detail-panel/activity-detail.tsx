@@ -24,7 +24,7 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="border-b bg-background/50 p-4">
+      <div className="border-b bg-background/50 p-5">
         <div className="flex items-start gap-3">
           <Avatar className="size-12 ring-2 ring-background">
             <AvatarImage
@@ -73,7 +73,7 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
       </div>
 
       {/* Title */}
-      <div className="border-b bg-background/50 p-4">
+      <div className="border-b bg-background/50 p-5">
         {item.link ? (
           <a
             href={item.link}
@@ -91,9 +91,9 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
       {/* Content */}
       <ScrollArea className="flex-1">
         {sanitizedContent ? (
-          <div className="p-4">
+          <div className="p-6">
             <div
-              className="max-w-none [&_a]:text-primary [&_a]:underline [&_a:hover]:no-underline [&_blockquote]:border-l [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-4"
+              className="activity-content max-w-none [&_a]:text-primary [&_a]:underline [&_a:hover]:no-underline [&_blockquote]:border-l [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-4"
               dangerouslySetInnerHTML={{
                 __html: sanitizedContent,
               }}
