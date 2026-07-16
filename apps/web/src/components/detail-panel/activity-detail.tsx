@@ -16,10 +16,14 @@ export function ActivityDetail({ item, showContext = true }: ActivityDetailProps
     if (!item.content) return null
 
     const cleanContent = DOMPurify.sanitize(item.content, {
-      FORBID_ATTR: ['target'],
+      FORBID_ATTR: ['target', 'class', 'style'],
       USE_PROFILES: { html: true },
     })
-    const content = convertRelativeLinksToAbsolute(cleanContent).replace(/\s*·\s*/g, ' ')
+    const contentWithCommitScopes = cleanContent.replace(
+      /(<blockquote>\s*)([a-zA-Z][\w-]*(?:\([a-zA-Z0-9_./-]+\))?!?):\s*/g,
+      '$1<strong>$2:</strong> ',
+    )
+    const content = convertRelativeLinksToAbsolute(contentWithCommitScopes).replace(/\s*·\s*/g, ' ')
     return content
   }, [item.content])
 
@@ -96,7 +100,7 @@ export function ActivityDetail({ item, showContext = true }: ActivityDetailProps
         {sanitizedContent ? (
           <div className="p-6">
             <div
-              className="activity-content max-w-none [&_a]:text-primary [&_a]:underline [&_a:hover]:no-underline [&_blockquote]:border-l [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-4"
+              className="activity-content max-w-none"
               dangerouslySetInnerHTML={{
                 __html: sanitizedContent,
               }}
