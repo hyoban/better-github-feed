@@ -18,7 +18,7 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
       FORBID_ATTR: ['target'],
       USE_PROFILES: { html: true },
     })
-    return convertRelativeLinksToAbsolute(cleanContent)
+    return convertRelativeLinksToAbsolute(cleanContent).replace(/\s*·\s*/g, ' ')
   }, [item.content])
 
   return (
@@ -54,17 +54,14 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               {item.repo && (
-                <>
-                  <a
-                    href={`https://github.com/${item.repo}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-foreground hover:underline"
-                  >
-                    {item.repo}
-                  </a>
-                  <span>&middot;</span>
-                </>
+                <a
+                  href={`https://github.com/${item.repo}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-foreground hover:underline"
+                >
+                  {item.repo}
+                </a>
               )}
               <span>{formatRelativeTime(new Date(item.publishedAt))}</span>
             </div>

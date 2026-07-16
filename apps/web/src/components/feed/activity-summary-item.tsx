@@ -68,7 +68,6 @@ export const ActivitySummaryItem = memo(
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-muted-foreground">
               <span className="font-medium text-foreground">{item.actor}</span>
-              <span>&middot;</span>
               <span>{formatRelativeTime(new Date(item.publishedAt))}</span>
             </div>
             <p className="mt-1 line-clamp-2 leading-snug text-foreground/80">{item.title}</p>

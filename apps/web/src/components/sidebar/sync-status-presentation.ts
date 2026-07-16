@@ -47,7 +47,7 @@ export function presentSyncStatus(status: LocalSyncStatus): {
       return { label, title, icon: 'loading' }
     }
     case 'offline': {
-      const label = 'Offline · local data ready'
+      const label = 'Offline, local data ready'
       return { label, title: label, icon: 'cloud-off' }
     }
     case 'degraded':

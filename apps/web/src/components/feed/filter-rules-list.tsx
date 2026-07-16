@@ -50,7 +50,7 @@ function FilterRuleItem({
           </span>
         ) : (
           <Badge variant="destructive" title="This legacy rule is ignored until it can be repaired">
-            Invalid rule · ignored
+            Invalid rule, ignored
           </Badge>
         )}
         {filter.sync === 'pending' && <Badge variant="secondary">Pending sync</Badge>}

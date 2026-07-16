@@ -79,7 +79,6 @@ export function FollowUserCard({
         <span className="font-medium">{follow.login}</span>
         <span className="text-muted-foreground">
           {' '}
-          ·
           {formatRelativeTime(
             follow.latestEntryAt === null ? null : new Date(follow.latestEntryAt),
           )}
