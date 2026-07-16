@@ -60,6 +60,7 @@ import {
 } from './projections'
 import {
   activityHistoryBudgetIsExhausted,
+  activityBudgetTransactionTables,
   compareDecimalSequence,
   planActivityActorRows,
   planFollowingActorRows,
@@ -117,6 +118,19 @@ function activity(
 }
 
 describe('LocalFeed pure invariants', () => {
+  it('includes every account-fence store in Activity budget transactions', () => {
+    const database = {
+      meta: { name: 'meta' },
+      syncLanes: { name: 'syncLanes' },
+      syncLease: { name: 'syncLease' },
+    } as unknown as Parameters<typeof activityBudgetTransactionTables>[0]
+
+    assert.deepEqual(
+      activityBudgetTransactionTables(database).map(store => store.name),
+      ['meta', 'syncLanes', 'syncLease'],
+    )
+  })
+
   it('compares decimal sequences without losing 64-bit precision', () => {
     assert.equal(compareDecimalSequence('9223372036854775807', '9223372036854775806'), 1)
     assert.equal(compareDecimalSequence('00042', '42'), 0)

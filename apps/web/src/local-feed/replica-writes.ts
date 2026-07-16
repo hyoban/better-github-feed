@@ -184,6 +184,10 @@ function newLane(scopeKey: string, now: number): SyncLaneRow {
   }
 }
 
+export function activityBudgetTransactionTables(database: LocalFeedDatabase) {
+  return [database.meta, database.syncLanes, database.syncLease]
+}
+
 export async function commitHistoryPage(input: {
   database: LocalFeedDatabase
   ownerGithubId: string
@@ -393,8 +397,7 @@ export async function prepareActivityHistoryBudget(input: {
 }) {
   return input.database.transaction(
     'rw',
-    input.database.syncLanes,
-    input.database.syncLease,
+    activityBudgetTransactionTables(input.database),
     async () => {
       await assertTransactionLeadership(input.database, input.fence)
       const lane =
@@ -425,8 +428,7 @@ export async function exhaustActivityHistoryBudget(input: {
 }) {
   await input.database.transaction(
     'rw',
-    input.database.syncLanes,
-    input.database.syncLease,
+    activityBudgetTransactionTables(input.database),
     async () => {
       await assertTransactionLeadership(input.database, input.fence)
       const lane = await input.database.syncLanes.get(input.localScopeKey)
