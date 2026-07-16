@@ -22,7 +22,7 @@ export function Home() {
             <TypeFilter />
           </div>
           <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[420px_1fr]">
-            <main className="h-full overflow-hidden bg-sidebar text-sidebar-foreground lg:border-r">
+            <main className="h-full overflow-hidden bg-background/50 text-foreground lg:border-r">
               <ActivityList />
             </main>
             <DetailPanel />
