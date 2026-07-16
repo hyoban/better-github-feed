@@ -42,12 +42,12 @@ export const ActivitySummaryItem = memo(
           }
         }}
         className={cn(
-          'w-full border-b border-l px-4 py-3 text-left transition-colors',
+          'w-full border-b border-l px-4 py-3 text-left',
           isFocused
-            ? 'border-l-primary bg-sidebar-accent'
+            ? 'border-l-foreground/50 bg-foreground/9'
             : isActive
-              ? 'border-l-primary/80 bg-sidebar-accent/80'
-              : 'border-l-transparent hover:bg-sidebar-accent/50',
+              ? 'border-l-foreground/40 bg-foreground/7'
+              : 'border-l-transparent hover:bg-foreground/4',
         )}
       >
         <div className="flex gap-3">
