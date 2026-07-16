@@ -43,6 +43,7 @@ import {
   followingManifestRequiresReauthentication,
   settleWithin,
   shouldRunForegroundSync,
+  syncProgressForCompletedCheckpoints,
 } from './incremental-sync'
 import { projectionDependsOn, projectionMaintenanceRequestsSync } from './local-feed'
 import { createOrpcCloudReplicaPort } from './orpc-cloud-replica'
@@ -118,6 +119,14 @@ describe('LocalFeed pure invariants', () => {
       targetThroughSeq: '5711',
       limit: 250,
     })
+  })
+
+  it('keeps checkpoint-based sync progress monotonic and below completion', () => {
+    const progress = [0, 1, 20, 100, 1_000].map(syncProgressForCompletedCheckpoints)
+
+    assert.deepEqual(progress, [1, 6, 63, 98, 99])
+    assert.ok(progress.every((value, index) => index === 0 || value >= progress[index - 1]!))
+    assert.throws(() => syncProgressForCompletedCheckpoints(-1), RangeError)
   })
 
   it('plans one complete Following Activity sync independently of projections', () => {

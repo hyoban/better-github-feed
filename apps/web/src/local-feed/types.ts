@@ -102,6 +102,7 @@ export type LocalSyncStatus =
   | (LocalSyncStatusBase & {
       kind: 'working'
       phase: 'control' | 'following' | 'activity' | 'user-state'
+      progress?: number
     })
   | (LocalSyncStatusBase & { kind: 'offline' })
   | (LocalSyncStatusBase & {

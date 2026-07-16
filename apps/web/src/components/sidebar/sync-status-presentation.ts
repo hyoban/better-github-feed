@@ -1,6 +1,6 @@
 import type { LocalSyncStatus } from '@/local-feed'
 
-export type SyncStatusIcon = 'loading' | 'cloud' | 'cloud-off' | 'cloud-off-warning' | 'attention'
+export type SyncStatusIcon = 'progress' | 'cloud' | 'cloud-off' | 'cloud-off-warning' | 'attention'
 
 type SyncStatusSnapshot =
   | { kind: 'opening-local' }
@@ -11,6 +11,7 @@ export function presentSyncStatusSnapshot(snapshot: SyncStatusSnapshot): {
   label: string
   title: string
   icon: SyncStatusIcon
+  progress?: number
 } {
   if (snapshot.kind === 'opening-local') {
     return {
@@ -34,6 +35,7 @@ export function presentSyncStatus(status: LocalSyncStatus): {
   label: string
   title: string
   icon: SyncStatusIcon
+  progress?: number
 } {
   switch (status.kind) {
     case 'working': {
@@ -44,7 +46,16 @@ export function presentSyncStatus(status: LocalSyncStatus): {
         'user-state': ['Syncing settings…', 'Synchronizing local filters and account state.'],
       } as const
       const [label, title] = copy[status.phase]
-      return { label, title, icon: 'loading' }
+      const requestedProgress = status.progress ?? 1
+      const progress = Number.isFinite(requestedProgress)
+        ? Math.min(99, Math.max(1, Math.round(requestedProgress)))
+        : 1
+      return {
+        label,
+        title: `${title} ${progress}% complete.`,
+        icon: 'progress',
+        progress,
+      }
     }
     case 'offline': {
       const label = 'Offline, local data ready'

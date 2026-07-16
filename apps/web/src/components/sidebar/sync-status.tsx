@@ -1,6 +1,5 @@
 import { CircleAlertIcon, CloudIcon, CloudOffIcon } from 'lucide-react'
 
-import { Spinner } from '@/components/ui/spinner'
 import { useLocalSyncStatus } from '@/hooks/use-local-feed'
 import { cn } from '@/lib/utils'
 
@@ -12,7 +11,7 @@ export function SyncStatusIndicator({ compact = false }: { compact?: boolean }) 
   const status = presentSyncStatusSnapshot(snapshot)
   const presentation = {
     ...status,
-    icon: getStatusIcon(status.icon),
+    icon: getStatusIcon(status.icon, status.progress),
   }
 
   return (
@@ -30,10 +29,14 @@ export function SyncStatusIndicator({ compact = false }: { compact?: boolean }) 
   )
 }
 
-function getStatusIcon(icon: SyncStatusIcon) {
+function getStatusIcon(icon: SyncStatusIcon, progress?: number) {
   switch (icon) {
-    case 'loading':
-      return <Spinner className="size-3.5" />
+    case 'progress':
+      return (
+        <span className="font-medium text-foreground tabular-nums" aria-hidden>
+          {progress ?? 1}%
+        </span>
+      )
     case 'cloud':
       return <CloudIcon className="size-3.5" />
     case 'cloud-off':

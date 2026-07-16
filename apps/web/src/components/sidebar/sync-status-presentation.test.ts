@@ -16,13 +16,35 @@ describe('sync status presentation', () => {
       presentSyncStatus({
         kind: 'working',
         phase: 'activity',
+        progress: 42,
         pendingUserOperations: 0,
       }),
       {
         label: 'Syncing activity…',
-        title: 'Downloading all available Activity updates.',
-        icon: 'loading',
+        title: 'Downloading all available Activity updates. 42% complete.',
+        icon: 'progress',
+        progress: 42,
       },
+    )
+  })
+
+  it('keeps working progress within the visible 1–99 range', () => {
+    assert.equal(
+      presentSyncStatus({
+        kind: 'working',
+        phase: 'control',
+        progress: 100,
+        pendingUserOperations: 0,
+      }).progress,
+      99,
+    )
+    assert.equal(
+      presentSyncStatus({
+        kind: 'working',
+        phase: 'control',
+        pendingUserOperations: 0,
+      }).progress,
+      1,
     )
   })
 

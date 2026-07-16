@@ -65,6 +65,13 @@ export function completeSyncPageInput<T extends object>(input: T): T & { limit: 
   return { ...input, limit: 250 }
 }
 
+export function syncProgressForCompletedCheckpoints(completed: number) {
+  if (!Number.isSafeInteger(completed) || completed < 0) {
+    throw new RangeError('Invalid completed sync checkpoint count')
+  }
+  return Math.min(99, Math.max(1, Math.round(99 - 98 * Math.exp(-completed / 20))))
+}
+
 export async function settleWithin(promise: Promise<unknown>, timeoutMs: number) {
   if (!Number.isFinite(timeoutMs) || timeoutMs < 0) throw new RangeError('Invalid settle timeout')
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -189,6 +196,7 @@ export class IncrementalSync {
   #retryAt: number | null = null
   #retryTimer: ReturnType<typeof setTimeout> | null = null
   #unavailableAttempts = 0
+  #completedSyncCheckpoints = 0
 
   constructor(
     private readonly database: LocalFeedDatabase,
@@ -350,6 +358,7 @@ export class IncrementalSync {
     }
 
     try {
+      this.#completedSyncCheckpoints = 0
       await this.setWorking('control', fence)
       const control = await this.database.syncState.get('control')
       await this.beforeCloudRequest(fence)
@@ -376,6 +385,7 @@ export class IncrementalSync {
         await this.touchManifest(manifestResult.etag, bookmark, fence)
         manifest = this.cachedManifest(control)
       }
+      await this.advanceWorkingProgress('control', fence)
 
       if (manifest) {
         if (followingManifestRequiresReauthentication(manifest)) {
@@ -823,6 +833,7 @@ export class IncrementalSync {
       })
       await this.assertFence(fence)
       cursor = page.nextCursor
+      await this.advanceWorkingProgress('following', fence)
       if (!cursor) return this.finalizeFollowing(manifest, fence)
     }
     throw new Error('Following snapshot exceeded the page safety limit')
@@ -1069,6 +1080,7 @@ export class IncrementalSync {
       })
       await this.assertFence(fence)
       await this.changed(revision)
+      await this.advanceWorkingProgress('activity', fence)
     }
     throw new Error('Following transition delta exceeded the page safety limit')
   }
@@ -1119,6 +1131,7 @@ export class IncrementalSync {
       })
       await this.assertFence(fence)
       await this.changed(revision)
+      await this.advanceWorkingProgress('activity', fence)
       if (page.remoteWindowEnd) return
       if (!page.nextCursor) throw new Error('Activity history ended without a remote-window marker')
     }
@@ -1165,6 +1178,7 @@ export class IncrementalSync {
       )
       await this.assertFence(fence)
       pages.push(page)
+      await this.advanceWorkingProgress('user-state', fence)
       nextCursor = page.nextCursor ?? undefined
       if (!nextCursor) break
       afterSeq = nextCursor
@@ -1214,6 +1228,7 @@ export class IncrementalSync {
       })
       await this.assertFence(fence)
       if (revision !== null) await this.changed(revision)
+      await this.advanceWorkingProgress('user-state', fence)
     }
     throw new Error('User-state outbox exceeded the operation safety limit')
   }
@@ -1231,10 +1246,19 @@ export class IncrementalSync {
       {
         kind: 'working',
         phase,
+        progress: syncProgressForCompletedCheckpoints(this.#completedSyncCheckpoints),
         pendingUserOperations: await this.database.outbox.count(),
       },
       fence,
     )
+  }
+
+  private async advanceWorkingProgress(
+    phase: Extract<LocalSyncStatus, { kind: 'working' }>['phase'],
+    fence: LeadershipFence,
+  ) {
+    this.#completedSyncCheckpoints += 1
+    await this.setWorking(phase, fence)
   }
 
   private async setQuiet(fence: LeadershipFence) {
