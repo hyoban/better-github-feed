@@ -18,11 +18,20 @@ export function SortToggle() {
     ])
   }
 
+  const handleSelectedSortClick = (value: SortOption) => {
+    if (value !== sortBy) return
+    void Promise.all([setActiveUsers([]), setActiveId(null)])
+  }
+
   return (
     <Tabs value={sortBy} onValueChange={handleSortChange} className="w-full">
       <TabsList className="grid w-full grid-cols-2 group-data-horizontal/tabs:h-11" variant="line">
-        <TabsTrigger value="latest">Latest</TabsTrigger>
-        <TabsTrigger value="name">Name</TabsTrigger>
+        <TabsTrigger value="latest" onClick={() => handleSelectedSortClick('latest')}>
+          Latest
+        </TabsTrigger>
+        <TabsTrigger value="name" onClick={() => handleSelectedSortClick('name')}>
+          Name
+        </TabsTrigger>
       </TabsList>
     </Tabs>
   )
