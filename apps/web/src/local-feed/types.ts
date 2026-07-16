@@ -183,6 +183,7 @@ export type CloseResult =
 export interface LocalFeed {
   observe<P extends Projection>(projection: P): LiveProjection<ProjectionOutput<P>>
   commit(command: LocalCommand): Promise<CommitReceipt>
+  requestSync(): void
   close(reason: CloseReason): Promise<CloseResult>
 }
 

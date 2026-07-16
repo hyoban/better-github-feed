@@ -188,6 +188,11 @@ class DexieLocalFeed implements LocalFeed {
     this.scheduleProjectionMaintenance()
   }
 
+  requestSync() {
+    this.assertOpen()
+    this.#sync.requestSync()
+  }
+
   async requestStoragePersistence(port: StoragePersistencePort) {
     const result = await port.request()
     if (

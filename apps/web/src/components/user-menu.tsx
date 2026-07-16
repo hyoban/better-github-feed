@@ -1,5 +1,6 @@
-import { ChevronDownIcon } from 'lucide-react'
+import { ChevronDownIcon, RefreshCwIcon } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { useLocalFirstAccount } from '@/components/local-feed/local-first-account'
 import {
@@ -21,15 +22,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useLocalSyncStatus } from '@/hooks/use-local-feed'
+import { useLocalFeedInstance, useLocalSyncStatus } from '@/hooks/use-local-feed'
+import { runDevBackendSync } from '@/lib/dev-backend-sync'
+import { client } from '@/utils/orpc'
 
 import { Button } from './ui/button'
 
 export default function UserMenu() {
   const account = useLocalFirstAccount()
+  const feed = useLocalFeedInstance()
   const syncStatus = useLocalSyncStatus()
   const [signOutOpen, setSignOutOpen] = useState(false)
   const [working, setWorking] = useState<'delete' | 'retain' | null>(null)
+  const [isDevSyncing, setIsDevSyncing] = useState(false)
 
   const pendingOperations =
     syncStatus.kind === 'ready' ? syncStatus.value.pendingUserOperations : null
@@ -37,6 +42,36 @@ export default function UserMenu() {
   async function handleSignOut(localData: 'delete' | 'retain-locked') {
     setWorking(localData === 'delete' ? 'delete' : 'retain')
     await account.signOut(localData)
+  }
+
+  async function handleDevSync() {
+    if (isDevSyncing) return
+    setIsDevSyncing(true)
+    const toastId = toast.loading('Syncing backend…')
+    try {
+      const result = await runDevBackendSync({
+        syncFollowing: () => client.subscription.sync({}),
+        refreshFollowing: async () =>
+          (await client.feed.refresh({})) as AsyncIterable<
+            import('@better-github-feed/contract').RefreshProgressEvent
+          >,
+        requestLocalSync: () => feed.requestSync(),
+      })
+      const details = [
+        `${result.refreshed} refreshed`,
+        result.skipped > 0 ? `${result.skipped} skipped` : null,
+        result.failed > 0 ? `${result.failed} failed` : null,
+      ]
+        .filter(Boolean)
+        .join(', ')
+      const message = details ? `Backend sync completed: ${details}` : 'Backend sync completed'
+      if (result.failed > 0) toast.warning(message, { id: toastId })
+      else toast.success(message, { id: toastId })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Backend sync failed', { id: toastId })
+    } finally {
+      setIsDevSyncing(false)
+    }
   }
 
   return (
@@ -62,6 +97,17 @@ export default function UserMenu() {
             <DropdownMenuItem disabled>
               {account.sessionProfile?.email ?? `GitHub ID ${account.ownerGithubId}`}
             </DropdownMenuItem>
+            {import.meta.env.DEV ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Development</DropdownMenuLabel>
+                <DropdownMenuItem disabled={isDevSyncing} onClick={() => void handleDevSync()}>
+                  <RefreshCwIcon className={isDevSyncing ? 'animate-spin' : undefined} />
+                  {isDevSyncing ? 'Syncing backend…' : 'Sync backend now'}
+                </DropdownMenuItem>
+              </>
+            ) : null}
+            <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={() => setSignOutOpen(true)}>
               Sign Out
             </DropdownMenuItem>
