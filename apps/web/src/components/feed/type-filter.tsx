@@ -56,7 +56,7 @@ export function TypeFilter() {
         <Button
           size="sm"
           variant={activeTypes.length === 0 ? 'default' : 'outline'}
-          className="h-7 shrink-0 rounded-full"
+          className={`h-7 shrink-0 rounded-full ${activeTypes.length === 0 ? 'font-medium' : 'font-normal'}`}
           onClick={() => void setActiveTypes([])}
         >
           All
@@ -69,7 +69,7 @@ export function TypeFilter() {
               key={type}
               size="sm"
               variant={isActive ? 'default' : 'outline'}
-              className="flex h-7 shrink-0 gap-1 rounded-full"
+              className={`flex h-7 shrink-0 gap-1 rounded-full ${isActive ? 'font-medium' : 'font-normal'}`}
               onClick={e => {
                 const isMultiSelect = e.metaKey || e.ctrlKey
                 if (isMultiSelect) {
@@ -82,7 +82,9 @@ export function TypeFilter() {
               }}
             >
               {formatTypeLabel(type)}
-              <span>{typeCounts.get(type) ?? 0}</span>
+              <span className="font-normal tabular-nums opacity-60">
+                {typeCounts.get(type) ?? 0}
+              </span>
             </Button>
           )
         })}

@@ -173,9 +173,13 @@ export function FilterManagementDialog() {
     <Dialog>
       <DialogTrigger
         render={
-          <Button variant="outline" size="sm" className="h-7 gap-1 rounded-full">
+          <Button variant="outline" size="sm" className="h-7 gap-1 rounded-full font-normal">
             Filters
-            {filterCount > 0 && <Badge variant="secondary">{filterCount}</Badge>}
+            {filterCount > 0 && (
+              <Badge variant="secondary" className="font-normal opacity-60">
+                {filterCount}
+              </Badge>
+            )}
           </Button>
         }
       />
