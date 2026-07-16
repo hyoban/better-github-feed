@@ -31,8 +31,6 @@ import {
   promoteFollowingSnapshot,
 } from './following-transition'
 import {
-  activityHistoryBudgetToken,
-  canReuseTerminalActivityResolution,
   canPullActivityDelta,
   canonicalizeProjection,
   canonicalProjectionKey,
@@ -40,11 +38,9 @@ import {
   computeRateLimitRetryAt,
   computeUnavailableRetryAt,
   didServerEpochChange,
+  followingActivitySyncPlan,
   followingManifestRequiresReauthentication,
-  remoteDemandLeaseExpiresAt,
-  remoteDemandLeaseIsCurrent,
   settleWithin,
-  shouldPullActivityHistory,
   shouldRunForegroundSync,
 } from './incremental-sync'
 import { projectionDependsOn } from './local-feed'
@@ -59,8 +55,6 @@ import {
   selectActivityAggregateLanes,
 } from './projections'
 import {
-  activityHistoryBudgetIsExhausted,
-  activityBudgetTransactionTables,
   compareDecimalSequence,
   planActivityActorRows,
   planFollowingActorRows,
@@ -118,16 +112,24 @@ function activity(
 }
 
 describe('LocalFeed pure invariants', () => {
-  it('includes every account-fence store in Activity budget transactions', () => {
-    const database = {
-      meta: { name: 'meta' },
-      syncLanes: { name: 'syncLanes' },
-      syncLease: { name: 'syncLease' },
-    } as unknown as Parameters<typeof activityBudgetTransactionTables>[0]
-
+  it('plans one complete Following Activity sync independently of projections', () => {
     assert.deepEqual(
-      activityBudgetTransactionTables(database).map(store => store.name),
-      ['meta', 'syncLanes', 'syncLease'],
+      followingActivitySyncPlan({
+        activity: { headSeq: '5711' },
+        following: { revision: 'following-revision' },
+      }),
+      {
+        localScopeKey: 'following:following-revision',
+        scope: { scopeKind: 'following', followingRevision: 'following-revision' },
+        targetThroughSeq: '5711',
+      },
+    )
+    assert.equal(
+      followingActivitySyncPlan({
+        activity: { headSeq: '5711' },
+        following: { revision: null },
+      }),
+      null,
     )
   })
 
@@ -246,53 +248,9 @@ describe('LocalFeed pure invariants', () => {
       canPullActivityDelta({ stableThroughSeq: '100', checkpointAfterHistory: false }),
       true,
     )
-    assert.equal(
-      shouldPullActivityHistory(
-        { checkpointAfterHistory: true, stableThroughSeq: '100' },
-        true,
-        'exhausted',
-      ),
-      true,
-    )
-    assert.equal(
-      shouldPullActivityHistory(
-        { checkpointAfterHistory: false, stableThroughSeq: '100' },
-        true,
-        'may-have-more',
-      ),
-      false,
-    )
-    assert.equal(
-      shouldPullActivityHistory(
-        { checkpointAfterHistory: false, stableThroughSeq: '100' },
-        false,
-        'exhausted',
-      ),
-      false,
-    )
-    assert.equal(
-      shouldPullActivityHistory(
-        { checkpointAfterHistory: false, stableThroughSeq: '100' },
-        false,
-        'may-have-more',
-      ),
-      true,
-    )
-    assert.equal(shouldPullActivityHistory(null, true, 'exhausted'), true)
-    assert.equal(
-      shouldPullActivityHistory(
-        { checkpointAfterHistory: false, stableThroughSeq: null },
-        true,
-        'exhausted',
-      ),
-      true,
-    )
     assert.equal(didServerEpochChange('epoch-a', 'epoch-b'), true)
     assert.equal(didServerEpochChange(undefined, 'epoch-a'), false)
     assert.equal(shouldRunForegroundSync(false), false)
-    assert.equal(remoteDemandLeaseIsCurrent(remoteDemandLeaseExpiresAt(1_000), 1_000), true)
-    assert.equal(remoteDemandLeaseIsCurrent(remoteDemandLeaseExpiresAt(1_000), 901_000), false)
-    assert.equal(remoteDemandLeaseIsCurrent(undefined, 1_000), false)
     assert.equal(
       leadershipRetryDelay(2_000, 1_000, () => 0),
       1_025,
@@ -301,61 +259,9 @@ describe('LocalFeed pure invariants', () => {
       leadershipRetryDelay(900, 1_000, () => 1),
       250,
     )
-    const baseBudget = activityHistoryBudgetToken(
-      [
-        { kind: 'visible-feed', view: { actors: 'following', types: 'all' }, first: 20 },
-        { kind: 'visible-feed', view: { actors: 'following', types: 'all' }, first: 20 },
-      ],
-      'filters-a',
-    )
-    assert.equal(
-      baseBudget,
-      activityHistoryBudgetToken(
-        [{ kind: 'visible-feed', view: { actors: 'following', types: 'all' }, first: 20 }],
-        'filters-a',
-      ),
-    )
-    assert.notEqual(
-      baseBudget,
-      activityHistoryBudgetToken(
-        [{ kind: 'visible-feed', view: { actors: 'following', types: 'all' }, first: 40 }],
-        'filters-a',
-      ),
-    )
-    assert.notEqual(
-      baseBudget,
-      activityHistoryBudgetToken(
-        [{ kind: 'visible-feed', view: { actors: 'following', types: 'all' }, first: 20 }],
-        'filters-b',
-      ),
-    )
-    assert.equal(
-      activityHistoryBudgetIsExhausted({
-        historyBudgetExhausted: false,
-        historyBudgetPageCount: 4,
-        historyBudgetItemCount: 499,
-      }),
-      false,
-    )
-    assert.equal(
-      activityHistoryBudgetIsExhausted({
-        historyBudgetExhausted: false,
-        historyBudgetPageCount: 5,
-        historyBudgetItemCount: 1,
-      }),
-      true,
-    )
-    assert.equal(
-      activityHistoryBudgetIsExhausted({
-        historyBudgetExhausted: false,
-        historyBudgetPageCount: 1,
-        historyBudgetItemCount: 500,
-      }),
-      true,
-    )
   })
 
-  it('canonicalizes equivalent demand keys and pins oversized actor scopes to Following', () => {
+  it('canonicalizes equivalent projection keys and pins oversized actor scopes to Following', () => {
     const left = {
       kind: 'visible-feed',
       view: { actors: ['b', 'a'], types: ['WatchEvent', 'PushEvent'] },
@@ -432,7 +338,7 @@ describe('LocalFeed pure invariants', () => {
     )
   })
 
-  it('retries terminal Activity detail results after the relevant manifest changes', () => {
+  it('recognizes a Following manifest that requires reauthentication', () => {
     const manifest = {
       protocol: 1 as const,
       serverEpoch: 'epoch',
@@ -451,29 +357,9 @@ describe('LocalFeed pure invariants', () => {
       }),
       true,
     )
-    const cached = {
-      activityResult: 'cloud-miss' as const,
-      activityResultAtHeadSeq: '10',
-      activityResultAtFollowingRevision: 'following-a',
-    }
-    assert.equal(canReuseTerminalActivityResolution(cached, manifest), true)
-    assert.equal(
-      canReuseTerminalActivityResolution(cached, {
-        ...manifest,
-        activity: { ...manifest.activity, headSeq: '11' },
-      }),
-      false,
-    )
-    assert.equal(
-      canReuseTerminalActivityResolution(cached, {
-        ...manifest,
-        following: { ...manifest.following, revision: 'following-b' },
-      }),
-      false,
-    )
   })
 
-  it('merges indexed actor lanes by global recency without per-lane demand expansion', async () => {
+  it('merges indexed actor lanes by global recency without expanding the local window', async () => {
     const makeFact = (activityId: string, actorKey: string, publishedAt: number) => ({
       key: `1:${activityId}`,
       generation: 1,

@@ -10,7 +10,7 @@ Keep **RxDB with the free Dexie RxStorage** as the main alternative if we later 
 
 The other reviewed products either are not durable storage engines by themselves or would require replacing the existing Worker and D1 topology with another database or sync service. D1 remains a bounded cloud materialization and cross-device convergence point; Dexie becomes the browser's durable read model.
 
-This recommendation is intentionally specific to an application-owned protocol: GitHub Atom is ingested automatically into D1, raw activity is pulled from D1 on demand, and user filters and the clear watermark converge across devices through a durable local outbox. The authoritative protocol is specified in [Local-First Incremental Sync Design](./local-first-sync-design.md); the lower-level protocol sketch in this research note is only background.
+This recommendation is intentionally specific to an application-owned protocol: GitHub Atom is ingested automatically into D1, every available increment is synchronized into Dexie, and user filters and the clear watermark converge across devices through a durable local outbox. The authoritative protocol is specified in [Local-First Incremental Sync Design](./local-first-sync-design.md); demand-driven sketches below are superseded research background.
 
 ## Target constraints
 
@@ -18,7 +18,7 @@ This recommendation is intentionally specific to an application-owned protocol: 
 - IndexedDB-backed durable local data.
 - Domain records are read and queried locally; filters remain useful offline.
 - GitHub Atom and Following data continue to be refreshed automatically by the Worker Cron and materialized in bounded D1 tables.
-- D1-to-browser transfer is demand-driven by actor scope and history depth; filters remain entirely local projections over raw activity.
+- D1-to-browser transfer synchronizes the full bounded retained window and every later increment; filters remain entirely local projections over raw activity.
 - D1 is the cross-device convergence point for user filters and the clear watermark, but Dexie is the only browser read path.
 - A successful local transaction must commit both fetched records and the cursor/coverage metadata that proves what is present.
 - GitHub following is an authoritative set reconciliation problem; activity is primarily append-only, deduplicated incremental ingestion; filters are local user-owned data.

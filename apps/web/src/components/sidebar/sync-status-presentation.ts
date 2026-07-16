@@ -9,16 +9,17 @@ export function presentSyncStatus(status: LocalSyncStatus): {
 } {
   switch (status.kind) {
     case 'working': {
-      return {
-        label: 'Local feed ready',
-        title: 'Checking for updates in the background.',
-        icon: 'cloud',
-      }
+      const copy = {
+        control: ['Checking for updates…', 'Checking the cloud replica for updates.'],
+        following: ['Syncing following…', 'Updating your complete GitHub Following snapshot.'],
+        activity: ['Syncing activity…', 'Downloading all available Activity updates.'],
+        'user-state': ['Syncing settings…', 'Synchronizing local filters and account state.'],
+      } as const
+      const [label, title] = copy[status.phase]
+      return { label, title, icon: 'cloud' }
     }
     case 'offline': {
-      const label = status.hasUnmetDemand
-        ? 'Offline · waiting to sync'
-        : 'Offline · local data ready'
+      const label = 'Offline · local data ready'
       return { label, title: label, icon: 'cloud-off' }
     }
     case 'degraded':

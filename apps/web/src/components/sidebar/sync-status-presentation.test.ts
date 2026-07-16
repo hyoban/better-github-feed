@@ -5,16 +5,16 @@ import { describe, it } from 'vite-plus/test'
 import { presentSyncStatus } from './sync-status-presentation'
 
 describe('sync status presentation', () => {
-  it('keeps automatic background checks visually quiet', () => {
+  it('shows the active automatic sync phase', () => {
     assert.deepEqual(
       presentSyncStatus({
         kind: 'working',
-        phase: 'control',
+        phase: 'activity',
         pendingUserOperations: 0,
       }),
       {
-        label: 'Local feed ready',
-        title: 'Checking for updates in the background.',
+        label: 'Syncing activity…',
+        title: 'Downloading all available Activity updates.',
         icon: 'cloud',
       },
     )

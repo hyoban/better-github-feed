@@ -219,7 +219,6 @@ class DexieLocalFeed implements LocalFeed {
     const live = new DexieLiveProjection(canonicalProjection.kind, async () =>
       readProjection(this.database, canonicalProjection, this.#sanitizer),
     )
-    const releaseDemand = this.#sync.declareDemand(canonicalProjection)
     this.#projections.add(live as DexieLiveProjection<unknown>)
     this.scheduleProjectionMaintenance()
 
@@ -227,7 +226,6 @@ class DexieLocalFeed implements LocalFeed {
       getSnapshot: () => live.getSnapshot(),
       subscribe: listener => live.subscribe(listener),
       dispose: () => {
-        releaseDemand()
         live.dispose()
         this.#projections.delete(live as DexieLiveProjection<unknown>)
       },

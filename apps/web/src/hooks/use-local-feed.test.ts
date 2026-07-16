@@ -78,7 +78,7 @@ describe('ReactProjectionCache', () => {
     assert.equal(disposeCount, 1)
   })
 
-  it('does not declare a demand for an abandoned render', () => {
+  it('does not open a projection for an abandoned render', () => {
     const scheduler = new ManualScheduler()
     let observeCount = 0
     const feed = {

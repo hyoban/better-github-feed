@@ -1,7 +1,7 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 
-import { shouldExtendActivityDemand } from '@/components/feed/automatic-demand'
+import { shouldExtendLocalActivityWindow } from '@/components/feed/automatic-window'
 import { ActivitySummaryItem } from '@/components/feed/activity-summary-item'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -12,8 +12,8 @@ import { useVisibleFeed } from '@/hooks/use-local-feed'
 import { useActiveId, useActiveTypes, useActiveUsers } from '@/hooks/use-query-state'
 import type { ActivitySummary, FeedView } from '@/local-feed'
 
-const INITIAL_DEMAND = 40
-const DEMAND_STEP = 20
+const INITIAL_WINDOW = 40
+const WINDOW_STEP = 20
 const NO_ACTIVITIES: readonly ActivitySummary[] = []
 
 function activityFrontierKey(items: readonly ActivitySummary[]) {
@@ -33,18 +33,18 @@ export function ActivityList() {
     [activeTypes, activeUsers],
   )
   const viewKey = JSON.stringify(view)
-  const [demand, setDemand] = useState({
+  const [window, setWindow] = useState({
     viewKey,
-    first: INITIAL_DEMAND,
+    first: INITIAL_WINDOW,
     extendedFrontierKey: null as string | null,
   })
-  const first = demand.viewKey === viewKey ? demand.first : INITIAL_DEMAND
-  const extendedFrontierKey = demand.viewKey === viewKey ? demand.extendedFrontierKey : null
-  const extendDemand = useCallback(
+  const first = window.viewKey === viewKey ? window.first : INITIAL_WINDOW
+  const extendedFrontierKey = window.viewKey === viewKey ? window.extendedFrontierKey : null
+  const extendWindow = useCallback(
     (frontierKey: string) => {
-      setDemand(current => ({
+      setWindow(current => ({
         viewKey,
-        first: (current.viewKey === viewKey ? current.first : INITIAL_DEMAND) + DEMAND_STEP,
+        first: (current.viewKey === viewKey ? current.first : INITIAL_WINDOW) + WINDOW_STEP,
         extendedFrontierKey: frontierKey,
       }))
     },
@@ -62,18 +62,10 @@ export function ActivityList() {
 
   const items = renderedSnapshot.kind === 'ready' ? renderedSnapshot.value.items : NO_ACTIVITIES
   const coverage = renderedSnapshot.kind === 'ready' ? renderedSnapshot.value.coverage : null
-  const hasMoreHistory =
-    coverage !== null &&
-    (coverage.hasMoreLocal ||
-      coverage.demand === 'insufficient' ||
-      coverage.remoteWindow !== 'exhausted')
+  const hasMoreLocal = coverage?.hasMoreLocal ?? false
   const latestItems = snapshot.kind === 'ready' ? snapshot.value.items : NO_ACTIVITIES
   const latestCoverage = snapshot.kind === 'ready' ? snapshot.value.coverage : null
-  const latestHasMoreHistory =
-    latestCoverage !== null &&
-    (latestCoverage.hasMoreLocal ||
-      latestCoverage.demand === 'insufficient' ||
-      latestCoverage.remoteWindow !== 'exhausted')
+  const latestHasMoreLocal = latestCoverage?.hasMoreLocal ?? false
   const renderedFrontierKey = activityFrontierKey(items)
   const latestFrontierKey = activityFrontierKey(latestItems)
   const renderedFrontierWasExtended = extendedFrontierKey === renderedFrontierKey
@@ -103,7 +95,7 @@ export function ActivityList() {
   }
 
   const virtualizer = useVirtualizer({
-    count: items.length + (hasMoreHistory && !renderedFrontierWasExtended ? 1 : 0),
+    count: items.length + (hasMoreLocal && !renderedFrontierWasExtended ? 1 : 0),
     getScrollElement: () => scrollElement,
     estimateSize: index => (index >= items.length ? 56 : 80),
     overscan: 10,
@@ -115,22 +107,22 @@ export function ActivityList() {
   useEffect(() => {
     if (snapshot.kind !== 'ready') return
     if (
-      !shouldExtendActivityDemand({
+      !shouldExtendLocalActivityWindow({
         alreadyExtendedAtFrontier: latestFrontierWasExtended,
-        hasMoreHistory: latestHasMoreHistory,
+        hasMoreLocal: latestHasMoreLocal,
         itemCount: latestItems.length,
         lastVirtualIndex,
       })
     )
       return
 
-    const frame = requestAnimationFrame(() => extendDemand(latestFrontierKey))
+    const frame = requestAnimationFrame(() => extendWindow(latestFrontierKey))
     return () => cancelAnimationFrame(frame)
   }, [
-    extendDemand,
+    extendWindow,
     lastVirtualIndex,
     latestFrontierWasExtended,
-    latestHasMoreHistory,
+    latestHasMoreLocal,
     latestFrontierKey,
     latestItems.length,
     snapshot.kind,

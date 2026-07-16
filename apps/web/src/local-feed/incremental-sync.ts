@@ -1,8 +1,7 @@
 import Dexie from 'dexie'
 
 import type { AccountGeneration, AccountGenerationPort } from './account-generation'
-import { isValidActivityProjectionId, normalizeActivityProjectionId } from './activity-id'
-import { readActivityProjectionContext } from './activity-projection'
+import { normalizeActivityProjectionId } from './activity-id'
 import { CloudReplicaError } from './cloud-replica'
 import type {
   ActivityDeltaPage,
@@ -19,51 +18,46 @@ import {
   deriveFollowingTransitionCoverage,
 } from './following-transition'
 import type { FollowingTransitionPlan } from './following-transition'
-import { readAuthorizedActorSelection } from './following-membership'
-import { activityScopeKey, readProjection } from './projections'
+import { activityScopeKey } from './projections'
 import {
-  commitActivityById,
   commitDeltaPage,
   commitHistoryPage,
   compareDecimalSequence,
-  exhaustActivityHistoryBudget,
   finalizeFollowingSnapshot,
   markActivityGap,
-  prepareActivityHistoryBudget,
   stageFollowingPage,
 } from './replica-writes'
 import { assertTransactionLeadership } from './tab-coordinator'
 import type { LeadershipFence, TabAnnouncement, TabCoordinatorPort } from './tab-coordinator'
 import type { SyncLifecyclePort } from './sync-lifecycle'
 import { isStorageQuotaError } from './storage-errors'
-import type { FeedView, LocalSyncStatus, Projection } from './types'
+import type { LocalSyncStatus, Projection } from './types'
 import { applyMutationResult, applyUserStatePages, prepareNextMutation } from './user-state'
 
-type Demand = { key: string; projection: Projection; count: number }
-type RemoteDemand = Demand & { expiresAt: number }
-
-type ActivityDemand = {
+type ActivitySyncScope = {
   localScopeKey: string
   scope: ReplicaScope
-  projections: Extract<Projection, { kind: 'visible-feed' }>[]
 }
 
 class ForegroundSyncPaused extends Error {}
 
 class RateLimitSyncPaused extends Error {}
 
-const REMOTE_DEMAND_LEASE_MS = 15 * 60 * 1000
-
-export function remoteDemandLeaseExpiresAt(now: number) {
-  return now + REMOTE_DEMAND_LEASE_MS
-}
-
-export function remoteDemandLeaseIsCurrent(expiresAt: number | undefined, now: number) {
-  return expiresAt !== undefined && Number.isFinite(expiresAt) && expiresAt > now
-}
-
 export function followingManifestRequiresReauthentication(manifest: RevisionManifest) {
   return manifest.following.reauthRequiredAt != null
+}
+
+export function followingActivitySyncPlan(manifest: {
+  activity: Pick<RevisionManifest['activity'], 'headSeq'>
+  following: Pick<RevisionManifest['following'], 'revision'>
+}) {
+  const revision = manifest.following.revision
+  if (!revision) return null
+  return {
+    localScopeKey: activityScopeKey('following', revision),
+    scope: { scopeKind: 'following' as const, followingRevision: revision },
+    targetThroughSeq: manifest.activity.headSeq,
+  }
 }
 
 export async function settleWithin(promise: Promise<unknown>, timeoutMs: number) {
@@ -151,21 +145,6 @@ export function canonicalizeProjection<P extends Projection>(projection: P): P {
   return projection
 }
 
-export function canReuseTerminalActivityResolution(
-  current: Pick<
-    SyncStateRow,
-    'activityResult' | 'activityResultAtHeadSeq' | 'activityResultAtFollowingRevision'
-  > | null,
-  manifest: RevisionManifest | null,
-) {
-  return Boolean(
-    manifest &&
-    (current?.activityResult === 'not-authorized' || current?.activityResult === 'cloud-miss') &&
-    current.activityResultAtHeadSeq === manifest.activity.headSeq &&
-    current.activityResultAtFollowingRevision === manifest.following.revision,
-  )
-}
-
 export function canonicalProjectionKey(projection: Projection) {
   return JSON.stringify(canonicalizeProjection(projection))
 }
@@ -184,36 +163,11 @@ export function canPullActivityDelta(
   return Boolean(lane?.stableThroughSeq && !lane.checkpointAfterHistory)
 }
 
-export function shouldPullActivityHistory(
-  lane: Pick<SyncLaneRow, 'checkpointAfterHistory' | 'stableThroughSeq'> | null | undefined,
-  demandSatisfied: boolean,
-  remoteWindow: 'exhausted' | 'may-have-more' | 'unchecked' | undefined,
-) {
-  return (
-    !lane?.stableThroughSeq ||
-    Boolean(lane.checkpointAfterHistory) ||
-    (!demandSatisfied && remoteWindow !== 'exhausted')
-  )
-}
-
-export function activityHistoryBudgetToken(
-  projections: readonly Extract<Projection, { kind: 'visible-feed' }>[],
-  visibilitySignature: string,
-) {
-  return JSON.stringify({
-    projections: [...new Set(projections.map(canonicalProjectionKey))].sort(),
-    visibilitySignature,
-  })
-}
-
 function isAccountMismatch(error: unknown) {
   return error instanceof Error && error.message.includes('viewer mismatch')
 }
 
 export class IncrementalSync {
-  readonly #tabId = crypto.randomUUID()
-  readonly #localDemands = new Map<string, Demand>()
-  readonly #remoteDemands = new Map<string, RemoteDemand>()
   readonly #createId: () => string
   readonly #now: () => number
   readonly #random: () => number
@@ -229,7 +183,6 @@ export class IncrementalSync {
   #followingSnapshotRecoveryRevision: string | null = null
   #retryAt: number | null = null
   #retryTimer: ReturnType<typeof setTimeout> | null = null
-  #continuationTimer: ReturnType<typeof setTimeout> | null = null
   #unavailableAttempts = 0
 
   constructor(
@@ -258,52 +211,9 @@ export class IncrementalSync {
   }
 
   start() {
-    this.#unsubscribeLifecycle = this.lifecycle.subscribe(() => {
-      if (this.lifecycle.isVisible()) this.announceLocalDemands()
-      this.requestSync()
-    })
+    this.#unsubscribeLifecycle = this.lifecycle.subscribe(() => this.requestSync())
     this.#unsubscribeTabs = this.tabs.subscribe(event => this.onTabAnnouncement(event))
     this.requestSync()
-  }
-
-  declareDemand(projection: Projection) {
-    const canonicalProjection = canonicalizeProjection(projection)
-    if (
-      canonicalProjection.kind === 'activity' &&
-      !isValidActivityProjectionId(canonicalProjection.id)
-    ) {
-      return () => undefined
-    }
-    const key = canonicalProjectionKey(canonicalProjection)
-    const existing = this.#localDemands.get(key)
-    if (existing) existing.count += 1
-    else {
-      this.#localDemands.set(key, { key, projection: canonicalProjection, count: 1 })
-      this.tabs.announce({
-        kind: 'demand-changed',
-        tabId: this.#tabId,
-        demandKey: key,
-        projection: canonicalProjection,
-        active: true,
-        expiresAt: remoteDemandLeaseExpiresAt(this.#now()),
-      })
-    }
-    this.requestSync()
-
-    return () => {
-      const current = this.#localDemands.get(key)
-      if (!current) return
-      current.count -= 1
-      if (current.count > 0) return
-      this.#localDemands.delete(key)
-      this.tabs.announce({
-        kind: 'demand-changed',
-        tabId: this.#tabId,
-        demandKey: key,
-        projection: canonicalProjection,
-        active: false,
-      })
-    }
   }
 
   requestSync() {
@@ -327,17 +237,6 @@ export class IncrementalSync {
     this.#unsubscribeTabs?.()
     if (this.#retryTimer) clearTimeout(this.#retryTimer)
     this.#retryTimer = null
-    if (this.#continuationTimer) clearTimeout(this.#continuationTimer)
-    this.#continuationTimer = null
-    for (const demand of this.#localDemands.values()) {
-      this.tabs.announce({
-        kind: 'demand-changed',
-        tabId: this.#tabId,
-        demandKey: demand.key,
-        projection: demand.projection,
-        active: false,
-      })
-    }
     if (this.#running) await settleWithin(this.#running, 2_000)
   }
 
@@ -357,43 +256,6 @@ export class IncrementalSync {
     }
     if (event.kind === 'leadership-retry') {
       this.requestSync()
-      return
-    }
-    if (event.kind !== 'demand-changed' || event.tabId === this.#tabId) return
-    const key = `${event.tabId}:${event.demandKey}`
-    if (event.active && remoteDemandLeaseIsCurrent(event.expiresAt, this.#now())) {
-      this.#remoteDemands.set(key, {
-        key,
-        projection: event.projection,
-        count: 1,
-        expiresAt: event.expiresAt!,
-      })
-    } else {
-      this.#remoteDemands.delete(key)
-    }
-    this.requestSync()
-  }
-
-  private allDemands() {
-    for (const [key, demand] of this.#remoteDemands) {
-      if (!remoteDemandLeaseIsCurrent(demand.expiresAt, this.#now())) {
-        this.#remoteDemands.delete(key)
-      }
-    }
-    return [...this.#localDemands.values(), ...this.#remoteDemands.values()]
-  }
-
-  private announceLocalDemands() {
-    const expiresAt = remoteDemandLeaseExpiresAt(this.#now())
-    for (const demand of this.#localDemands.values()) {
-      this.tabs.announce({
-        kind: 'demand-changed',
-        tabId: this.#tabId,
-        demandKey: demand.key,
-        projection: demand.projection,
-        active: true,
-        expiresAt,
-      })
     }
   }
 
@@ -432,16 +294,6 @@ export class IncrementalSync {
     }, delay)
   }
 
-  private scheduleForegroundContinuation() {
-    if (this.#closed || this.#continuationTimer) return
-    this.#continuationTimer = setTimeout(() => {
-      this.#continuationTimer = null
-      if (!this.#closed && this.lifecycle.isVisible() && this.lifecycle.isOnline()) {
-        this.requestSync()
-      }
-    }, 250)
-  }
-
   private async restoreRetryDeadline() {
     const state = await this.database.syncState.get('status')
     const retryAt =
@@ -462,7 +314,6 @@ export class IncrementalSync {
       await this.setStatus(
         {
           kind: 'offline',
-          hasUnmetDemand: this.allDemands().length > 0,
           pendingUserOperations: await this.database.outbox.count(),
         },
         fence,
@@ -494,7 +345,7 @@ export class IncrementalSync {
     }
 
     try {
-      await this.assertSyncPhase(fence)
+      await this.setWorking('control', fence)
       const control = await this.database.syncState.get('control')
       await this.beforeCloudRequest(fence)
       const manifestResult = await this.cloud.getManifest({
@@ -550,7 +401,10 @@ export class IncrementalSync {
       }
 
       await this.flushOutbox(bookmark, fence)
-      await this.syncDemands(manifest, bookmark, fence)
+      const activityPlan = manifest ? followingActivitySyncPlan(manifest) : null
+      if (activityPlan) {
+        await this.pullCompleteHistory(activityPlan, activityPlan.targetThroughSeq, bookmark, fence)
+      }
       this.#retryAt = null
       this.#unavailableAttempts = 0
       if (this.#retryTimer) clearTimeout(this.#retryTimer)
@@ -613,7 +467,6 @@ export class IncrementalSync {
         await this.setStatus(
           {
             kind: 'offline',
-            hasUnmetDemand: this.allDemands().length > 0,
             pendingUserOperations: await this.database.outbox.count(),
           },
           fence,
@@ -878,7 +731,7 @@ export class IncrementalSync {
     let state = await this.database.followingState.get('active')
     if (state?.pendingTransition) return state.pendingTransition
     if (state?.activeRevision === manifest.following.revision) return null
-    await this.assertSyncPhase(fence)
+    await this.setWorking('following', fence)
 
     if (state?.stagingRevision && state.stagingRevision !== manifest.following.revision) {
       await this.assertFence(fence)
@@ -975,10 +828,9 @@ export class IncrementalSync {
     bookmark: string | null | undefined,
     fence: LeadershipFence,
   ) {
-    const oldDemand: ActivityDemand = {
+    const oldDemand: ActivitySyncScope = {
       localScopeKey: activityScopeKey('following', plan.oldRevision),
       scope: { scopeKind: 'following', followingRevision: plan.oldRevision },
-      projections: [],
     }
     const [oldCoverage, oldLane] = await Promise.all([
       this.database.coverage.get(oldDemand.localScopeKey),
@@ -1010,7 +862,6 @@ export class IncrementalSync {
         {
           localScopeKey: activityScopeKey('following', plan.newRevision),
           scope: { scopeKind: 'following', followingRevision: plan.newRevision },
-          projections: [],
         },
         plan.targetThroughSeq,
         bookmark,
@@ -1044,7 +895,6 @@ export class IncrementalSync {
           {
             localScopeKey: activityScopeKey(actorKeys, plan.newRevision),
             scope: { scopeKind: 'actors', actorKeys },
-            projections: [],
           },
           plan.targetThroughSeq,
           bookmark,
@@ -1144,13 +994,13 @@ export class IncrementalSync {
   }
 
   private async advanceActivityTo(
-    demand: ActivityDemand,
+    plan: ActivitySyncScope,
     targetThroughSeq: string,
     bookmark: string | null | undefined,
     fence: LeadershipFence,
   ) {
     for (let pageCount = 0; pageCount < 1000; pageCount += 1) {
-      const lane = await this.database.syncLanes.get(demand.localScopeKey)
+      const lane = await this.database.syncLanes.get(plan.localScopeKey)
       if (!lane?.stableThroughSeq) return true
       if (!canPullActivityDelta(lane)) return false
       if (
@@ -1164,7 +1014,7 @@ export class IncrementalSync {
       try {
         await this.beforeCloudRequest(fence)
         page = await this.cloud!.getActivityDeltaPage({
-          ...demand.scope,
+          ...plan.scope,
           fromSeq: lane.stableThroughSeq,
           ...(expectedCursor ? { cursor: expectedCursor } : {}),
           ...(!expectedCursor ? { targetThroughSeq } : {}),
@@ -1174,14 +1024,14 @@ export class IncrementalSync {
         if (!(error instanceof CloudReplicaError) || error.code !== 'RETENTION_CHANGED') {
           throw error
         }
-        await this.recoverActivityRetention(demand.localScopeKey, fence)
+        await this.recoverActivityRetention(plan.localScopeKey, fence)
         return false
       }
       await this.assertFence(fence)
       if (page.gap) {
         const revision = await markActivityGap({
           database: this.database,
-          localScopeKey: demand.localScopeKey,
+          localScopeKey: plan.localScopeKey,
           now: this.#now(),
           fence,
         })
@@ -1192,7 +1042,7 @@ export class IncrementalSync {
       const revision = await commitDeltaPage({
         database: this.database,
         ownerGithubId: this.owner.ownerGithubId,
-        localScopeKey: demand.localScopeKey,
+        localScopeKey: plan.localScopeKey,
         expectedCursor,
         page,
         sanitizer: this.sanitizer!,
@@ -1206,19 +1056,20 @@ export class IncrementalSync {
   }
 
   private async pullCompleteHistory(
-    demand: ActivityDemand,
+    plan: ActivitySyncScope,
     targetThroughSeq: string,
     bookmark: string | null | undefined,
     fence: LeadershipFence,
   ) {
-    const continuous = await this.advanceActivityTo(demand, targetThroughSeq, bookmark, fence)
+    await this.setWorking('activity', fence)
+    const continuous = await this.advanceActivityTo(plan, targetThroughSeq, bookmark, fence)
     if (!continuous) {
       // The replacement history transaction will establish the checkpoint only at its end.
     }
     for (let pageCount = 0; pageCount < 10_000; pageCount += 1) {
       const [lane, coverage] = await Promise.all([
-        this.database.syncLanes.get(demand.localScopeKey),
-        this.database.coverage.get(demand.localScopeKey),
+        this.database.syncLanes.get(plan.localScopeKey),
+        this.database.coverage.get(plan.localScopeKey),
       ])
       if (coverage?.remoteWindow === 'exhausted') return
       const expectedCursor = lane?.historyCursor ?? null
@@ -1226,7 +1077,7 @@ export class IncrementalSync {
       try {
         await this.beforeCloudRequest(fence)
         page = await this.cloud!.getActivityHistoryPage({
-          ...demand.scope,
+          ...plan.scope,
           ...(expectedCursor ? { cursor: expectedCursor } : { targetThroughSeq }),
           ...(bookmark ? { bookmark } : {}),
         })
@@ -1234,19 +1085,18 @@ export class IncrementalSync {
         if (!(error instanceof CloudReplicaError) || error.code !== 'RETENTION_CHANGED') {
           throw error
         }
-        if (!(await this.recoverActivityRetention(demand.localScopeKey, fence))) throw error
+        if (!(await this.recoverActivityRetention(plan.localScopeKey, fence))) throw error
         continue
       }
       await this.assertFence(fence)
       const revision = await commitHistoryPage({
         database: this.database,
         ownerGithubId: this.owner.ownerGithubId,
-        localScopeKey: demand.localScopeKey,
+        localScopeKey: plan.localScopeKey,
         expectedCursor,
         page,
         sanitizer: this.sanitizer!,
         now: this.#now(),
-        historyBudgetToken: null,
         fence,
       })
       await this.assertFence(fence)
@@ -1282,7 +1132,7 @@ export class IncrementalSync {
     ) {
       return
     }
-    await this.assertSyncPhase(fence)
+    await this.setWorking('user-state', fence)
     const pages = []
     let afterSeq = local?.userStateRevision
     let nextCursor: string | undefined
@@ -1312,7 +1162,7 @@ export class IncrementalSync {
   }
 
   private async flushOutbox(bookmark: string | null | undefined, fence: LeadershipFence) {
-    await this.assertSyncPhase(fence)
+    await this.setWorking('user-state', fence)
     for (let count = 0; count < 100; count += 1) {
       await this.assertFence(fence)
       const prepared = await prepareNextMutation({
@@ -1348,325 +1198,23 @@ export class IncrementalSync {
     throw new Error('User-state outbox exceeded the operation safety limit')
   }
 
-  private async syncDemands(
-    manifest: RevisionManifest | null,
-    bookmark: string | null | undefined,
-    fence: LeadershipFence,
-  ) {
-    const demands = this.allDemands()
-    for (const demand of demands) {
-      if (demand.projection.kind === 'activity') {
-        // oxlint-disable-next-line react-doctor/async-await-in-loop -- bounded sequential requests avoid an unbounded detail fan-out
-        await this.syncActivityById(demand.projection.id, manifest, bookmark, fence)
-      }
-    }
-
-    const activityDemands = await this.activityDemands(demands)
-    for (const demand of activityDemands) {
-      // oxlint-disable-next-line react-doctor/async-await-in-loop -- scopes share the fenced local replica and safety budget
-      await this.syncActivityScope(demand, manifest, bookmark, fence)
-    }
-  }
-
-  private async activityDemands(demands: readonly Demand[]): Promise<ActivityDemand[]> {
-    const following = await this.database.followingState.get('active')
-    if (!following?.activeRevision) return []
-    const grouped = new Map<string, ActivityDemand>()
-
-    for (const { projection } of demands) {
-      let actors: FeedView['actors'] | null = null
-      if (projection.kind === 'visible-feed') actors = projection.view.actors
-      else if (projection.kind === 'statistics') actors = projection.actors
-      if (!actors) continue
-
-      const authorized =
-        actors === 'following'
-          ? 'following'
-          : (await readAuthorizedActorSelection(this.database, following.activeRevision, actors))
-              .actorKeys
-      if (authorized !== 'following' && authorized.length === 0) continue
-      const remoteActors =
-        authorized !== 'following' && authorized.length > 250 ? 'following' : authorized
-      const localScopeKey = activityScopeKey(
-        remoteActors as 'following' | readonly [string, ...string[]],
-        following.activeRevision,
-      )
-      const existing = grouped.get(localScopeKey)
-      const visibleProjection = projection.kind === 'visible-feed' ? projection : null
-      if (existing) {
-        if (visibleProjection) existing.projections.push(visibleProjection)
-        continue
-      }
-      grouped.set(localScopeKey, {
-        localScopeKey,
-        scope:
-          remoteActors === 'following'
-            ? { scopeKind: 'following', followingRevision: following.activeRevision }
-            : {
-                scopeKind: 'actors',
-                actorKeys: [...remoteActors].sort() as unknown as readonly [string, ...string[]],
-              },
-        projections: visibleProjection ? [visibleProjection] : [],
-      })
-    }
-    return [...grouped.values()]
-  }
-
-  private async syncActivityScope(
-    demand: ActivityDemand,
-    manifest: RevisionManifest | null,
-    bookmark: string | null | undefined,
-    fence: LeadershipFence,
-  ) {
-    await this.assertSyncPhase(fence)
-    let lane = await this.database.syncLanes.get(demand.localScopeKey)
-    if (
-      lane?.stableThroughSeq &&
-      canPullActivityDelta(lane) &&
-      (lane.deltaCursor ||
-        (manifest && compareDecimalSequence(lane.stableThroughSeq, manifest.activity.headSeq) < 0))
-    ) {
-      for (let pageCount = 0; pageCount < 5; pageCount += 1) {
-        lane = await this.database.syncLanes.get(demand.localScopeKey)
-        if (!lane?.stableThroughSeq || lane.checkpointAfterHistory) break
-        const expectedCursor = lane.deltaCursor
-        let page: ActivityDeltaPage
-        try {
-          await this.beforeCloudRequest(fence)
-          page = await this.cloud!.getActivityDeltaPage({
-            ...demand.scope,
-            fromSeq: lane.stableThroughSeq,
-            ...(expectedCursor ? { cursor: expectedCursor } : {}),
-            ...(manifest ? { targetThroughSeq: manifest.activity.headSeq } : {}),
-            ...(bookmark ? { bookmark } : {}),
-          })
-        } catch (error) {
-          if (!(error instanceof CloudReplicaError) || error.code !== 'RETENTION_CHANGED') {
-            throw error
-          }
-          await this.recoverActivityRetention(demand.localScopeKey, fence)
-          break
-        }
-        await this.assertFence(fence)
-        if (page.gap) {
-          const revision = await markActivityGap({
-            database: this.database,
-            localScopeKey: demand.localScopeKey,
-            now: this.#now(),
-            fence,
-          })
-          await this.assertFence(fence)
-          await this.changed(revision)
-          lane = await this.database.syncLanes.get(demand.localScopeKey)
-          break
-        }
-        const revision = await commitDeltaPage({
-          database: this.database,
-          ownerGithubId: this.owner.ownerGithubId,
-          localScopeKey: demand.localScopeKey,
-          expectedCursor,
-          page,
-          sanitizer: this.sanitizer!,
-          now: this.#now(),
-          fence,
-        })
-        await this.assertFence(fence)
-        await this.changed(revision)
-        if (!page.nextCursor) break
-      }
-      if ((await this.database.syncLanes.get(demand.localScopeKey))?.deltaCursor) {
-        this.scheduleForegroundContinuation()
-      }
-    }
-
-    const visibility = await readActivityProjectionContext(this.database, this.sanitizer)
-    const budgetToken = activityHistoryBudgetToken(demand.projections, visibility.signature)
-    const startedAt = this.#now()
-    for (let pageCount = 0; pageCount < 5; pageCount += 1) {
-      const coverage = await this.database.coverage.get(demand.localScopeKey)
-      lane = await this.database.syncLanes.get(demand.localScopeKey)
-      const replacingGap = lane?.checkpointAfterHistory === true
-      if (
-        !replacingGap &&
-        !(await prepareActivityHistoryBudget({
-          database: this.database,
-          localScopeKey: demand.localScopeKey,
-          token: budgetToken,
-          now: this.#now(),
-          fence,
-        }))
-      ) {
-        return
-      }
-      const allSatisfied = await this.isDemandSatisfied(demand)
-      if (!shouldPullActivityHistory(lane, allSatisfied, coverage?.remoteWindow)) return
-      const expectedCursor = lane?.historyCursor ?? null
-      let page: ActivityHistoryPage
-      try {
-        await this.beforeCloudRequest(fence)
-        page = await this.cloud!.getActivityHistoryPage({
-          ...demand.scope,
-          ...(expectedCursor ? { cursor: expectedCursor } : {}),
-          ...(!expectedCursor && manifest ? { targetThroughSeq: manifest.activity.headSeq } : {}),
-          ...(bookmark ? { bookmark } : {}),
-        })
-      } catch (error) {
-        if (!(error instanceof CloudReplicaError) || error.code !== 'RETENTION_CHANGED') {
-          throw error
-        }
-        if (!(await this.recoverActivityRetention(demand.localScopeKey, fence))) throw error
-        continue
-      }
-      await this.assertFence(fence)
-      const revision = await commitHistoryPage({
-        database: this.database,
-        ownerGithubId: this.owner.ownerGithubId,
-        localScopeKey: demand.localScopeKey,
-        expectedCursor,
-        page,
-        sanitizer: this.sanitizer!,
-        now: this.#now(),
-        historyBudgetToken: replacingGap ? null : budgetToken,
-        fence,
-      })
-      await this.assertFence(fence)
-      await this.changed(revision)
-      if (page.remoteWindowEnd) return
-      if (!page.nextCursor) {
-        throw new Error('Activity history ended without a remote-window marker')
-      }
-      if (this.#now() - startedAt >= 2_000) {
-        if (replacingGap) this.scheduleForegroundContinuation()
-        else {
-          await exhaustActivityHistoryBudget({
-            database: this.database,
-            localScopeKey: demand.localScopeKey,
-            token: budgetToken,
-            now: this.#now(),
-            fence,
-          })
-        }
-        return
-      }
-    }
-    if ((await this.database.syncLanes.get(demand.localScopeKey))?.checkpointAfterHistory) {
-      this.scheduleForegroundContinuation()
-    } else {
-      await exhaustActivityHistoryBudget({
-        database: this.database,
-        localScopeKey: demand.localScopeKey,
-        token: budgetToken,
-        now: this.#now(),
-        fence,
-      })
-    }
-  }
-
-  private async isDemandSatisfied(demand: ActivityDemand) {
-    if (demand.projections.length === 0) {
-      return (await this.database.coverage.get(demand.localScopeKey))?.bootstrap === 'initialized'
-    }
-    for (const projection of demand.projections) {
-      const snapshot = await readProjection(this.database, projection)
-      if (snapshot.value.computation === 'rebuilding') continue
-      if (snapshot.value.coverage.demand !== 'satisfied') return false
-    }
-    return true
-  }
-
-  private async syncActivityById(
-    id: string,
-    manifest: RevisionManifest | null,
-    bookmark: string | null | undefined,
-    fence: LeadershipFence,
-  ) {
-    if (await this.database.activities.get(id)) return
-    const current = await this.database.syncState.get(`activity:${id}`)
-    if (canReuseTerminalActivityResolution(current ?? null, manifest)) return
-    if (current?.activityResult !== 'resolving') {
-      await this.writeActivityResolution(id, 'resolving', fence)
-    }
-    let response: Awaited<ReturnType<CloudReplicaPort['getActivityById']>>
-    try {
-      await this.beforeCloudRequest(fence)
-      response = await this.cloud!.getActivityById({
-        id,
-        ...(bookmark ? { bookmark } : {}),
-      })
-      await this.assertFence(fence)
-    } catch (error) {
-      try {
-        await this.writeActivityResolution(
-          id,
-          this.lifecycle.isOnline() ? 'cloud-unavailable' : 'unavailable-offline',
-          fence,
-        )
-      } catch {
-        // The original cloud failure remains authoritative when local status persistence fails.
-      }
-      throw error
-    }
-    this.assertViewer(response.viewerGithubId)
-    if (response.result.kind === 'found') {
-      const revision = await commitActivityById({
-        database: this.database,
-        ownerGithubId: this.owner.ownerGithubId,
-        viewerGithubId: response.viewerGithubId,
-        activity: response.result.activity,
-        sanitizer: this.sanitizer!,
-        fence,
-      })
-      await this.assertFence(fence)
-      await this.changed(revision)
-      return
-    }
-    await this.writeActivityResolution(
-      id,
-      response.result.kind === 'not-authorized' ? 'not-authorized' : 'cloud-miss',
-      fence,
-      manifest,
-    )
-  }
-
-  private async writeActivityResolution(
-    id: string,
-    activityResult: NonNullable<SyncStateRow['activityResult']>,
-    fence: LeadershipFence,
-    manifest?: RevisionManifest | null,
-  ) {
-    const revision = await this.database.transaction(
-      'rw',
-      this.database.meta,
-      this.database.syncState,
-      this.database.syncLease,
-      async () => {
-        await assertTransactionLeadership(this.database, fence)
-        await this.database.syncState.put({
-          key: `activity:${id}`,
-          activityResult,
-          ...((activityResult === 'not-authorized' || activityResult === 'cloud-miss') && manifest
-            ? {
-                activityResultAtHeadSeq: manifest.activity.headSeq,
-                activityResultAtFollowingRevision: manifest.following.revision,
-              }
-            : {}),
-        })
-        return incrementLocalRevision(this.database)
-      },
-    )
-    await this.assertFence(fence)
-    await this.changed(revision)
-  }
-
   private async changed(revision: number, scope: 'data' | 'status' = 'data') {
     this.tabs.announce({ kind: 'local-revision', revision, scope })
     await this.onLocalChange(scope)
   }
 
-  private async assertSyncPhase(fence: LeadershipFence) {
-    // Automatic checks must not replace the stable user-facing status or publish a
-    // global local revision merely to expose transient progress.
-    await this.assertFence(fence)
+  private async setWorking(
+    phase: Extract<LocalSyncStatus, { kind: 'working' }>['phase'],
+    fence: LeadershipFence,
+  ) {
+    await this.setStatus(
+      {
+        kind: 'working',
+        phase,
+        pendingUserOperations: await this.database.outbox.count(),
+      },
+      fence,
+    )
   }
 
   private async setStatus(status: LocalSyncStatus, fence: LeadershipFence) {

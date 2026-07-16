@@ -11,10 +11,10 @@ Scope: GitHub Activity, GitHub Following, User Filters, and legacy feed-clear co
 The browser becomes a real local-first application:
 
 - Dexie is the only read path used by the UI.
-- A local query returns immediately and creates demand for any missing remote range.
+- A local query returns immediately and never controls network synchronization.
 - Visible Feed, type counts, and User Filter evaluation are derived locally.
 - GitHub Atom ingestion remains automatic on the Worker Cron and is materialized in D1.
-- D1-to-Dexie transfer is incremental and demand-driven.
+- D1-to-Dexie transfer automatically synchronizes every available increment for the current Following revision.
 - User Filter writes commit to Dexie and a durable outbox before any network request.
 - All manual Activity Refresh and manual Following Sync controls are removed.
 
@@ -27,8 +27,8 @@ The selected technology is Dexie OSS. The evaluation and rejected alternatives a
 | Feed semantics     | Preserve the current GitHub Atom content and interpretation.                                                                                      |
 | GitHub source      | Atom only for Activity. Do not mix in `received_events` or REST Events.                                                                           |
 | Server ingestion   | Keep `GitHub -> Worker Cron -> D1`, including the current 20-minute schedule.                                                                     |
-| On-demand boundary | Apply on-demand behavior to `D1 -> browser`, not `GitHub -> D1`.                                                                                  |
-| Browser payload    | Pull complete normalized Atom entries for the demanded range; never send a server-filtered Visible Feed.                                          |
+| Sync boundary      | Every sync cycle catches the browser up to the manifest head and exhausts the current bounded D1 history window.                                  |
+| Browser payload    | Pull complete normalized Atom entries for the current Following revision; never send a server-filtered Visible Feed.                              |
 | Browser authority  | Dexie is the only UI read path and the immediate authority for local writes.                                                                      |
 | Cloud authority    | GitHub is authoritative for Activity and Following. D1 is a bounded materialization and the convergence point for cross-device user state.        |
 | Activity retention | The application never expires or evicts a locally stored Activity. D1 cleanup never propagates a delete.                                          |
@@ -92,7 +92,6 @@ type FeedView = {
 
 type CoverageFacts = {
   bootstrap: 'never-synced' | 'initialized'
-  demand: 'satisfied' | 'insufficient'
   hasMoreLocal: boolean
   remoteWindow: 'unchecked' | 'may-have-more' | 'exhausted'
   integrity: 'continuous' | 'gap-detected'
@@ -135,7 +134,7 @@ type EditableUserFilter = {
 
 type LocalFeedStatistics = {
   typeCounts: Readonly<Record<string, number>>
-  coverage: 'complete-for-demand' | 'partial'
+  coverage: 'complete' | 'partial'
   computation: 'ready' | 'rebuilding'
 }
 
@@ -223,7 +222,7 @@ type LocalFeedBootState =
   | { kind: 'failed'; issue: 'migration-failed' | 'database-unavailable'; error: Error }
 ```
 
-`actors: 'following'` and `types: 'all'` are the explicit unfiltered states; empty arrays are invalid. At the `LocalFeed` boundary, explicit selections are deduplicated and bounded to 250 actor keys and 64 type keys, with each key limited to 256 UTF-16 code units, so a crafted URL cannot create unbounded IndexedDB query fan-out. Following always returns the complete active local snapshot. Visible Feed automatically increases its internal `first` demand as the virtual scroll frontier becomes visible. UI callers never see a D1 cursor, page number, ingestion sequence, ETag, retention generation, or coverage key.
+`actors: 'following'` and `types: 'all'` are the explicit unfiltered states; empty arrays are invalid. At the `LocalFeed` boundary, explicit selections are deduplicated and bounded to 250 actor keys and 64 type keys, with each key limited to 256 UTF-16 code units, so a crafted URL cannot create unbounded IndexedDB query fan-out. Following always returns the complete active local snapshot. Visible Feed automatically increases its local IndexedDB query window as the virtual scroll frontier becomes visible; this never causes a network request. UI callers never see a D1 cursor, page number, ingestion sequence, ETag, retention generation, or coverage key.
 
 The React adapter is intentionally thin:
 
@@ -251,7 +250,7 @@ Omitting `localData` or passing `keepLocalData: false` means delete; retained da
 
 ## Observable local states
 
-`CoverageFacts` keeps independent facts instead of collapsing them into one status. For example, a permanent history gap and an exhausted current D1 window may both be true, demand can be satisfied from Dexie while the browser is offline, or the current list can be empty while the remote window is authoritatively exhausted. Connectivity and work form a separate valid state machine:
+`CoverageFacts` keeps independent facts instead of collapsing them into one status. For example, a permanent history gap and an exhausted current D1 window may both be true, or the current list can be empty while the remote window is authoritatively exhausted. Connectivity and work form a separate valid state machine:
 
 ```ts
 type SyncStatusBase = {
@@ -265,7 +264,7 @@ type LocalSyncStatus =
       kind: 'working'
       phase: 'control' | 'following' | 'activity' | 'user-state'
     })
-  | (SyncStatusBase & { kind: 'offline'; hasUnmetDemand: boolean })
+  | (SyncStatusBase & { kind: 'offline' })
   | (SyncStatusBase & { kind: 'degraded'; issue: 'cloud-unavailable'; retryAt?: number })
   | (SyncStatusBase & {
       kind: 'attention'
@@ -417,7 +416,7 @@ type ActivityScope =
 
 `following` efficiently pages the interleaved all-feed window. Each immutable Following member stores its numeric ID and login at capture; scope expansion includes `github:<numericId>` plus any explicitly associated legacy actor keys. `actors` supports selected-actor views and fills history for actors newly added to a Following snapshot. Scope IDs are canonical hashes of normalized actor keys and, for the all-feed lane, the pinned Following revision.
 
-Both trust boundaries validate actor membership. The local planner intersects URL/caller actor keys with the active Following snapshot and reports rejected keys in `VisibleFeedWindow`; rejected keys create no demand. The Worker requires every requested actor key to belong to the pinned authenticated Following snapshot and returns `SCOPE_NOT_AUTHORIZED` without a partial page if any key fails. A formerly followed actor remains stored locally but no longer authorizes new cloud pulls.
+Both trust boundaries validate actor membership. The local projection intersects URL/caller actor keys with the active Following snapshot and reports rejected keys in `VisibleFeedWindow`; selections never affect synchronization. The Worker pins the full Activity pull to the authenticated Following revision. Transition-only actor scopes still require every requested actor key to belong to that pinned snapshot and return `SCOPE_NOT_AUTHORIZED` without a partial page if any key fails. A formerly followed actor remains stored locally but no longer authorizes new cloud pulls.
 
 ### Activity by ID
 
@@ -534,40 +533,33 @@ The canonical clear watermark is a monotonic publication timestamp. Pull, replay
 
 The server verifies the anchor, clamps the requested timestamp to the interval from that anchor through the current server time, then applies `max(currentWatermark, clampedCandidate)`. A client value can never move the canonical watermark into the server's future. The acknowledgement replaces the provisional overlay with the canonical watermark and re-evaluates the local projection. If no trusted anchor exists, the local revision overlay still clears known rows immediately and the server uses receipt time as the canonical candidate; this may hide Activity from the offline interval, which is preferable to creating an unbounded future watermark. Late-arriving Atom entries published before the acknowledged point remain hidden.
 
-## Demand planner
+## Complete incremental Activity synchronization
 
-An observer is both a local query and a declaration of network demand:
+The elected leader runs one fixed Activity plan for the active `following:<revision>` lane:
 
-1. Read a consistent Dexie snapshot and emit it immediately.
-2. Register or update the internal scope and requested `first` count.
-3. Let the elected leader check the manifest if needed.
-4. Reconcile Following and user state before planning an all-feed pull.
-5. Apply a head delta for an initialized lane, otherwise bootstrap its history.
-6. Re-run the local projection.
-7. If User Filters leave fewer than `first` visible rows, pull older raw Activity pages.
-8. Stop when the requested visible count is satisfied, the D1 window ends, or the per-cycle safety budget is reached.
+1. Read a consistent Dexie snapshot for UI observers without registering network work.
+2. Check the manifest and reconcile Following before selecting the Activity lane.
+3. Apply deltas from the lane checkpoint through the captured manifest head.
+4. If the lane is new or a retention gap is detected, page through history until D1 marks the retained window exhausted.
+5. Commit every page together with its cursor and coverage metadata, then notify local observers.
+6. Reconcile user state and drain the durable outbox.
 
-While a local visibility generation is rebuilding, history demand pauses instead of treating the temporary local under-set as evidence that more cloud history is required. Promotion immediately re-evaluates active demand.
+The first successful cycle downloads the complete normalized Atom history currently retained in D1 for the current Following revision. Later cycles download every available increment through the captured manifest head. There is no projection-derived page or item budget. A high page-count guard remains only as protection against a broken continuation protocol and surfaces an error instead of silently treating a partial replica as complete.
 
-The initial history/backfill safety budget is five pages, 500 raw entries, or two seconds of foreground work, whichever comes first. Page and item consumption is persisted against a canonical demand-and-visibility token, so projection rebuild yields, focus events, and the five-minute timer cannot silently start another five-page allowance. The two-second clock measures only the active foreground invocation; closing or hiding a tab does not consume a dormant budget. Reaching the virtual scroll frontier automatically increases `first`, creating a new token and allowance; an empty active view continues automatically while retained history may still satisfy it. Hitting one budget leaves coverage as `demand: insufficient` and `remoteWindow: may-have-more` until that automatic demand extension occurs. Head-delta catch-up continues in short yielded foreground cycles until it reaches the captured latest checkpoint, while still honoring visibility, connectivity, and retry fences.
-
-Type filters and User Filters never narrow the server request. They are local-only so changing them offline can reveal Activity that is already present.
-
-Equivalent observer demand is coalesced. When the last observer disappears, queued history work may be cancelled, but any D1 response already being committed completes atomically.
+Type filters, User Filters, selected users, selected items, and the virtual list window never narrow the server request. They are local-only, so changing them offline can reveal any Activity already synchronized into Dexie.
 
 ## Automatic synchronization and multi-tab coordination
 
 The leader performs a conditional manifest check:
 
 - after local database open;
-- when a new uncovered projection creates demand;
 - when the window regains focus;
 - when the browser returns online;
 - every five minutes while at least one feed projection is visible.
 
 It pauses the interval while the document is hidden. A retry scheduler honors exponential backoff, jitter, `Retry-After`, and authentication state; a focus event must not bypass a known rate-limit deadline.
 
-Use Web Locks for normal leader election and keep a Dexie lease with an expiry and fencing token as the durable fallback. BroadcastChannel only announces demand and committed local revisions. Every tab reads through Dexie observation. A tab that loses its fencing token may finish a request but may not advance a checkpoint.
+Use Web Locks for normal leader election and keep a Dexie lease with an expiry and fencing token as the durable fallback. BroadcastChannel only announces lifecycle triggers and committed local revisions. Every tab reads through Dexie observation. A tab that loses its fencing token may finish a request but may not advance a checkpoint.
 
 The Service Worker owns app-shell and media caching, not database synchronization. Synchronization runs in a visible elected tab because browser background execution is not reliable.
 
@@ -627,21 +619,21 @@ Cleanup does not advance the Activity head, emit a delete change, or affect Dexi
 
 ## Error and recovery policy
 
-| Failure                              | Behavior                                                                                                                                                                                   |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Manifest/network failure             | Keep local content; mark `offline` for no connectivity or `degraded` for an online cloud failure, then retry.                                                                              |
-| `401` or expired OAuth grant         | Pause remote sync and show reauthentication; keep the local database readable.                                                                                                             |
-| `429`                                | Save retry time and prevent focus/timer triggers from bypassing it.                                                                                                                        |
-| Following page failure               | Keep the previous active snapshot and resume or restart staging.                                                                                                                           |
-| Following snapshot expired           | Discard only staging and restart the current revision.                                                                                                                                     |
-| Activity history retention changed   | Keep committed rows and restart the remote window.                                                                                                                                         |
-| Activity delta below compacted floor | Keep rows, mark a gap, and non-destructively backfill the retained window.                                                                                                                 |
-| Interrupted delta                    | Resume its pending fixed `throughSeq`; deduplicate replayed entries.                                                                                                                       |
-| Ambiguous mutation response          | Retry the same mutation ID and use the stored receipt.                                                                                                                                     |
-| CAS conflict                         | Pull, three-way rebase, retry, or create a conflict copy.                                                                                                                                  |
-| IndexedDB quota                      | Commit no cursor, stop pulling, show `storage-full`, and run a slow local write probe; resume projection work and demand only after recovery. Never silently evict Activity or user state. |
-| Dexie migration failure              | Keep the old database untouched and show an actionable state; never auto-delete it.                                                                                                        |
-| Server epoch change                  | Re-bootstrap control state and retained windows while preserving local Activity by ID.                                                                                                     |
+| Failure                              | Behavior                                                                                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manifest/network failure             | Keep local content; mark `offline` for no connectivity or `degraded` for an online cloud failure, then retry.                                                                   |
+| `401` or expired OAuth grant         | Pause remote sync and show reauthentication; keep the local database readable.                                                                                                  |
+| `429`                                | Save retry time and prevent focus/timer triggers from bypassing it.                                                                                                             |
+| Following page failure               | Keep the previous active snapshot and resume or restart staging.                                                                                                                |
+| Following snapshot expired           | Discard only staging and restart the current revision.                                                                                                                          |
+| Activity history retention changed   | Keep committed rows and restart the remote window.                                                                                                                              |
+| Activity delta below compacted floor | Keep rows, mark a gap, and non-destructively backfill the retained window.                                                                                                      |
+| Interrupted delta                    | Resume its pending fixed `throughSeq`; deduplicate replayed entries.                                                                                                            |
+| Ambiguous mutation response          | Retry the same mutation ID and use the stored receipt.                                                                                                                          |
+| CAS conflict                         | Pull, three-way rebase, retry, or create a conflict copy.                                                                                                                       |
+| IndexedDB quota                      | Commit no cursor, stop pulling, show `storage-full`, and run a slow local write probe; resume synchronization only after recovery. Never silently evict Activity or user state. |
+| Dexie migration failure              | Keep the old database untouched and show an actionable state; never auto-delete it.                                                                                             |
+| Server epoch change                  | Re-bootstrap control state and retained windows while preserving local Activity by ID.                                                                                          |
 
 ## Migration plan
 
@@ -695,7 +687,7 @@ Cleanup uses a persisted, fail-closed rollout gate. The migration creates that g
 ### Phase 6: switch reads by stable cohort
 
 - Use separate stable flags for `localReadEnabled` and `localMutationAuthority`.
-- Write an atomic `cutoverReady` marker only after the owner ID is verified, user state is initialized and pending operations are rebased, Following is an authoritative complete revision (including an authoritative empty revision, never `null`), every relevant unresolved legacy actor has an explicit scope mapping, and the first demanded Activity range has committed coverage or an explicit remote-window end.
+- Write an atomic `cutoverReady` marker only after the owner ID is verified, user state is initialized and pending operations are rebased, Following is an authoritative complete revision (including an authoritative empty revision, never `null`), every relevant unresolved legacy actor has an explicit scope mapping, and the retained Activity window has committed coverage or an explicit remote-window end.
 - Enable `LocalFeedProvider` as the feed, Following, Filter, detail, and statistics source only after `cutoverReady`.
 - Clear the old global domain cache only after `cutoverReady`. A schema migration marker alone is insufficient.
 - Keep legacy server reads available behind a read kill switch only while `localMutationAuthority` is false; never copy Dexie back into React Query.
@@ -753,7 +745,7 @@ Feature flags are stable per account and persisted locally so an offline cold st
 - Unrelated-actor cleanup does not invalidate a history cursor; relevant cleanup does.
 - Delta continuation cannot mix `fromSeq`, `throughSeq`, scope, Following revision, or retention fingerprint.
 - A retention gap never deletes a local Activity.
-- A Filter that hides most rows triggers bounded older raw pulls until demand is met or the D1 window ends.
+- A Filter that hides most rows triggers no network work; the complete retained Activity window is already synchronized independently.
 - Statistics reports partial coverage rather than pretending to be global.
 - Activity-by-ID resolves local, offline, unauthorized, found, and bounded-cloud-miss states honestly.
 
@@ -788,7 +780,7 @@ Feature flags are stable per account and persisted locally so an offline cold st
 - Quota and rejected `navigator.storage.persist()` never cause silent domain-data eviction.
 - Old/new Service Worker and API combinations remain compatible during rollout.
 - D1 dual maintenance starts before idempotent backfill; cleanup cannot create a migration write gap.
-- `cutoverReady` remains false for unknown Following, uninitialized user state, or uncovered first demand.
+- `cutoverReady` remains false for unknown Following, uninitialized user state, or an incomplete retained Activity window.
 - The read kill switch is rejected once local mutation authority is enabled; pending optimistic state never falls back to a server-filtered projection.
 
 ## Observability and rollout gates

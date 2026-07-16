@@ -349,12 +349,6 @@ async function readVisibleFeed(
     rejectedActorKeys: candidates.rejectedActorKeys,
     coverage: {
       bootstrap: coverage?.bootstrap ?? 'never-synced',
-      demand:
-        candidates.projectionContext.computation === 'ready' &&
-        coverage?.bootstrap === 'initialized' &&
-        (typed.length >= first || remoteWindow === 'exhausted')
-          ? 'satisfied'
-          : 'insufficient',
       hasMoreLocal,
       remoteWindow,
       integrity: coverage?.integrity ?? 'continuous',
@@ -379,7 +373,6 @@ async function readFollowing(
       totalLocal: 0,
       coverage: {
         bootstrap: 'never-synced' as const,
-        demand: 'satisfied' as const,
         hasMoreLocal: false,
         remoteWindow: 'unchecked' as const,
         integrity: 'continuous' as const,
@@ -459,7 +452,6 @@ async function readFollowing(
     totalLocal,
     coverage: {
       bootstrap: following?.activeRevision ? ('initialized' as const) : ('never-synced' as const),
-      demand: 'satisfied' as const,
       hasMoreLocal: false,
       remoteWindow: 'exhausted' as const,
       integrity: 'continuous' as const,
@@ -579,7 +571,7 @@ async function readStatistics(
     typeCounts,
     coverage:
       projectionContext.computation === 'ready' && coverage?.remoteWindow === 'exhausted'
-        ? 'complete-for-demand'
+        ? 'complete'
         : 'partial',
     computation: projectionContext.computation,
   }

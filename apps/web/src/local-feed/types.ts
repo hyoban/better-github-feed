@@ -9,7 +9,6 @@ export type FeedView = {
 
 export type CoverageFacts = {
   bootstrap: 'never-synced' | 'initialized'
-  demand: 'satisfied' | 'insufficient'
   hasMoreLocal: boolean
   remoteWindow: 'unchecked' | 'may-have-more' | 'exhausted'
   integrity: 'continuous' | 'gap-detected'
@@ -93,7 +92,7 @@ export type EditableUserFilter = {
 
 export type LocalFeedStatistics = {
   typeCounts: Readonly<Record<string, number>>
-  coverage: 'complete-for-demand' | 'partial'
+  coverage: 'complete' | 'partial'
   computation: 'ready' | 'rebuilding'
 }
 
@@ -108,7 +107,7 @@ export type LocalSyncStatus =
       kind: 'working'
       phase: 'control' | 'following' | 'activity' | 'user-state'
     })
-  | (LocalSyncStatusBase & { kind: 'offline'; hasUnmetDemand: boolean })
+  | (LocalSyncStatusBase & { kind: 'offline' })
   | (LocalSyncStatusBase & {
       kind: 'degraded'
       issue: 'cloud-unavailable'

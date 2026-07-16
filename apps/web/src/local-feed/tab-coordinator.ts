@@ -1,5 +1,4 @@
 import type { LocalFeedDatabase } from './database'
-import type { Projection } from './types'
 
 export type LeadershipFence = {
   token: string
@@ -16,14 +15,6 @@ export type LeadershipFence = {
 }
 
 export type TabAnnouncement =
-  | {
-      kind: 'demand-changed'
-      tabId: string
-      demandKey: string
-      projection: Projection
-      active: boolean
-      expiresAt?: number
-    }
   | {
       kind: 'local-revision'
       revision: number

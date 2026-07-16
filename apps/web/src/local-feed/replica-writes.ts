@@ -38,22 +38,6 @@ export function compareDecimalSequence(left: string, right: string) {
   return normalizedLeft === normalizedRight ? 0 : normalizedLeft < normalizedRight ? -1 : 1
 }
 
-const MAX_HISTORY_BUDGET_PAGES = 5
-const MAX_HISTORY_BUDGET_ITEMS = 500
-
-export function activityHistoryBudgetIsExhausted(
-  lane: Pick<
-    SyncLaneRow,
-    'historyBudgetPageCount' | 'historyBudgetItemCount' | 'historyBudgetExhausted'
-  >,
-) {
-  return (
-    lane.historyBudgetExhausted ||
-    lane.historyBudgetPageCount >= MAX_HISTORY_BUDGET_PAGES ||
-    lane.historyBudgetItemCount >= MAX_HISTORY_BUDGET_ITEMS
-  )
-}
-
 function assertViewer(viewerGithubId: string, ownerGithubId: string) {
   if (viewerGithubId !== ownerGithubId) throw new Error('Cloud replica viewer mismatch')
 }
@@ -184,10 +168,6 @@ function newLane(scopeKey: string, now: number): SyncLaneRow {
   }
 }
 
-export function activityBudgetTransactionTables(database: LocalFeedDatabase) {
-  return [database.meta, database.syncLanes, database.syncLease]
-}
-
 export async function commitHistoryPage(input: {
   database: LocalFeedDatabase
   ownerGithubId: string
@@ -196,7 +176,6 @@ export async function commitHistoryPage(input: {
   page: ActivityHistoryPage
   sanitizer: ActivitySanitizerPort
   now: number
-  historyBudgetToken: string | null
   fence: LeadershipFence
 }) {
   const { database, page } = input
@@ -236,15 +215,6 @@ export async function commitHistoryPage(input: {
       ) {
         throw new Error('Activity history retention fingerprint changed')
       }
-      const replacingGap = lane.checkpointAfterHistory
-      if (
-        !replacingGap &&
-        input.historyBudgetToken !== null &&
-        (lane.historyBudgetToken !== input.historyBudgetToken || lane.historyBudgetExhausted)
-      ) {
-        throw new Error('Activity history budget is stale or exhausted')
-      }
-
       const localRevision = await incrementLocalRevision(database)
       await materializeActivities(database, page.items, input.sanitizer, localRevision)
 
@@ -253,11 +223,6 @@ export async function commitHistoryPage(input: {
       lane.historyCursor = page.nextCursor
       lane.historyRetentionFingerprint = page.nextCursor ? page.retentionFingerprint : null
       lane.lastUsedAt = input.now
-      if (!replacingGap && input.historyBudgetToken !== null) {
-        lane.historyBudgetPageCount += 1
-        lane.historyBudgetItemCount += page.items.length
-        lane.historyBudgetExhausted = activityHistoryBudgetIsExhausted(lane)
-      }
       const completesCheckpoint = page.nextCursor === null && lane.checkpointAfterHistory
       if (lane.stableThroughSeq === null && !lane.checkpointAfterHistory) {
         lane.stableThroughSeq = page.throughSeq
@@ -384,88 +349,6 @@ export async function markActivityGap(input: {
         }),
       ])
       return incrementLocalRevision(input.database)
-    },
-  )
-}
-
-export async function prepareActivityHistoryBudget(input: {
-  database: LocalFeedDatabase
-  localScopeKey: string
-  token: string
-  now: number
-  fence: LeadershipFence
-}) {
-  return input.database.transaction(
-    'rw',
-    activityBudgetTransactionTables(input.database),
-    async () => {
-      await assertTransactionLeadership(input.database, input.fence)
-      const lane =
-        (await input.database.syncLanes.get(input.localScopeKey)) ??
-        newLane(input.localScopeKey, input.now)
-      if (lane.checkpointAfterHistory) return true
-      if (lane.historyBudgetToken !== input.token) {
-        lane.historyBudgetToken = input.token
-        lane.historyBudgetExhausted = false
-        lane.historyBudgetPageCount = 0
-        lane.historyBudgetItemCount = 0
-      } else if (activityHistoryBudgetIsExhausted(lane)) {
-        lane.historyBudgetExhausted = true
-      }
-      lane.lastUsedAt = input.now
-      await input.database.syncLanes.put(lane)
-      return !lane.historyBudgetExhausted
-    },
-  )
-}
-
-export async function exhaustActivityHistoryBudget(input: {
-  database: LocalFeedDatabase
-  localScopeKey: string
-  token: string
-  now: number
-  fence: LeadershipFence
-}) {
-  await input.database.transaction(
-    'rw',
-    activityBudgetTransactionTables(input.database),
-    async () => {
-      await assertTransactionLeadership(input.database, input.fence)
-      const lane = await input.database.syncLanes.get(input.localScopeKey)
-      if (!lane || lane.checkpointAfterHistory) return
-      if (lane.historyBudgetToken !== input.token) return
-      lane.historyBudgetExhausted = true
-      lane.lastUsedAt = input.now
-      await input.database.syncLanes.put(lane)
-    },
-  )
-}
-
-export async function commitActivityById(input: {
-  database: LocalFeedDatabase
-  ownerGithubId: string
-  viewerGithubId: string
-  activity: RemoteAtomActivity
-  sanitizer: ActivitySanitizerPort
-  fence: LeadershipFence
-}) {
-  assertViewer(input.viewerGithubId, input.ownerGithubId)
-  return input.database.transaction(
-    'rw',
-    [
-      input.database.meta,
-      input.database.actors,
-      input.database.activities,
-      input.database.activityBodies,
-      input.database.syncState,
-      input.database.syncLease,
-    ],
-    async () => {
-      await assertTransactionLeadership(input.database, input.fence)
-      const localRevision = await incrementLocalRevision(input.database)
-      await materializeActivities(input.database, [input.activity], input.sanitizer, localRevision)
-      await input.database.syncState.delete(`activity:${input.activity.id}`)
-      return localRevision
     },
   )
 }
