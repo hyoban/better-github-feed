@@ -64,11 +64,7 @@ export type VisibleFeedWindow = {
 
 export type ActivityResult =
   | { kind: 'available'; activity: RawAtomActivity }
-  | { kind: 'resolving' }
-  | { kind: 'unavailable-offline' }
-  | { kind: 'cloud-unavailable' }
-  | { kind: 'not-authorized' }
-  | { kind: 'cloud-miss'; reason: 'not-retained-or-unknown' }
+  | { kind: 'unavailable'; reason: 'not-synced-or-unknown' }
 
 type LocalUserFilterBase = {
   id: string

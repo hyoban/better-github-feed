@@ -196,14 +196,6 @@ export interface CloudReplicaPort {
     },
   ): Promise<ActivityDeltaPage>
 
-  getActivityById(input: { id: string; bookmark?: string }): Promise<{
-    viewerGithubId: string
-    result:
-      | { kind: 'found'; activity: RemoteAtomActivity }
-      | { kind: 'not-authorized' }
-      | { kind: 'cloud-miss' }
-  }>
-
   pullUserState(input: {
     afterSeq?: string
     epoch?: string

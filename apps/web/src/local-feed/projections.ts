@@ -466,26 +466,14 @@ async function readActivity(
   sanitizer?: ActivitySanitizerPort,
 ): Promise<ActivityResult> {
   if (!isValidActivityProjectionId(id)) {
-    return { kind: 'cloud-miss', reason: 'not-retained-or-unknown' }
+    return { kind: 'unavailable', reason: 'not-synced-or-unknown' }
   }
-  const [row, body, resolution] = await Promise.all([
+  const [row, body] = await Promise.all([
     database.activities.get(id),
     database.activityBodies.get(id),
-    database.syncState.get(`activity:${id}`),
   ])
   if (!row) {
-    switch (resolution?.activityResult) {
-      case 'resolving':
-        return { kind: 'resolving' }
-      case 'cloud-unavailable':
-        return { kind: 'cloud-unavailable' }
-      case 'not-authorized':
-        return { kind: 'not-authorized' }
-      case 'cloud-miss':
-        return { kind: 'cloud-miss', reason: 'not-retained-or-unknown' }
-      default:
-        return { kind: 'unavailable-offline' }
-    }
+    return { kind: 'unavailable', reason: 'not-synced-or-unknown' }
   }
   const actor = await database.actors.get(row.actorKey)
   const activity: RawAtomActivity = {

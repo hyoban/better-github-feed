@@ -220,13 +220,6 @@ export function createOrpcCloudReplicaPort(client: LocalFeedV1OrpcClient): Cloud
           }),
         }),
       ),
-    getActivityById: input =>
-      call(() =>
-        client.localFeedV1.getActivityById({
-          params: { id: input.id },
-          query: input.bookmark ? { bookmark: input.bookmark } : undefined,
-        }),
-      ),
     pullUserState: async input =>
       mapUserStatePage(
         (await call(() =>

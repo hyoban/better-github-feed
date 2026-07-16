@@ -18,20 +18,10 @@ export function ActivityDetailLoader({ id }: { id: string }) {
   switch (result.kind) {
     case 'available':
       return <ActivityDetail item={result.activity} />
-    case 'resolving':
-      return <DetailMessage loading>Looking for this activity…</DetailMessage>
-    case 'unavailable-offline':
-      return <DetailMessage>This activity is not stored locally and you are offline.</DetailMessage>
-    case 'cloud-unavailable':
-      return <DetailMessage>The cloud replica is temporarily unavailable.</DetailMessage>
-    case 'not-authorized':
-      return (
-        <DetailMessage>This activity is outside your current Following snapshot.</DetailMessage>
-      )
-    case 'cloud-miss':
+    case 'unavailable':
       return (
         <DetailMessage>
-          This activity is not in the current cloud window. It may be older than the retained
+          This activity is not in the local feed. It may be older than the synchronized cloud
           history or the ID may be unknown.
         </DetailMessage>
       )

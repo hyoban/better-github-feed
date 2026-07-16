@@ -34,9 +34,10 @@ import { isStorageQuotaError } from './storage-errors'
 import type { LocalSyncStatus, Projection } from './types'
 import { applyMutationResult, applyUserStatePages, prepareNextMutation } from './user-state'
 
-type ActivitySyncScope = {
+type ActivitySyncPlan = {
   localScopeKey: string
   scope: ReplicaScope
+  targetThroughSeq: string
 }
 
 class ForegroundSyncPaused extends Error {}
@@ -394,6 +395,7 @@ export class IncrementalSync {
             this.#followingSnapshotRecoveryRevision !== manifest.following.revision
           this.#followingSnapshotRecoveryRevision = manifest.following.revision
           await this.resetExpiredFollowingSnapshot(fence)
+          await this.setQuiet(fence)
           if (retryImmediately) this.#requested = true
           return
         }
@@ -403,7 +405,7 @@ export class IncrementalSync {
       await this.flushOutbox(bookmark, fence)
       const activityPlan = manifest ? followingActivitySyncPlan(manifest) : null
       if (activityPlan) {
-        await this.pullCompleteHistory(activityPlan, activityPlan.targetThroughSeq, bookmark, fence)
+        await this.pullCompleteHistory(activityPlan, bookmark, fence)
       }
       this.#retryAt = null
       this.#unavailableAttempts = 0
@@ -420,7 +422,20 @@ export class IncrementalSync {
     } catch (error) {
       if (this.#closed) return
       if (!(await fence.isCurrent()) || !(await this.generations.isCurrent(this.owner))) return
-      if (error instanceof ForegroundSyncPaused || error instanceof RateLimitSyncPaused) {
+      if (error instanceof ForegroundSyncPaused) {
+        await this.setQuiet(fence)
+        return
+      }
+      if (error instanceof RateLimitSyncPaused) {
+        await this.setStatus(
+          {
+            kind: 'degraded',
+            issue: 'cloud-unavailable',
+            ...(this.#retryAt !== null ? { retryAt: this.#retryAt } : {}),
+            pendingUserOperations: await this.database.outbox.count(),
+          },
+          fence,
+        )
         return
       }
       if (isAccountMismatch(error)) {
@@ -828,13 +843,14 @@ export class IncrementalSync {
     bookmark: string | null | undefined,
     fence: LeadershipFence,
   ) {
-    const oldDemand: ActivitySyncScope = {
+    const oldPlan: ActivitySyncPlan = {
       localScopeKey: activityScopeKey('following', plan.oldRevision),
       scope: { scopeKind: 'following', followingRevision: plan.oldRevision },
+      targetThroughSeq: plan.targetThroughSeq,
     }
     const [oldCoverage, oldLane] = await Promise.all([
-      this.database.coverage.get(oldDemand.localScopeKey),
-      this.database.syncLanes.get(oldDemand.localScopeKey),
+      this.database.coverage.get(oldPlan.localScopeKey),
+      this.database.syncLanes.get(oldPlan.localScopeKey),
     ])
     let oldLaneContinuous = Boolean(
       oldLane?.stableThroughSeq &&
@@ -843,12 +859,7 @@ export class IncrementalSync {
     )
     if (oldLaneContinuous) {
       try {
-        oldLaneContinuous = await this.advanceActivityTo(
-          oldDemand,
-          plan.targetThroughSeq,
-          bookmark,
-          fence,
-        )
+        oldLaneContinuous = await this.advanceActivityTo(oldPlan, bookmark, fence)
       } catch (error) {
         if (!(error instanceof CloudReplicaError) || error.code !== 'SNAPSHOT_EXPIRED') throw error
         oldLaneContinuous = false
@@ -862,8 +873,8 @@ export class IncrementalSync {
         {
           localScopeKey: activityScopeKey('following', plan.newRevision),
           scope: { scopeKind: 'following', followingRevision: plan.newRevision },
+          targetThroughSeq: plan.targetThroughSeq,
         },
-        plan.targetThroughSeq,
         bookmark,
         fence,
       )
@@ -895,8 +906,8 @@ export class IncrementalSync {
           {
             localScopeKey: activityScopeKey(actorKeys, plan.newRevision),
             scope: { scopeKind: 'actors', actorKeys },
+            targetThroughSeq: plan.targetThroughSeq,
           },
-          plan.targetThroughSeq,
           bookmark,
           fence,
         )
@@ -994,8 +1005,7 @@ export class IncrementalSync {
   }
 
   private async advanceActivityTo(
-    plan: ActivitySyncScope,
-    targetThroughSeq: string,
+    plan: ActivitySyncPlan,
     bookmark: string | null | undefined,
     fence: LeadershipFence,
   ) {
@@ -1005,7 +1015,7 @@ export class IncrementalSync {
       if (!canPullActivityDelta(lane)) return false
       if (
         !lane.deltaCursor &&
-        compareDecimalSequence(lane.stableThroughSeq, targetThroughSeq) >= 0
+        compareDecimalSequence(lane.stableThroughSeq, plan.targetThroughSeq) >= 0
       ) {
         return true
       }
@@ -1017,7 +1027,7 @@ export class IncrementalSync {
           ...plan.scope,
           fromSeq: lane.stableThroughSeq,
           ...(expectedCursor ? { cursor: expectedCursor } : {}),
-          ...(!expectedCursor ? { targetThroughSeq } : {}),
+          ...(!expectedCursor ? { targetThroughSeq: plan.targetThroughSeq } : {}),
           ...(bookmark ? { bookmark } : {}),
         })
       } catch (error) {
@@ -1056,16 +1066,12 @@ export class IncrementalSync {
   }
 
   private async pullCompleteHistory(
-    plan: ActivitySyncScope,
-    targetThroughSeq: string,
+    plan: ActivitySyncPlan,
     bookmark: string | null | undefined,
     fence: LeadershipFence,
   ) {
     await this.setWorking('activity', fence)
-    const continuous = await this.advanceActivityTo(plan, targetThroughSeq, bookmark, fence)
-    if (!continuous) {
-      // The replacement history transaction will establish the checkpoint only at its end.
-    }
+    await this.advanceActivityTo(plan, bookmark, fence)
     for (let pageCount = 0; pageCount < 10_000; pageCount += 1) {
       const [lane, coverage] = await Promise.all([
         this.database.syncLanes.get(plan.localScopeKey),
@@ -1078,7 +1084,9 @@ export class IncrementalSync {
         await this.beforeCloudRequest(fence)
         page = await this.cloud!.getActivityHistoryPage({
           ...plan.scope,
-          ...(expectedCursor ? { cursor: expectedCursor } : { targetThroughSeq }),
+          ...(expectedCursor
+            ? { cursor: expectedCursor }
+            : { targetThroughSeq: plan.targetThroughSeq }),
           ...(bookmark ? { bookmark } : {}),
         })
       } catch (error) {
@@ -1211,6 +1219,16 @@ export class IncrementalSync {
       {
         kind: 'working',
         phase,
+        pendingUserOperations: await this.database.outbox.count(),
+      },
+      fence,
+    )
+  }
+
+  private async setQuiet(fence: LeadershipFence) {
+    await this.setStatus(
+      {
+        kind: 'quiet',
         pendingUserOperations: await this.database.outbox.count(),
       },
       fence,

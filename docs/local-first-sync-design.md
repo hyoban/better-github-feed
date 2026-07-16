@@ -113,11 +113,7 @@ type VisibleFeedWindow = {
 
 type ActivityResult =
   | { kind: 'available'; activity: RawAtomActivity }
-  | { kind: 'resolving' }
-  | { kind: 'unavailable-offline' }
-  | { kind: 'cloud-unavailable' }
-  | { kind: 'not-authorized' }
-  | { kind: 'cloud-miss'; reason: 'not-retained-or-unknown' }
+  | { kind: 'unavailable'; reason: 'not-synced-or-unknown' }
 
 type LocalUserFilter = {
   id: string
@@ -418,11 +414,9 @@ type ActivityScope =
 
 Both trust boundaries validate actor membership. The local projection intersects URL/caller actor keys with the active Following snapshot and reports rejected keys in `VisibleFeedWindow`; selections never affect synchronization. The Worker pins the full Activity pull to the authenticated Following revision. Transition-only actor scopes still require every requested actor key to belong to that pinned snapshot and return `SCOPE_NOT_AUTHORIZED` without a partial page if any key fails. A formerly followed actor remains stored locally but no longer authorizes new cloud pulls.
 
-### Activity by ID
+### Local Activity detail
 
-`getActivity(id)` supports a detail deep link whose Activity is not yet in Dexie. The server returns the complete Atom entry only when its actor belongs to the authenticated viewer's active Following snapshot. The local projection maps an in-flight request to `resolving`, lack of connectivity to `unavailable-offline`, a retryable Worker/D1 failure while online to `cloud-unavailable`, and a failed membership check to `not-authorized`.
-
-If D1 has no row, the terminal result is `cloud-miss: not-retained-or-unknown`. A bounded D1 replica cannot distinguish a compacted ID from an ID that never existed without retaining an unbounded tombstone set, so the UI must not present this result as a definitive GitHub 404. A locally retained Activity remains `available` even after it leaves D1.
+`getActivity(id)` is a local Dexie projection and never starts a separate network request. A deep link is `available` when the Activity has already synchronized into Dexie. Otherwise it is `unavailable: not-synced-or-unknown`; a bounded cloud replica cannot distinguish an Activity older than the synchronized retained window from an ID that never existed. A locally retained Activity remains `available` even after it leaves D1.
 
 ### History/backfill
 
@@ -673,7 +667,7 @@ Cleanup uses a persisted, fail-closed rollout gate. The migration creates that g
 
 ### Phase 4: add the versioned cloud adapter in shadow
 
-- Add manifest, Following snapshot, Activity history/delta/by-ID, and user-state exchange endpoints.
+- Add manifest, Following snapshot, Activity history/delta, and user-state exchange endpoints. The browser does not use a by-ID pull path.
 - Exercise them without changing browser reads.
 - Compare raw Atom IDs within the same Following revision and retention horizon.
 
@@ -747,7 +741,7 @@ Feature flags are stable per account and persisted locally so an offline cold st
 - A retention gap never deletes a local Activity.
 - A Filter that hides most rows triggers no network work; the complete retained Activity window is already synchronized independently.
 - Statistics reports partial coverage rather than pretending to be global.
-- Activity-by-ID resolves local, offline, unauthorized, found, and bounded-cloud-miss states honestly.
+- Activity detail reads only Dexie and reports a missing local row without starting network work.
 
 ### Following and ingestion tests
 
