@@ -4,12 +4,16 @@ import { Spinner } from '@/components/ui/spinner'
 import { useLocalSyncStatus } from '@/hooks/use-local-feed'
 import { cn } from '@/lib/utils'
 
-import { presentSyncStatus } from './sync-status-presentation'
+import { presentSyncStatusSnapshot } from './sync-status-presentation'
 import type { SyncStatusIcon } from './sync-status-presentation'
 
 export function SyncStatusIndicator({ compact = false }: { compact?: boolean }) {
   const snapshot = useLocalSyncStatus()
-  const presentation = getPresentation(snapshot)
+  const status = presentSyncStatusSnapshot(snapshot)
+  const presentation = {
+    ...status,
+    icon: getStatusIcon(status.icon),
+  }
 
   return (
     <div
@@ -24,29 +28,6 @@ export function SyncStatusIndicator({ compact = false }: { compact?: boolean }) 
       <span className={compact ? 'sr-only' : 'truncate'}>{presentation.label}</span>
     </div>
   )
-}
-
-function getPresentation(snapshot: ReturnType<typeof useLocalSyncStatus>) {
-  if (snapshot.kind === 'opening-local') {
-    return {
-      label: 'Opening local data',
-      title: 'Opening local data',
-      icon: <Spinner className="size-3.5" />,
-    }
-  }
-  if (snapshot.kind === 'failed') {
-    return {
-      label: 'Local sync status unavailable',
-      title: 'Local sync status unavailable',
-      icon: <CircleAlertIcon className="size-3.5 text-destructive" />,
-    }
-  }
-
-  const presentation = presentSyncStatus(snapshot.value)
-  return {
-    ...presentation,
-    icon: getStatusIcon(presentation.icon),
-  }
 }
 
 function getStatusIcon(icon: SyncStatusIcon) {

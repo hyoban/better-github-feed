@@ -2,9 +2,15 @@ import assert from 'node:assert/strict'
 
 import { describe, it } from 'vite-plus/test'
 
-import { presentSyncStatus } from './sync-status-presentation'
+import { presentSyncStatus, presentSyncStatusSnapshot } from './sync-status-presentation'
 
 describe('sync status presentation', () => {
+  it('does not use the remote-sync loading indicator while local status opens', () => {
+    const presentation = presentSyncStatusSnapshot({ kind: 'opening-local' })
+
+    assert.equal(presentation.icon, 'cloud')
+  })
+
   it('shows the active automatic sync phase', () => {
     assert.deepEqual(
       presentSyncStatus({

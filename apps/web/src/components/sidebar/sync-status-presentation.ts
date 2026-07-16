@@ -2,6 +2,34 @@ import type { LocalSyncStatus } from '@/local-feed'
 
 export type SyncStatusIcon = 'loading' | 'cloud' | 'cloud-off' | 'cloud-off-warning' | 'attention'
 
+type SyncStatusSnapshot =
+  | { kind: 'opening-local' }
+  | { kind: 'failed' }
+  | { kind: 'ready'; value: LocalSyncStatus }
+
+export function presentSyncStatusSnapshot(snapshot: SyncStatusSnapshot): {
+  label: string
+  title: string
+  icon: SyncStatusIcon
+} {
+  if (snapshot.kind === 'opening-local') {
+    return {
+      label: 'Local feed',
+      title: 'Local feed status is initializing.',
+      icon: 'cloud',
+    }
+  }
+  if (snapshot.kind === 'failed') {
+    return {
+      label: 'Local sync status unavailable',
+      title: 'Local sync status unavailable',
+      icon: 'attention',
+    }
+  }
+
+  return presentSyncStatus(snapshot.value)
+}
+
 export function presentSyncStatus(status: LocalSyncStatus): {
   label: string
   title: string
