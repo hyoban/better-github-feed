@@ -1,6 +1,6 @@
 import type { LocalSyncStatus } from '@/local-feed'
 
-export type SyncStatusIcon = 'cloud' | 'cloud-off' | 'cloud-off-warning' | 'attention'
+export type SyncStatusIcon = 'loading' | 'cloud' | 'cloud-off' | 'cloud-off-warning' | 'attention'
 
 export function presentSyncStatus(status: LocalSyncStatus): {
   label: string
@@ -16,7 +16,7 @@ export function presentSyncStatus(status: LocalSyncStatus): {
         'user-state': ['Syncing settings…', 'Synchronizing local filters and account state.'],
       } as const
       const [label, title] = copy[status.phase]
-      return { label, title, icon: 'cloud' }
+      return { label, title, icon: 'loading' }
     }
     case 'offline': {
       const label = 'Offline · local data ready'

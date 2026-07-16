@@ -15,7 +15,7 @@ describe('sync status presentation', () => {
       {
         label: 'Syncing activity…',
         title: 'Downloading all available Activity updates.',
-        icon: 'cloud',
+        icon: 'loading',
       },
     )
   })

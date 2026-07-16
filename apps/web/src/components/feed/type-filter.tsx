@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Spinner } from '@/components/ui/spinner'
 import { toActorSelection } from '@/hooks/feed-view'
 import { useLocalFeedStatistics } from '@/hooks/use-local-feed'
 import { useActiveTypes, useActiveUsers } from '@/hooks/use-query-state'
@@ -52,9 +51,6 @@ export function TypeFilter() {
           All
         </Button>
         <Separator orientation="vertical" />
-        {statistics.kind === 'ready' && statistics.value.computation === 'rebuilding' && (
-          <Spinner className="size-3.5 shrink-0 text-muted-foreground" />
-        )}
         {sortedTypes.map(type => {
           const isActive = activeTypeSet.has(type)
           return (
