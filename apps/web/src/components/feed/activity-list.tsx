@@ -1,16 +1,17 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { selectStableProjectionSnapshot } from '@/components/local-feed/stable-projection-state'
+import type { ReadyProjectionSnapshot } from '@/components/local-feed/stable-projection-state'
 import { shouldExtendLocalActivityWindow } from '@/components/feed/automatic-window'
 import { ActivitySummaryItem } from '@/components/feed/activity-summary-item'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import { toActorSelection, toTypeSelection } from '@/hooks/feed-view'
 import { useFocusedPanel, useKeyboardNavigation } from '@/hooks/use-keyboard-navigation'
 import { useVisibleFeed } from '@/hooks/use-local-feed'
 import { useActiveId, useActiveTypes, useActiveUsers } from '@/hooks/use-query-state'
-import type { ActivitySummary, FeedView } from '@/local-feed'
+import type { ActivitySummary, FeedView, VisibleFeedWindow } from '@/local-feed'
 
 const INITIAL_WINDOW = 40
 const WINDOW_STEP = 20
@@ -51,14 +52,11 @@ export function ActivityList() {
     [viewKey],
   )
   const snapshot = useVisibleFeed({ view, first })
-  const projectionState = useMemo(() => ({ snapshot, viewKey }), [snapshot, viewKey])
-  const deferredProjectionState = useDeferredValue(projectionState)
-  const renderedSnapshot =
-    snapshot.kind === 'opening-local' &&
-    deferredProjectionState.viewKey === viewKey &&
-    deferredProjectionState.snapshot.kind === 'ready'
-      ? deferredProjectionState.snapshot
-      : snapshot
+  const previousReadySnapshot = useRef<ReadyProjectionSnapshot<VisibleFeedWindow> | null>(null)
+  const renderedSnapshot = selectStableProjectionSnapshot(snapshot, previousReadySnapshot.current)
+  useEffect(() => {
+    if (snapshot.kind === 'ready') previousReadySnapshot.current = snapshot
+  }, [snapshot])
 
   const items = renderedSnapshot.kind === 'ready' ? renderedSnapshot.value.items : NO_ACTIVITIES
   const coverage = renderedSnapshot.kind === 'ready' ? renderedSnapshot.value.coverage : null
@@ -166,7 +164,7 @@ export function ActivityList() {
   }, [activeId, focusedPanel, items, setActiveId, virtualizer])
 
   if (renderedSnapshot.kind === 'opening-local') {
-    return <ActivityListSkeleton />
+    return <div className="h-full min-h-0 flex-1" />
   }
 
   if (items.length === 0) {
@@ -232,30 +230,5 @@ export function ActivityList() {
         </div>
       </ScrollArea>
     </div>
-  )
-}
-
-function ActivityListSkeleton() {
-  return (
-    <ScrollArea className="h-full min-h-0 flex-1">
-      <div>
-        {Array.from({ length: 8 }).map((_, index) => (
-          <div key={index} className="border-b border-l border-l-transparent px-4 py-3">
-            <div className="flex gap-3">
-              <Skeleton className="size-8 shrink-0 rounded-full" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-xs">
-                  <Skeleton className="h-3.5 w-16" />
-                  <Skeleton className="size-1 shrink-0 rounded-full" />
-                  <Skeleton className="h-3.5 w-10" />
-                </div>
-                <Skeleton className="mt-1.5 h-4 w-full" />
-                <Skeleton className="mt-1 h-4 w-2/3" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </ScrollArea>
   )
 }

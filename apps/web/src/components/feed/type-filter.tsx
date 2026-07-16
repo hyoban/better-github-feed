@@ -1,11 +1,14 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 
+import { selectStableProjectionSnapshot } from '@/components/local-feed/stable-projection-state'
+import type { ReadyProjectionSnapshot } from '@/components/local-feed/stable-projection-state'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { toActorSelection } from '@/hooks/feed-view'
 import { useLocalFeedStatistics } from '@/hooks/use-local-feed'
 import { useActiveTypes, useActiveUsers } from '@/hooks/use-query-state'
 import { formatTypeLabel } from '@/lib/format'
+import type { LocalFeedStatistics } from '@/local-feed'
 
 import { Button } from '../ui/button'
 import { FilterManagementDialog } from './filter-rules-list'
@@ -13,7 +16,15 @@ import { FilterManagementDialog } from './filter-rules-list'
 export function TypeFilter() {
   const [activeTypes, setActiveTypes] = useActiveTypes()
   const [activeUsers] = useActiveUsers()
-  const statistics = useLocalFeedStatistics({ actors: toActorSelection(activeUsers) })
+  const currentStatistics = useLocalFeedStatistics({ actors: toActorSelection(activeUsers) })
+  const previousReadyStatistics = useRef<ReadyProjectionSnapshot<LocalFeedStatistics> | null>(null)
+  const statistics = selectStableProjectionSnapshot(
+    currentStatistics,
+    previousReadyStatistics.current,
+  )
+  useEffect(() => {
+    if (currentStatistics.kind === 'ready') previousReadyStatistics.current = currentStatistics
+  }, [currentStatistics])
   const typeCounts = useMemo(
     () => new Map(Object.entries(statistics.kind === 'ready' ? statistics.value.typeCounts : {})),
     [statistics],
