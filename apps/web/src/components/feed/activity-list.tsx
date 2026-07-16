@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { toActorSelection, toTypeSelection } from '@/hooks/feed-view'
 import { useFocusedPanel, useKeyboardNavigation } from '@/hooks/use-keyboard-navigation'
 import { useVisibleFeed } from '@/hooks/use-local-feed'
-import { useIsDesktop } from '@/hooks/use-mobile'
+import { useHasInlineDetail } from '@/hooks/use-mobile'
 import { useActiveId, useActiveTypes, useActiveUsers } from '@/hooks/use-query-state'
 import type { ActivitySummary, FeedView, VisibleFeedWindow } from '@/local-feed'
 
@@ -23,7 +23,7 @@ function activityFrontierKey(items: readonly ActivitySummary[]) {
 }
 
 export function ActivityList() {
-  const isDesktop = useIsDesktop()
+  const hasInlineDetail = useHasInlineDetail()
   const [activeTypes] = useActiveTypes()
   const [activeUsers] = useActiveUsers()
   const [activeId, setActiveId] = useActiveId()
@@ -103,7 +103,7 @@ export function ActivityList() {
     getScrollElement: () => scrollElement,
     estimateSize: estimateVirtualRow,
     overscan: 10,
-    enabled: isDesktop && !!scrollElement,
+    enabled: hasInlineDetail && !!scrollElement,
   })
   const [windowScrollMargin, setWindowScrollMargin] = useState(0)
   const windowListRef = useCallback((node: HTMLDivElement | null) => {
@@ -116,9 +116,9 @@ export function ActivityList() {
     estimateSize: estimateVirtualRow,
     overscan: 10,
     scrollMargin: windowScrollMargin,
-    enabled: !isDesktop,
+    enabled: !hasInlineDetail,
   })
-  const virtualizer = isDesktop ? elementVirtualizer : windowVirtualizer
+  const virtualizer = hasInlineDetail ? elementVirtualizer : windowVirtualizer
   const virtualItems = virtualizer.getVirtualItems()
   const lastVirtualIndex = virtualItems.at(-1)?.index
 
@@ -220,7 +220,7 @@ export function ActivityList() {
               top: 0,
               left: 0,
               width: '100%',
-              transform: `translateY(${virtualRow.start - (isDesktop ? 0 : windowScrollMargin)}px)`,
+              transform: `translateY(${virtualRow.start - (hasInlineDetail ? 0 : windowScrollMargin)}px)`,
             }}
           >
             {isWindowSentinel || !item ? (
@@ -247,7 +247,7 @@ export function ActivityList() {
     </div>
   )
 
-  if (!isDesktop) {
+  if (!hasInlineDetail) {
     return (
       <div ref={windowListRef} className="relative min-h-0 flex-1">
         {virtualContent}

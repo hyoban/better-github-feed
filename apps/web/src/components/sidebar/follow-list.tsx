@@ -12,7 +12,11 @@ import { FollowUserItem } from './follow-user-item'
 
 const NO_FOLLOWS: readonly FollowingSummary[] = []
 
-export function FollowList() {
+type FollowListProps = {
+  onUserSelect?: () => void
+}
+
+export function FollowList({ onUserSelect }: FollowListProps = {}) {
   const [sortBy] = useSortBy()
   const [activeUsers, setActiveUsers] = useActiveUsers()
   const [, setActiveId] = useActiveId()
@@ -105,12 +109,14 @@ export function FollowList() {
           ? canonicalSelection.filter(item => item !== actorKey)
           : [...canonicalSelection, actorKey],
       )
+      onUserSelect?.()
       return
     }
 
     updateUserSelection(
       canonicalSelection.length === 1 && canonicalSelection[0] === actorKey ? [] : [actorKey],
     )
+    onUserSelect?.()
   }
 
   if (snapshot.kind === 'opening-local') {

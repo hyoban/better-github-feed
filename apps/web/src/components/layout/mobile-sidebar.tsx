@@ -34,7 +34,7 @@ export function MobileSidebar() {
         <div className="flex items-center border-b">
           <SortToggle />
         </div>
-        <FollowList />
+        <FollowList onUserSelect={() => setOpen(false)} />
         <SidebarFooter />
       </SheetContent>
     </Sheet>

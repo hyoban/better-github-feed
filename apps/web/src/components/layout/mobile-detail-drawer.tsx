@@ -1,15 +1,14 @@
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
-import { useIsDesktop } from '@/hooks/use-mobile'
+import { useHasInlineDetail } from '@/hooks/use-mobile'
 import { useActiveId } from '@/hooks/use-query-state'
 
 import { ActivityDetailLoader } from '../detail-panel/activity-detail-loader'
 
 export function MobileDetailDrawer() {
   const [activeId, setActiveId] = useActiveId()
-  const isDesktop = useIsDesktop()
+  const hasInlineDetail = useHasInlineDetail()
 
-  // Don't show drawer on desktop (xl+), DetailPanel handles it there
-  if (isDesktop) {
+  if (hasInlineDetail) {
     return null
   }
 
