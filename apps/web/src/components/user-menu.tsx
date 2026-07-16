@@ -98,7 +98,7 @@ export default function UserMenu() {
           }
         >
           <span className="truncate">{account.sessionProfile?.name ?? 'Offline account'}</span>
-          <ChevronDownIcon className="size-3.5 text-muted-foreground" />
+          <ChevronDownIcon className="size-4 text-muted-foreground" />
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuGroup>

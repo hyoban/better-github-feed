@@ -52,18 +52,18 @@ export function FilterThemeGroupContainer({
           {text}
         </Button>
         <Button variant="outline" size="sm" onClick={handleAddCondition}>
-          <PlusIcon className="mr-1 size-4" />
+          <PlusIcon className="mr-1 size-4.5" />
           {getLocaleText('addRule')}
         </Button>
         {depth < 3 && (
           <Button variant="outline" size="sm" onClick={handleAddGroup}>
-            <PlusIcon className="mr-1 size-4" />
+            <PlusIcon className="mr-1 size-4.5" />
             {getLocaleText('addGroup')}
           </Button>
         )}
         {!isRoot && (
           <Button variant="ghost" size="sm" onClick={handleDeleteGroup}>
-            <TrashIcon className="mr-1 size-4" />
+            <TrashIcon className="mr-1 size-4.5" />
             {getLocaleText('deleteGroup')}
           </Button>
         )}

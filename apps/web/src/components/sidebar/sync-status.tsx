@@ -21,7 +21,7 @@ export function SyncStatusIndicator({ compact = false }: { compact?: boolean }) 
       title={presentation.title}
       className={cn(
         'flex min-w-0 items-center gap-1.5 text-muted-foreground',
-        compact ? 'size-8 justify-center' : 'px-1 py-0.5',
+        compact ? 'size-9 justify-center' : 'px-1 py-0.5',
       )}
     >
       {presentation.icon}
@@ -48,12 +48,12 @@ function getStatusIcon(icon: SyncStatusIcon, progress?: number) {
         />
       )
     case 'cloud':
-      return <CloudIcon className="size-3.5" />
+      return <CloudIcon className="size-5" />
     case 'cloud-off':
-      return <CloudOffIcon className="size-3.5" />
+      return <CloudOffIcon className="size-5" />
     case 'cloud-off-warning':
-      return <CloudOffIcon className="size-3.5 text-amber-600" />
+      return <CloudOffIcon className="size-5 text-amber-600" />
     case 'attention':
-      return <CircleAlertIcon className="size-3.5 text-destructive" />
+      return <CircleAlertIcon className="size-5 text-destructive" />
   }
 }

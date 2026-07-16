@@ -58,10 +58,10 @@ function FilterRuleItem({
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <Button variant="ghost" size="icon-sm" onClick={onEdit} disabled={!filter.isValid}>
-          <PencilIcon className="size-4" />
+          <PencilIcon className="size-4.5" />
         </Button>
         <Button variant="ghost" size="icon-sm" onClick={onDelete}>
-          <TrashIcon className="size-4" />
+          <TrashIcon className="size-4.5" />
         </Button>
       </div>
     </div>
@@ -100,7 +100,7 @@ function FilterRulesList() {
     <>
       <div className="flex flex-col gap-3">
         <Button variant="outline" size="sm" onClick={() => setIsCreateOpen(true)}>
-          <PlusIcon className="mr-1 size-4" />
+          <PlusIcon className="mr-1 size-4.5" />
           Add Filter
         </Button>
 
