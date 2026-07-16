@@ -61,6 +61,10 @@ export function followingActivitySyncPlan(manifest: {
   }
 }
 
+export function completeSyncPageInput<T extends object>(input: T): T & { limit: 250 } {
+  return { ...input, limit: 250 }
+}
+
 export async function settleWithin(promise: Promise<unknown>, timeoutMs: number) {
   if (!Number.isFinite(timeoutMs) || timeoutMs < 0) throw new RangeError('Invalid settle timeout')
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -798,11 +802,13 @@ export class IncrementalSync {
     let cursor = state?.stagingRevision === manifest.following.revision ? state.stagingCursor : null
     for (let pageCount = 0; pageCount < 1000; pageCount += 1) {
       await this.beforeCloudRequest(fence)
-      const page = await this.cloud!.getFollowingPage({
-        revision: manifest.following.revision,
-        ...(cursor ? { cursor } : {}),
-        ...(bookmark ? { bookmark } : {}),
-      })
+      const page = await this.cloud!.getFollowingPage(
+        completeSyncPageInput({
+          revision: manifest.following.revision,
+          ...(cursor ? { cursor } : {}),
+          ...(bookmark ? { bookmark } : {}),
+        }),
+      )
       await this.assertFence(fence)
       if (page.revision !== manifest.following.revision) {
         throw new Error('Cloud Following revision mismatch')
@@ -1023,13 +1029,15 @@ export class IncrementalSync {
       let page: ActivityDeltaPage
       try {
         await this.beforeCloudRequest(fence)
-        page = await this.cloud!.getActivityDeltaPage({
-          ...plan.scope,
-          fromSeq: lane.stableThroughSeq,
-          ...(expectedCursor ? { cursor: expectedCursor } : {}),
-          ...(!expectedCursor ? { targetThroughSeq: plan.targetThroughSeq } : {}),
-          ...(bookmark ? { bookmark } : {}),
-        })
+        page = await this.cloud!.getActivityDeltaPage(
+          completeSyncPageInput({
+            ...plan.scope,
+            fromSeq: lane.stableThroughSeq,
+            ...(expectedCursor ? { cursor: expectedCursor } : {}),
+            ...(!expectedCursor ? { targetThroughSeq: plan.targetThroughSeq } : {}),
+            ...(bookmark ? { bookmark } : {}),
+          }),
+        )
       } catch (error) {
         if (!(error instanceof CloudReplicaError) || error.code !== 'RETENTION_CHANGED') {
           throw error
@@ -1082,13 +1090,15 @@ export class IncrementalSync {
       let page: ActivityHistoryPage
       try {
         await this.beforeCloudRequest(fence)
-        page = await this.cloud!.getActivityHistoryPage({
-          ...plan.scope,
-          ...(expectedCursor
-            ? { cursor: expectedCursor }
-            : { targetThroughSeq: plan.targetThroughSeq }),
-          ...(bookmark ? { bookmark } : {}),
-        })
+        page = await this.cloud!.getActivityHistoryPage(
+          completeSyncPageInput({
+            ...plan.scope,
+            ...(expectedCursor
+              ? { cursor: expectedCursor }
+              : { targetThroughSeq: plan.targetThroughSeq }),
+            ...(bookmark ? { bookmark } : {}),
+          }),
+        )
       } catch (error) {
         if (!(error instanceof CloudReplicaError) || error.code !== 'RETENTION_CHANGED') {
           throw error
@@ -1146,11 +1156,13 @@ export class IncrementalSync {
     let nextCursor: string | undefined
     for (let pageCount = 0; pageCount < 100; pageCount += 1) {
       await this.beforeCloudRequest(fence)
-      const page = await this.cloud!.pullUserState({
-        ...(afterSeq ? { afterSeq } : {}),
-        ...(local?.userStateEpoch ? { epoch: local.userStateEpoch } : {}),
-        ...(bookmark ? { bookmark } : {}),
-      })
+      const page = await this.cloud!.pullUserState(
+        completeSyncPageInput({
+          ...(afterSeq ? { afterSeq } : {}),
+          ...(local?.userStateEpoch ? { epoch: local.userStateEpoch } : {}),
+          ...(bookmark ? { bookmark } : {}),
+        }),
+      )
       await this.assertFence(fence)
       pages.push(page)
       nextCursor = page.nextCursor ?? undefined

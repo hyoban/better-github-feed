@@ -35,6 +35,7 @@ import {
   canonicalizeProjection,
   canonicalProjectionKey,
   chunkActorKeys,
+  completeSyncPageInput,
   computeRateLimitRetryAt,
   computeUnavailableRetryAt,
   didServerEpochChange,
@@ -112,6 +113,13 @@ function activity(
 }
 
 describe('LocalFeed pure invariants', () => {
+  it('uses the largest protocol page for complete initial synchronization', () => {
+    assert.deepEqual(completeSyncPageInput({ targetThroughSeq: '5711' }), {
+      targetThroughSeq: '5711',
+      limit: 250,
+    })
+  })
+
   it('plans one complete Following Activity sync independently of projections', () => {
     assert.deepEqual(
       followingActivitySyncPlan({
