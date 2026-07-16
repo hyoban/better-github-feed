@@ -8,7 +8,7 @@ export function DetailPanel() {
   if (!activeId) {
     return (
       <aside className="hidden h-full min-h-0 flex-col items-center justify-center bg-background/50 p-8 text-center lg:flex">
-        <p className="text-sm text-muted-foreground">Select an activity to view details</p>
+        <p className="text-muted-foreground">Select an activity to view details</p>
       </aside>
     )
   }

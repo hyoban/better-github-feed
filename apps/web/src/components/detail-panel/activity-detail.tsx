@@ -48,11 +48,11 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
               >
                 {item.actor}
               </a>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
                 {item.type}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-muted-foreground">
               {item.repo && (
                 <>
                   <a
@@ -79,12 +79,12 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
             href={item.link}
             target="_blank"
             rel="noreferrer"
-            className="block text-lg/tight font-semibold text-foreground transition-colors hover:text-primary"
+            className="block leading-tight font-medium text-foreground transition-colors hover:text-primary"
           >
             {item.title}
           </a>
         ) : (
-          <h1 className="text-lg/tight font-semibold text-foreground">{item.title}</h1>
+          <h1 className="leading-tight font-medium text-foreground">{item.title}</h1>
         )}
       </div>
 
@@ -101,7 +101,7 @@ export function ActivityDetail({ item }: ActivityDetailProps) {
           </div>
         ) : (
           <div className="flex h-full items-center justify-center p-8 text-center">
-            <p className="text-sm text-muted-foreground">No additional content available</p>
+            <p className="text-muted-foreground">No additional content available</p>
           </div>
         )}
       </ScrollArea>

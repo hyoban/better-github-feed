@@ -45,7 +45,7 @@ function FilterRuleItem({
       <div className="flex min-w-0 flex-col gap-1">
         <span className="truncate font-medium">{filter.name}</span>
         {filter.isValid ? (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground">
             {ruleCount} {ruleCount === 1 ? 'rule' : 'rules'}
           </span>
         ) : (
@@ -104,10 +104,10 @@ function FilterRulesList() {
           Add Filter
         </Button>
 
-        <span className="text-sm font-medium">Your Filters</span>
+        <span className="font-medium">Your Filters</span>
 
         {snapshot.kind === 'opening-local' ? null : snapshot.kind === 'failed' ? (
-          <div className="text-sm text-destructive">Local filters could not be read.</div>
+          <div className="text-destructive">Local filters could not be read.</div>
         ) : filters.length > 0 ? (
           <ScrollArea className="max-h-75">
             <div className="flex flex-col gap-2">
@@ -122,7 +122,7 @@ function FilterRulesList() {
             </div>
           </ScrollArea>
         ) : (
-          <div className="rounded-md border bg-muted/30 py-4 text-center text-sm text-muted-foreground">
+          <div className="rounded-md border bg-muted/30 py-4 text-center text-muted-foreground">
             No custom filters yet. Add a filter to hide specific feed items.
           </div>
         )}

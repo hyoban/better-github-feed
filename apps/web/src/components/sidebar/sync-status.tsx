@@ -20,7 +20,7 @@ export function SyncStatusIndicator({ compact = false }: { compact?: boolean }) 
       role="status"
       title={presentation.title}
       className={cn(
-        'flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground',
+        'flex min-w-0 items-center gap-1.5 text-muted-foreground',
         compact ? 'size-8 justify-center' : 'px-1 py-0.5',
       )}
     >

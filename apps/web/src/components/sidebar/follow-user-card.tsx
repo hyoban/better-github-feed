@@ -53,7 +53,7 @@ export function FollowUserCard({
       }}
       aria-pressed={isActive}
       className={cn(
-        'group flex w-full items-center gap-2 border-l px-3 py-2 text-left transition-all',
+        'group flex w-full items-center gap-2 border-l px-3 py-2 text-left transition-colors',
         !isLast && 'border-b',
         isFocused
           ? 'border-l-primary bg-sidebar-accent'
@@ -74,12 +74,10 @@ export function FollowUserCard({
           width={28}
           height={28}
         />
-        <AvatarFallback className="text-xs">
-          {follow.login.slice(0, 2).toUpperCase()}
-        </AvatarFallback>
+        <AvatarFallback>{follow.login.slice(0, 2).toUpperCase()}</AvatarFallback>
       </Avatar>
-      <p className="min-w-0 flex-1 truncate text-sm">
-        {follow.login}
+      <p className="min-w-0 flex-1 truncate">
+        <span className="font-medium">{follow.login}</span>
         <span className="text-muted-foreground">
           {' '}
           ·
@@ -89,7 +87,10 @@ export function FollowUserCard({
         </span>
       </p>
       {itemCount > 0 && (
-        <Badge variant="secondary" className="h-5 shrink-0 px-1.5 text-[10px] font-semibold">
+        <Badge
+          variant="secondary"
+          className="h-5 shrink-0 px-1.5 font-medium text-muted-foreground"
+        >
           {itemCount}
         </Badge>
       )}

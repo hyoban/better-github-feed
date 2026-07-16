@@ -516,7 +516,7 @@ function AccountGate({
   const remoteSignOutError = 'remoteSignOutError' in state ? state.remoteSignOutError : undefined
   const remoteWarning = remoteSignOutError ? (
     <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-muted-foreground">
         Local data is secured, but remote sign out could not be confirmed. This account will not
         reopen without an explicit sign-in.
       </p>
@@ -533,8 +533,8 @@ function AccountGate({
     return (
       <main className="grid h-svh place-items-center p-6">
         <div className="max-w-md space-y-3 text-center">
-          <h1 className="text-lg font-medium">Finishing local data deletion</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="font-medium">Finishing local data deletion</h1>
+          <p className="text-muted-foreground">
             You are signed out. Another tab may still be closing this account database; local
             deletion is not reported as complete yet.
           </p>
@@ -550,7 +550,7 @@ function AccountGate({
   if (state.kind === 'locked-awaiting-auth') {
     const legacyWarning = state.legacyCleanupError ? (
       <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground">
           The retained database is locked, but the legacy browser cache could not be removed yet.
           Retry cleanup before leaving this device.
         </p>
@@ -561,7 +561,7 @@ function AccountGate({
     ) : null
     const mediaWarning = state.mediaFenceError ? (
       <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground">
           The account generation is locked, but its account-wide media fence is still awaiting an
           authoritative acknowledgement. Cleanup remains retryable and remote sign out is paused.
         </p>
@@ -573,15 +573,15 @@ function AccountGate({
     return (
       <main className="grid h-svh place-items-center p-6">
         <div className="max-w-md space-y-3 text-center">
-          <h1 className="text-lg font-medium">Local feed is locked</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="font-medium">Local feed is locked</h1>
+          <p className="text-muted-foreground">
             Sign in with the same GitHub account to unlock retained local data. The database stays
             closed until the server verifies GitHub ID {state.ownerGithubId}.
           </p>
           {remoteWarning}
           {mediaWarning}
           {legacyWarning}
-          {signInError ? <p className="text-sm text-destructive">{signInError.message}</p> : null}
+          {signInError ? <p className="text-destructive">{signInError.message}</p> : null}
           <Button onClick={beginGithubSignIn}>Sign in with GitHub</Button>
           <Button
             variant="destructive"
@@ -604,8 +604,8 @@ function AccountGate({
     return (
       <main className="grid h-svh place-items-center p-6">
         <div className="max-w-md space-y-3 text-center">
-          <h1 className="text-lg font-medium">{title}</h1>
-          <p className="text-sm text-muted-foreground">{state.error.message}</p>
+          <h1 className="font-medium">{title}</h1>
+          <p className="text-muted-foreground">{state.error.message}</p>
           <Button variant="outline" onClick={retry}>
             Try again
           </Button>
@@ -630,12 +630,10 @@ function AccountGate({
   return (
     <main className="grid h-svh place-items-center p-6">
       <div className="space-y-3 text-center">
-        <h1 className="text-lg font-medium">Better GitHub Feed</h1>
-        <p className="text-sm text-muted-foreground">
-          Sign in to create or unlock your local feed.
-        </p>
+        <h1 className="font-medium">Better GitHub Feed</h1>
+        <p className="text-muted-foreground">Sign in to create or unlock your local feed.</p>
         {remoteWarning}
-        {signInError ? <p className="text-sm text-destructive">{signInError.message}</p> : null}
+        {signInError ? <p className="text-destructive">{signInError.message}</p> : null}
         <Button onClick={beginGithubSignIn}>Sign in with GitHub</Button>
       </div>
     </main>
@@ -1541,7 +1539,7 @@ function RemoteAttentionNotice({
   return (
     <div className="fixed inset-x-0 top-0 z-50 border-b bg-background/95 p-3 shadow-sm backdrop-blur">
       <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-        <div className="min-w-0 text-sm">
+        <div className="min-w-0">
           <p className="font-medium">
             {issue === 'reauth-required'
               ? 'Cloud sync needs GitHub authentication again'

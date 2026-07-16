@@ -30,7 +30,7 @@ export function ActivityDetailLoader({ id }: { id: string }) {
 function DetailMessage({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 p-8 text-center">
-      <p className="max-w-sm text-sm text-muted-foreground">{children}</p>
+      <p className="max-w-sm text-muted-foreground">{children}</p>
     </div>
   )
 }

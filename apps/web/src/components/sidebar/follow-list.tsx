@@ -126,7 +126,7 @@ export function FollowList() {
           : 'Your GitHub Following snapshot is empty.'
     return (
       <div className="flex min-h-0 flex-1 items-start px-4 pt-4">
-        <p className="text-sm text-muted-foreground">{message}</p>
+        <p className="text-muted-foreground">{message}</p>
       </div>
     )
   }

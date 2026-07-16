@@ -5,23 +5,23 @@
 @custom-variant dark (&:is(:where(.dark, .dark *), :where(@media (prefers-color-scheme: dark)) *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --background: #fdfdfc;
+  --foreground: #21201c;
+  --card: #fdfdfc;
+  --card-foreground: #21201c;
+  --popover: #fdfdfc;
+  --popover-foreground: #21201c;
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: #f1f0ef;
+  --secondary-foreground: #21201c;
+  --muted: #f1f0ef;
+  --muted-foreground: #63635e;
+  --accent: #f1f0ef;
+  --accent-foreground: #21201c;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: #e9e9e7;
+  --input: #e2e1de;
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -29,13 +29,13 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar: #f9f9f8;
+  --sidebar-foreground: #21201c;
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-accent: #f1f0ef;
+  --sidebar-accent-foreground: #21201c;
+  --sidebar-border: #e9e9e7;
   --sidebar-ring: oklch(0.708 0 0);
 }
 
@@ -149,18 +149,16 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background font-sans text-foreground;
+    @apply bg-background font-sans text-foreground antialiased;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
   }
   html {
     @apply font-sans;
   }
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
+  small,
+  sub,
+  sup {
+    font-size: inherit;
   }
 }
