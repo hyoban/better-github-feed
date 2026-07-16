@@ -23,6 +23,7 @@ import { clearPersistedCache, client } from '@/utils/orpc'
 
 import {
   activeAccountFallbackAfterVerificationFailure,
+  canReuseVerifiedRemoteAccount,
   createLoginIntent,
   decideAccountBoot,
   fenceAccountForLock,
@@ -382,7 +383,7 @@ type ReadyAccount = {
   ownerGithubId: string
   generation: number
   nonce: string
-  remoteEnabled: boolean
+  remoteBinding: { verifiedSessionUserId: string } | null
   feed: LocalFeed
   remoteAttention?: 'reauth-required' | 'account-mismatch'
 }
@@ -676,7 +677,7 @@ function useLocalFirstAccountController() {
     if (!current) return null
     readyAccount.current = null
     desiredOpenKey.current = null
-    feedFlights.forget(feedFlightKey(current, current.remoteEnabled))
+    feedFlights.forget(feedFlightKey(current, current.remoteBinding !== null))
     return current
   }, [])
 
@@ -779,7 +780,7 @@ function useLocalFirstAccountController() {
     }
     const onFocus = () => {
       void onRegistryChange()
-      if (!readyAccount.current?.remoteEnabled) void refetchSession().finally(retry)
+      if (!readyAccount.current?.remoteBinding) void refetchSession().finally(retry)
     }
     const onVisibility = () => {
       if (document.visibilityState === 'visible') void onRegistryChange()
@@ -795,7 +796,7 @@ function useLocalFirstAccountController() {
         if (
           document.visibilityState === 'visible' &&
           readyAccount.current &&
-          !readyAccount.current.remoteEnabled
+          !readyAccount.current.remoteBinding
         ) {
           void refetchSession().finally(retry)
         }
@@ -850,18 +851,27 @@ function useLocalFirstAccountController() {
     let cancelled = false
     const isCurrent = () => !cancelled && operation.current === currentOperation
 
-    async function openAccount(account: AccountGeneration, remoteEnabled: boolean) {
+    async function openAccount(
+      account: AccountGeneration,
+      remoteBinding: ReadyAccount['remoteBinding'],
+    ) {
       if (!isCurrent()) return
       lastKnownOwnerGithubId.current = account.ownerGithubId
+      const remoteEnabled = remoteBinding !== null
       const key = feedFlightKey(account, remoteEnabled)
       const current = readyAccount.current
       if (
         current?.ownerGithubId === account.ownerGithubId &&
         current.generation === account.generation &&
         current.nonce === account.nonce &&
-        current.remoteEnabled === remoteEnabled
+        (current.remoteBinding !== null) === remoteEnabled
       ) {
-        setState({ kind: 'ready', account: current })
+        const rebound =
+          current.remoteBinding?.verifiedSessionUserId === remoteBinding?.verifiedSessionUserId
+            ? current
+            : { ...current, remoteBinding }
+        readyAccount.current = rebound
+        setState({ kind: 'ready', account: rebound })
         return
       }
 
@@ -928,7 +938,7 @@ function useLocalFirstAccountController() {
         ownerGithubId: account.ownerGithubId,
         generation: account.generation,
         nonce: account.nonce,
-        remoteEnabled,
+        remoteBinding,
         feed,
         ...(remoteAttention.current?.ownerGithubId === account.ownerGithubId
           ? { remoteAttention: remoteAttention.current.issue }
@@ -971,7 +981,18 @@ function useLocalFirstAccountController() {
         active?.ownerGithubId === remoteAttention.current.ownerGithubId &&
         !hasExplicitAuthIntent
       ) {
-        await openAccount(active, false)
+        await openAccount(active, null)
+        return
+      }
+      if (
+        canReuseVerifiedRemoteAccount({
+          ready: readyAccount.current,
+          active,
+          sessionUserId: sessionData?.user.id ?? null,
+          deletingOwnerGithubId: deleting?.ownerGithubId ?? null,
+          explicitAuthIntent: hasExplicitAuthIntent,
+        })
+      ) {
         return
       }
       const sessionResolution = sessionData
@@ -1011,6 +1032,7 @@ function useLocalFirstAccountController() {
       }
 
       if (decision.kind === 'verify-session') {
+        if (!sessionData) return
         let ownerGithubId: string
         try {
           ownerGithubId = await verifyViewerGithubId()
@@ -1019,7 +1041,7 @@ function useLocalFirstAccountController() {
             active?.ownerGithubId ?? null,
           )
           if (fallback && active) {
-            await openAccount(active, false)
+            await openAccount(active, null)
             return
           }
           await closeReadyAccount('shutdown')
@@ -1049,7 +1071,7 @@ function useLocalFirstAccountController() {
             // The in-memory expected owner remains the recovery fence.
           }
           if (active?.ownerGithubId === expectedRecoveryOwner) {
-            await openAccount(active, false)
+            await openAccount(active, null)
           } else if (isCurrent()) {
             setState({
               kind: 'locked-awaiting-auth',
@@ -1135,7 +1157,7 @@ function useLocalFirstAccountController() {
             return
           }
         }
-        await openAccount(verified, true)
+        await openAccount(verified, { verifiedSessionUserId: sessionData.user.id })
         return
       }
 
@@ -1144,7 +1166,7 @@ function useLocalFirstAccountController() {
         if (account?.state === 'active') {
           const issue = remoteAttentionForOfflineOpen(sessionResolution, navigator.onLine)
           if (issue) remoteAttention.current = { ownerGithubId: account.ownerGithubId, issue }
-          await openAccount(account, false)
+          await openAccount(account, null)
         }
         return
       }
@@ -1305,7 +1327,7 @@ function useLocalFirstAccountController() {
       if (!outcome.remoteSignOutError && !outcome.mediaFenceError && !outcome.mediaCleanupError) {
         pendingRemoteSignOut.current = null
       }
-      feedFlights.forget(feedFlightKey(current, current.remoteEnabled))
+      feedFlights.forget(feedFlightKey(current, current.remoteBinding !== null))
       readyAccount.current = null
       setMediaAccount(null)
 
@@ -1493,7 +1515,7 @@ function useLocalFirstAccountController() {
   }, [])
 
   const sessionProfile = useMemo<SessionProfile | null>(() => {
-    if (!sessionData || state.kind !== 'ready' || !state.account.remoteEnabled) return null
+    if (!sessionData || state.kind !== 'ready' || !state.account.remoteBinding) return null
     return { name: sessionData.user.name, email: sessionData.user.email }
   }, [sessionData, state])
 

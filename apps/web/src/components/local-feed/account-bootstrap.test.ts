@@ -10,6 +10,7 @@ import {
 } from '../../local-feed'
 
 import {
+  canReuseVerifiedRemoteAccount,
   createLoginIntent,
   activeAccountFallbackAfterVerificationFailure,
   decideAccountBoot,
@@ -24,6 +25,71 @@ import {
 } from './account-bootstrap'
 
 describe('account bootstrap', () => {
+  it('reuses a verified remote account across session refetches for the same auth user', () => {
+    const ready = {
+      ownerGithubId: '38493346',
+      generation: 2,
+      nonce: 'generation-nonce',
+      remoteBinding: { verifiedSessionUserId: 'auth-user' },
+    }
+    const active = {
+      ownerGithubId: '38493346',
+      generation: 2,
+      nonce: 'generation-nonce',
+    }
+
+    assert.equal(
+      canReuseVerifiedRemoteAccount({
+        ready,
+        active,
+        sessionUserId: 'auth-user',
+        deletingOwnerGithubId: null,
+        explicitAuthIntent: false,
+      }),
+      true,
+    )
+    assert.equal(
+      canReuseVerifiedRemoteAccount({
+        ready,
+        active,
+        sessionUserId: 'different-auth-user',
+        deletingOwnerGithubId: null,
+        explicitAuthIntent: false,
+      }),
+      false,
+    )
+    assert.equal(
+      canReuseVerifiedRemoteAccount({
+        ready,
+        active: { ...active, generation: 3 },
+        sessionUserId: 'auth-user',
+        deletingOwnerGithubId: null,
+        explicitAuthIntent: false,
+      }),
+      false,
+    )
+    assert.equal(
+      canReuseVerifiedRemoteAccount({
+        ready,
+        active,
+        sessionUserId: 'auth-user',
+        deletingOwnerGithubId: null,
+        explicitAuthIntent: true,
+      }),
+      false,
+    )
+    assert.equal(
+      canReuseVerifiedRemoteAccount({
+        ready,
+        active,
+        sessionUserId: 'auth-user',
+        deletingOwnerGithubId: 'pending-deletion',
+        explicitAuthIntent: false,
+      }),
+      false,
+    )
+  })
+
   it('requires an exact, fresh, tab-local OAuth intent match', () => {
     const intent = createLoginIntent(1_000, 'nonce')
     assert.equal(hasMatchingLoginIntent(intent, intent, 1_500, 1_000), true)

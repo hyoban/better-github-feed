@@ -37,6 +37,30 @@ export type AccountBootDecision =
   | { kind: 'wait-for-session' }
   | { kind: 'signed-out' }
 
+export function canReuseVerifiedRemoteAccount(input: {
+  ready: {
+    ownerGithubId: string
+    generation: number
+    nonce: string
+    remoteBinding: { verifiedSessionUserId: string } | null
+  } | null
+  active: { ownerGithubId: string; generation: number; nonce: string } | null
+  sessionUserId: string | null
+  deletingOwnerGithubId: string | null
+  explicitAuthIntent: boolean
+}) {
+  const { ready, active } = input
+  return (
+    !input.explicitAuthIntent &&
+    input.deletingOwnerGithubId === null &&
+    input.sessionUserId !== null &&
+    ready?.remoteBinding?.verifiedSessionUserId === input.sessionUserId &&
+    active?.ownerGithubId === ready.ownerGithubId &&
+    active.generation === ready.generation &&
+    active.nonce === ready.nonce
+  )
+}
+
 export function decideAccountBoot(input: {
   session: SessionResolution
   online: boolean
