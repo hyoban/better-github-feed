@@ -4,7 +4,7 @@ Date: 2026-07-16
 
 Status: Implemented locally; pending deployment
 
-Scope: GitHub Activity, GitHub Following, User Filters, and the feed clear watermark
+Scope: GitHub Activity, GitHub Following, User Filters, and legacy feed-clear compatibility
 
 ## Outcome
 
@@ -12,10 +12,10 @@ The browser becomes a real local-first application:
 
 - Dexie is the only read path used by the UI.
 - A local query returns immediately and creates demand for any missing remote range.
-- Visible Feed, type counts, User Filter evaluation, and clear-watermark evaluation are derived locally.
+- Visible Feed, type counts, and User Filter evaluation are derived locally.
 - GitHub Atom ingestion remains automatic on the Worker Cron and is materialized in D1.
 - D1-to-Dexie transfer is incremental and demand-driven.
-- User Filter and clear-watermark writes commit to Dexie and a durable outbox before any network request.
+- User Filter writes commit to Dexie and a durable outbox before any network request.
 - All manual Activity Refresh and manual Following Sync controls are removed.
 
 The selected technology is Dexie OSS. The evaluation and rejected alternatives are recorded in [Local-First Storage and Incremental Sync Options](./local-first-options.md).
@@ -33,7 +33,7 @@ The selected technology is Dexie OSS. The evaluation and rejected alternatives a
 | Cloud authority    | GitHub is authoritative for Activity and Following. D1 is a bounded materialization and the convergence point for cross-device user state.        |
 | Activity retention | The application never expires or evicts a locally stored Activity. D1 cleanup never propagates a delete.                                          |
 | New devices        | A new device can only download the current bounded D1 window. Old device-only history is not recoverable.                                         |
-| User state         | User Filters and the clear watermark sync across devices through local outbox, pull/rebase, CAS, receipts, and tombstones.                        |
+| User state         | User Filters sync across devices through local outbox, pull/rebase, CAS, receipts, and tombstones; legacy clear state is protocol-only.           |
 | Automation         | Check on start, focus, reconnect, and every five minutes while the feed is visible. Pause in the background.                                      |
 | Multi-tab          | Elect one sync leader; all tabs observe the same Dexie commits.                                                                                   |
 | Sign out           | Delete the account database by default. An explicit keep-local-data choice leaves it locked until the same GitHub numeric ID authenticates again. |
@@ -238,7 +238,7 @@ useUserFilterActions()
 useLocalFirstSignOut({ keepLocalData: false })
 ```
 
-`feed.clear` remains an internal mutation only for replication compatibility with existing local outboxes and older clients. The React adapter exposes no feed-clearing action.
+`feed.clear` remains an internal mutation only for replication compatibility with existing local outboxes and older clients. Current clients accept its replicas and receipts but ignore the legacy watermark when deriving feed visibility. The React adapter exposes no feed-clearing action.
 
 Omitting `localData` or passing `keepLocalData: false` means delete; retained data requires an explicit user choice. `CloseResult` distinguishes confirmed deletion from a blocked deletion that will continue behind the external sign-out fence. The adapter caches one `LiveProjection` per canonical projection key and bridges its synchronous `getSnapshot/subscribe` pair to `useSyncExternalStore`. Snapshot object identity remains stable until the local revision changes, preventing a subscription race between the first Dexie query and React render. Database-open and migration failures belong to `LocalFeedBootState`, before sync-status observation is possible. Hooks must not call Dexie or the Worker directly.
 
@@ -296,7 +296,7 @@ Use one database per authenticated GitHub numeric viewer ID. The database name u
 | `followingState`          | Active snapshot, commutative membership digest, and resumable staging/finalize cursors   | `key`                                                                                             |
 | `filterReplicas`          | Server shadow, entity version, value, tombstone                                          | `&id`, `changedRevision`, `deletedAt`                                                             |
 | `filters`                 | Materialized optimistic filter projection used by queries                                | `&id`, `deletedAt`                                                                                |
-| `feedState`               | Server shadow and optimistic clear watermark                                             | `key`                                                                                             |
+| `feedState`               | Legacy clear replica retained for wire compatibility                                     | `key`                                                                                             |
 | `outbox`                  | Ordered durable local mutations and base values                                          | `&mutationId`, `localSequence`, `entityKey`, `status`                                             |
 | `syncLanes`               | Stable and pending checkpoints per scope fingerprint                                     | `&scopeKey`, `kind`, `lastUsedAt`                                                                 |
 | `coverage`                | History frontier, remote-window end, and detected gaps per scope                         | `&scopeKey`                                                                                       |
@@ -304,12 +304,12 @@ Use one database per authenticated GitHub numeric viewer ID. The database name u
 
 The wire payload contains the full normalized Atom entry for every pulled Activity. Dexie splits the body from indexed headers to keep feed scans cheap. Images referenced by Atom HTML are not stored in these tables; they use Cache Storage.
 
-Feed visibility is materialized incrementally because Activity is permanent locally and content filters are not indexable. A filter, effective clear fence, sanitizer version, or Following membership-key change starts a fixed-high-water rebuild in bounded batches. Following-summary initialization, display-key refresh after a rename, and Activity scanning each have durable cursors, while the Following UI projection reads the complete active local snapshot. Visible Feed keeps the previous complete generation as a partial baseline and overlays the current membership/filter/clear fence so newly hidden content cannot leak; aggregate projections report conservative rebuilding values until the new generation atomically replaces it. A snapshot revision with identical membership keys does not rebuild Activity visibility; mutable login sort keys refresh separately in bounded batches. Status-only revisions invalidate only the sync-status projection.
+Feed visibility is materialized incrementally because Activity is permanent locally and content filters are not indexable. A filter, sanitizer version, or Following membership-key change starts a fixed-high-water rebuild in bounded batches. Following-summary initialization, display-key refresh after a rename, and Activity scanning each have durable cursors, while the Following UI projection reads the complete active local snapshot. Visible Feed keeps the previous complete generation as a partial baseline and overlays the current membership and filters so newly hidden content cannot leak; aggregate projections report conservative rebuilding values until the new generation atomically replaces it. A snapshot revision with identical membership keys does not rebuild Activity visibility; mutable login sort keys refresh separately in bounded batches. Status-only revisions invalidate only the sync-status projection.
 
 ### Required local transactions
 
 - Activity headers, bodies, actors, history/delta progress, coverage, and local revision commit together.
-- A local User Filter or clear change, its outbox mutation, optimistic projection, and local revision commit together.
+- A local User Filter change, its outbox mutation, optimistic projection, and local revision commit together.
 - A remote user-state pull, server shadows, outbox rebase, optimistic projection, server cursor, and local revision commit together.
 - A Following snapshot stages pages with a durable digest and addition set, materializes actor rows in bounded finalize batches, then switches the active revision in one transaction. A partial snapshot never becomes visible.
 - A remote acknowledgement updates the server shadow and removes or advances the outbox entry in one transaction.
@@ -519,7 +519,11 @@ Receipts retain the newest bounded retry window. If the newest receipt for an en
 - Delete writes a tombstone. A stale update can never overwrite that tombstone or resurrect the old ID.
 - Updating an entity deleted remotely produces a new conflict-copy ID instead of reviving the tombstoned ID.
 
-#### Clear watermark merge policy
+#### Legacy clear watermark compatibility
+
+Current clients no longer expose manual feed clearing and do not apply a clear watermark to Visible Feed. They still parse and acknowledge legacy clear state so an older local outbox can drain safely and protocol compatibility is preserved.
+
+The legacy protocol used the following merge policy:
 
 The canonical clear watermark is a monotonic publication timestamp. Pull, replay, and CAS use `max(local, remote)`, and a smaller value is a no-op. A client must not write raw `Date.now()` into canonical state because a fast device clock could permanently hide future Activity.
 
@@ -540,7 +544,7 @@ An observer is both a local query and a declaration of network demand:
 4. Reconcile Following and user state before planning an all-feed pull.
 5. Apply a head delta for an initialized lane, otherwise bootstrap its history.
 6. Re-run the local projection.
-7. If User Filters or the clear watermark leave fewer than `first` visible rows, pull older raw Activity pages.
+7. If User Filters leave fewer than `first` visible rows, pull older raw Activity pages.
 8. Stop when the requested visible count is satisfied, the D1 window ends, or the per-cycle safety budget is reached.
 
 While a local visibility generation is rebuilding, history demand pauses instead of treating the temporary local under-set as evidence that more cloud history is required. Promotion immediately re-evaluates active demand.

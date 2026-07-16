@@ -655,15 +655,15 @@ describe('LocalFeed pure invariants', () => {
     )
   })
 
-  it('uses the optimistic clear timestamp as an immediate projection fence', () => {
+  it('ignores legacy clear watermarks after manual feed clearing is retired', () => {
     const fence = effectiveActivityClearFence({
       serverClearedAt: 100,
       optimisticClearedAt: 200,
       provisionalThroughRevision: 7,
     })
-    assert.deepEqual(fence, { publishedAt: 200, throughRevision: 7 })
-    assert.equal(isActivityCleared({ publishedAt: 150, insertedRevision: 8 }, fence), true)
-    assert.equal(isActivityCleared({ publishedAt: 250, insertedRevision: 7 }, fence), true)
+    assert.deepEqual(fence, { publishedAt: null, throughRevision: null })
+    assert.equal(isActivityCleared({ publishedAt: 150, insertedRevision: 8 }, fence), false)
+    assert.equal(isActivityCleared({ publishedAt: 250, insertedRevision: 7 }, fence), false)
     assert.equal(isActivityCleared({ publishedAt: 250, insertedRevision: 8 }, fence), false)
   })
 

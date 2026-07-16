@@ -22,18 +22,14 @@ export type ActivityClearFence = {
 }
 
 export function effectiveActivityClearFence(
-  feedState: Pick<
+  _feedState: Pick<
     FeedStateRow,
     'serverClearedAt' | 'optimisticClearedAt' | 'provisionalThroughRevision'
   > | null,
 ): ActivityClearFence {
-  const timestamps = [feedState?.serverClearedAt, feedState?.optimisticClearedAt].filter(
-    (value): value is number => value !== null && value !== undefined,
-  )
-  return {
-    publishedAt: timestamps.length === 0 ? null : Math.max(...timestamps),
-    throughRevision: feedState?.provisionalThroughRevision ?? null,
-  }
+  // Keep reading legacy replicas and outbox receipts, but manual feed clearing is retired.
+  // Old watermarks must not permanently hide Activity on current clients.
+  return { publishedAt: null, throughRevision: null }
 }
 
 export function isActivityCleared(
