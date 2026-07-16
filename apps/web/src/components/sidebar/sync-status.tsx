@@ -51,8 +51,6 @@ function getPresentation(snapshot: ReturnType<typeof useLocalSyncStatus>) {
 
 function getStatusIcon(icon: SyncStatusIcon) {
   switch (icon) {
-    case 'working':
-      return <Spinner className="size-3.5" />
     case 'cloud':
       return <CloudIcon className="size-3.5" />
     case 'cloud-off':

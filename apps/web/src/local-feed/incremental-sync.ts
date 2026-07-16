@@ -494,7 +494,7 @@ export class IncrementalSync {
     }
 
     try {
-      await this.setWorking('control', fence)
+      await this.assertSyncPhase(fence)
       const control = await this.database.syncState.get('control')
       await this.beforeCloudRequest(fence)
       const manifestResult = await this.cloud.getManifest({
@@ -878,7 +878,7 @@ export class IncrementalSync {
     let state = await this.database.followingState.get('active')
     if (state?.pendingTransition) return state.pendingTransition
     if (state?.activeRevision === manifest.following.revision) return null
-    await this.setWorking('following', fence)
+    await this.assertSyncPhase(fence)
 
     if (state?.stagingRevision && state.stagingRevision !== manifest.following.revision) {
       await this.assertFence(fence)
@@ -1282,7 +1282,7 @@ export class IncrementalSync {
     ) {
       return
     }
-    await this.setWorking('user-state', fence)
+    await this.assertSyncPhase(fence)
     const pages = []
     let afterSeq = local?.userStateRevision
     let nextCursor: string | undefined
@@ -1312,7 +1312,7 @@ export class IncrementalSync {
   }
 
   private async flushOutbox(bookmark: string | null | undefined, fence: LeadershipFence) {
-    await this.setWorking('user-state', fence)
+    await this.assertSyncPhase(fence)
     for (let count = 0; count < 100; count += 1) {
       await this.assertFence(fence)
       const prepared = await prepareNextMutation({
@@ -1418,7 +1418,7 @@ export class IncrementalSync {
     bookmark: string | null | undefined,
     fence: LeadershipFence,
   ) {
-    await this.setWorking('activity', fence)
+    await this.assertSyncPhase(fence)
     let lane = await this.database.syncLanes.get(demand.localScopeKey)
     if (
       lane?.stableThroughSeq &&
@@ -1663,18 +1663,10 @@ export class IncrementalSync {
     await this.onLocalChange(scope)
   }
 
-  private async setWorking(
-    phase: Extract<LocalSyncStatus, { kind: 'working' }>['phase'],
-    fence: LeadershipFence,
-  ) {
-    await this.setStatus(
-      {
-        kind: 'working',
-        phase,
-        pendingUserOperations: await this.database.outbox.count(),
-      },
-      fence,
-    )
+  private async assertSyncPhase(fence: LeadershipFence) {
+    // Automatic checks must not replace the stable user-facing status or publish a
+    // global local revision merely to expose transient progress.
+    await this.assertFence(fence)
   }
 
   private async setStatus(status: LocalSyncStatus, fence: LeadershipFence) {

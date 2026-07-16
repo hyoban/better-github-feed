@@ -5,6 +5,21 @@ import { describe, it } from 'vite-plus/test'
 import { presentSyncStatus } from './sync-status-presentation'
 
 describe('sync status presentation', () => {
+  it('keeps automatic background checks visually quiet', () => {
+    assert.deepEqual(
+      presentSyncStatus({
+        kind: 'working',
+        phase: 'control',
+        pendingUserOperations: 0,
+      }),
+      {
+        label: 'Local feed ready',
+        title: 'Checking for updates in the background.',
+        icon: 'cloud',
+      },
+    )
+  })
+
   it('keeps local readiness primary during an automatic cloud retry', () => {
     assert.deepEqual(
       presentSyncStatus({

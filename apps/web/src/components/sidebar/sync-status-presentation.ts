@@ -1,6 +1,6 @@
 import type { LocalSyncStatus } from '@/local-feed'
 
-export type SyncStatusIcon = 'working' | 'cloud' | 'cloud-off' | 'cloud-off-warning' | 'attention'
+export type SyncStatusIcon = 'cloud' | 'cloud-off' | 'cloud-off-warning' | 'attention'
 
 export function presentSyncStatus(status: LocalSyncStatus): {
   label: string
@@ -9,8 +9,11 @@ export function presentSyncStatus(status: LocalSyncStatus): {
 } {
   switch (status.kind) {
     case 'working': {
-      const label = `Syncing ${status.phase.replace('-', ' ')}`
-      return { label, title: label, icon: 'working' }
+      return {
+        label: 'Local feed ready',
+        title: 'Checking for updates in the background.',
+        icon: 'cloud',
+      }
     }
     case 'offline': {
       const label = status.hasUnmetDemand
