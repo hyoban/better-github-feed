@@ -176,7 +176,7 @@ export function FilterManagementDialog() {
           <Button
             variant="outline"
             size="sm"
-            className="h-7 gap-1 rounded-full font-normal text-muted-foreground hover:text-foreground"
+            className="h-9 gap-1.5 rounded-full px-3 font-normal text-muted-foreground hover:text-foreground"
           >
             Filters
             {filterCount > 0 && (

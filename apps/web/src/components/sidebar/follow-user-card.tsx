@@ -55,7 +55,7 @@ export function FollowUserCard({
       aria-pressed={isActive}
       className={cn(
         'feed-row group flex w-full items-center border-l text-left transition-colors',
-        comfortable ? 'min-h-11 gap-3 px-4 py-2.5' : 'gap-2 px-3 py-2',
+        comfortable ? 'min-h-12 gap-3 px-4 py-2.5' : 'gap-2.5 px-3 py-2',
         !isLast && 'border-b',
         isFocused
           ? 'border-l-primary bg-sidebar-accent'
@@ -64,7 +64,7 @@ export function FollowUserCard({
             : 'border-l-transparent hover:bg-sidebar-accent/50',
       )}
     >
-      <Avatar className={comfortable ? 'size-6' : 'size-5'}>
+      <Avatar className={comfortable ? 'size-7' : 'size-6'}>
         <AvatarImage
           src={
             follow.avatarUrl ??

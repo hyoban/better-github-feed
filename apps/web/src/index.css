@@ -129,7 +129,7 @@ body {
 
 @layer components {
   .mobile-safe-header {
-    height: calc(3rem + env(safe-area-inset-top));
+    height: calc(3.5rem + env(safe-area-inset-top));
     padding-top: env(safe-area-inset-top);
   }
 
@@ -138,11 +138,11 @@ body {
   }
 
   .feed-row {
-    height: 2.3125rem;
+    height: 3rem;
   }
 
   .feed-row-double {
-    height: 4.625rem;
+    height: 5rem;
   }
 
   .activity-content {
@@ -287,8 +287,8 @@ body {
   }
   body {
     @apply bg-background font-sans text-foreground antialiased;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
   }
   html {
     @apply font-sans;

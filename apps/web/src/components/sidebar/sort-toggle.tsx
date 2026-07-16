@@ -25,7 +25,7 @@ export function SortToggle() {
 
   return (
     <Tabs value={sortBy} onValueChange={handleSortChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 group-data-horizontal/tabs:h-11" variant="line">
+      <TabsList className="grid w-full grid-cols-2 group-data-horizontal/tabs:h-12" variant="line">
         <TabsTrigger value="latest" onClick={() => handleSelectedSortClick('latest')}>
           Latest
         </TabsTrigger>

@@ -97,7 +97,7 @@ export function ActivityList() {
 
   const virtualCount = items.length + (hasMoreLocal && !renderedFrontierWasExtended ? 1 : 0)
   const estimateVirtualRow = (index: number) =>
-    index >= items.length ? 1 : activeUsers.length === 1 ? 37 : 74
+    index >= items.length ? 1 : activeUsers.length === 1 ? 48 : 80
   const elementVirtualizer = useVirtualizer({
     count: virtualCount,
     getScrollElement: () => scrollElement,

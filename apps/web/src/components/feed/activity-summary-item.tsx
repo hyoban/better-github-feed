@@ -65,7 +65,7 @@ export const ActivitySummaryItem = memo(
       >
         {showActor ? (
           <div className="flex gap-3">
-            <Avatar className="size-8 shrink-0">
+            <Avatar className="size-9 shrink-0">
               <AvatarImage
                 src={
                   item.actorAvatarUrl ??

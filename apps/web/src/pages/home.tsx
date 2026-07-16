@@ -21,7 +21,7 @@ export function Home() {
           <div className="min-w-0 border-b">
             <TypeFilter />
           </div>
-          <div className="grid min-h-0 flex-1 md:grid-cols-[minmax(320px,420px)_1fr] md:overflow-hidden">
+          <div className="grid min-h-0 flex-1 md:grid-cols-[minmax(360px,420px)_1fr] md:overflow-hidden lg:grid-cols-[384px_1fr] xl:grid-cols-[480px_1fr]">
             <main className="bg-background/50 text-foreground md:h-full md:overflow-hidden md:border-r">
               <ActivityList />
             </main>
