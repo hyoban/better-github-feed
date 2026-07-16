@@ -4,7 +4,7 @@ import { describe, it } from 'vite-plus/test'
 
 import type { LiveProjection, LocalFeed } from '../local-feed/types'
 
-import { ReactProjectionCache } from './use-local-feed'
+import { ReactProjectionCache, StrictModeDeferredDisposer } from './use-local-feed'
 
 class ManualScheduler {
   #nextId = 0
@@ -108,5 +108,43 @@ describe('ReactProjectionCache', () => {
     unsubscribe()
     scheduler.run(0)
     cache.dispose()
+  })
+})
+
+describe('StrictModeDeferredDisposer', () => {
+  it('keeps a cache alive across Strict Mode effect replay', async () => {
+    const disposer = new StrictModeDeferredDisposer<object>()
+    const cache = {}
+    let disposeCount = 0
+
+    const firstCleanup = disposer.mount(cache, () => {
+      disposeCount += 1
+    })
+    firstCleanup()
+    const secondCleanup = disposer.mount(cache, () => {
+      disposeCount += 1
+    })
+    await Promise.resolve()
+    assert.equal(disposeCount, 0)
+
+    secondCleanup()
+    await Promise.resolve()
+    assert.equal(disposeCount, 1)
+  })
+
+  it('still disposes a replaced cache', async () => {
+    const disposer = new StrictModeDeferredDisposer<object>()
+    const previous = {}
+    const next = {}
+    let previousDisposeCount = 0
+
+    const cleanup = disposer.mount(previous, () => {
+      previousDisposeCount += 1
+    })
+    cleanup()
+    disposer.mount(next, () => undefined)
+    await Promise.resolve()
+
+    assert.equal(previousDisposeCount, 1)
   })
 })

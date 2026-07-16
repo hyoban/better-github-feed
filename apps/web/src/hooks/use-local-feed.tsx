@@ -171,11 +171,28 @@ export class ReactProjectionCache {
   }
 }
 
+export class StrictModeDeferredDisposer<T extends object> {
+  readonly #tokens = new WeakMap<T, object>()
+
+  mount(value: T, dispose: () => void) {
+    const token = {}
+    this.#tokens.set(value, token)
+    return () => {
+      queueMicrotask(() => {
+        if (this.#tokens.get(value) !== token) return
+        this.#tokens.delete(value)
+        dispose()
+      })
+    }
+  }
+}
+
 const LocalFeedContext = createContext<ReactProjectionCache | null>(null)
 
 export function LocalFeedProvider({ feed, children }: LocalFeedProviderProps) {
   const cache = useMemo(() => new ReactProjectionCache(feed), [feed])
-  useEffect(() => () => cache.dispose(), [cache])
+  const disposer = useMemo(() => new StrictModeDeferredDisposer<ReactProjectionCache>(), [])
+  useEffect(() => disposer.mount(cache, () => cache.dispose()), [cache, disposer])
 
   return <LocalFeedContext.Provider value={cache}>{children}</LocalFeedContext.Provider>
 }
