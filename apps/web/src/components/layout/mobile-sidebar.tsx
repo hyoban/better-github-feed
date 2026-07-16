@@ -30,7 +30,7 @@ export function MobileSidebar() {
         <MenuIcon className="size-5" />
         <span className="sr-only">Toggle menu</span>
       </SheetTrigger>
-      <SheetContent side="left" className="flex w-80 flex-col p-0" showCloseButton={false}>
+      <SheetContent side="left" className="flex w-80 flex-col gap-0 p-0" showCloseButton={false}>
         <div className="flex items-center border-b">
           <SortToggle />
         </div>
