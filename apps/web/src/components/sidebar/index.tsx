@@ -1,8 +1,6 @@
-import UserMenu from '@/components/user-menu'
-
 import { FollowList } from './follow-list'
+import { SidebarFooter } from './footer'
 import { SortToggle } from './sort-toggle'
-import { SyncStatusIndicator } from './sync-status'
 
 export function Sidebar() {
   return (
@@ -11,10 +9,7 @@ export function Sidebar() {
         <SortToggle />
       </div>
       <FollowList />
-      <div className="flex flex-col gap-1 border-t p-2">
-        <SyncStatusIndicator />
-        <UserMenu />
-      </div>
+      <SidebarFooter />
     </aside>
   )
 }

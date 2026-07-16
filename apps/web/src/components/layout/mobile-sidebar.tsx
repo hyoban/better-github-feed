@@ -3,11 +3,10 @@ import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import UserMenu from '@/components/user-menu'
 
 import { FollowList } from '../sidebar/follow-list'
+import { SidebarFooter } from '../sidebar/footer'
 import { SortToggle } from '../sidebar/sort-toggle'
-import { SyncStatusIndicator } from '../sidebar/sync-status'
 
 const LG_BREAKPOINT = 1024
 
@@ -36,10 +35,7 @@ export function MobileSidebar() {
           <SortToggle />
         </div>
         <FollowList />
-        <div className="flex flex-col gap-1 border-t p-2">
-          <SyncStatusIndicator />
-          <UserMenu />
-        </div>
+        <SidebarFooter />
       </SheetContent>
     </Sheet>
   )

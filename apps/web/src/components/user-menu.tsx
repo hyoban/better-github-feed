@@ -57,9 +57,9 @@ export default function UserMenu() {
         <DropdownMenuTrigger
           render={
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="min-w-0 flex-1 justify-between"
+              className="min-w-0 flex-1 justify-between px-2"
               aria-label="User menu"
             />
           }
