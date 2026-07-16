@@ -21,30 +21,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useFeedActions, useLocalSyncStatus } from '@/hooks/use-local-feed'
+import { useLocalSyncStatus } from '@/hooks/use-local-feed'
 
 import { Button } from './ui/button'
 
 export default function UserMenu() {
   const account = useLocalFirstAccount()
-  const feedActions = useFeedActions()
   const syncStatus = useLocalSyncStatus()
-  const [clearOpen, setClearOpen] = useState(false)
   const [signOutOpen, setSignOutOpen] = useState(false)
-  const [working, setWorking] = useState<'clear' | 'delete' | 'retain' | null>(null)
+  const [working, setWorking] = useState<'delete' | 'retain' | null>(null)
 
   const pendingOperations =
     syncStatus.kind === 'ready' ? syncStatus.value.pendingUserOperations : null
-
-  async function handleClearFeed() {
-    setWorking('clear')
-    try {
-      await feedActions.clearFeed()
-      setClearOpen(false)
-    } finally {
-      setWorking(null)
-    }
-  }
 
   async function handleSignOut(localData: 'delete' | 'retain-locked') {
     setWorking(localData === 'delete' ? 'delete' : 'retain')
@@ -74,31 +62,12 @@ export default function UserMenu() {
             <DropdownMenuItem disabled>
               {account.sessionProfile?.email ?? `GitHub ID ${account.ownerGithubId}`}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setClearOpen(true)}>Clear Feed</DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={() => setSignOutOpen(true)}>
               Sign Out
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Clear Feed?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This immediately hides all Activity currently known to this local account and queues
-              the clear watermark for sync. Saved Activity is retained locally.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={working !== null}>Cancel</AlertDialogCancel>
-            <AlertDialogAction disabled={working !== null} onClick={() => void handleClearFeed()}>
-              {working === 'clear' ? 'Clearing…' : 'Clear Feed'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog open={signOutOpen} onOpenChange={setSignOutOpen}>
         <AlertDialogContent>

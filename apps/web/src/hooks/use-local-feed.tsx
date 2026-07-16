@@ -240,13 +240,3 @@ export function useUserFilterActions() {
     [feed],
   )
 }
-
-export function useFeedActions() {
-  const feed = useLocalFeedInstance()
-  return useMemo(
-    () => ({
-      clearFeed: () => feed.commit({ kind: 'feed.clear' }),
-    }),
-    [feed],
-  )
-}

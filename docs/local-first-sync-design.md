@@ -235,9 +235,10 @@ useUserFilters()
 useLocalFeedStatistics({ actors })
 useLocalSyncStatus()
 useUserFilterActions()
-useFeedActions().clearFeed()
 useLocalFirstSignOut({ keepLocalData: false })
 ```
+
+`feed.clear` remains an internal mutation only for replication compatibility with existing local outboxes and older clients. The React adapter exposes no feed-clearing action.
 
 Omitting `localData` or passing `keepLocalData: false` means delete; retained data requires an explicit user choice. `CloseResult` distinguishes confirmed deletion from a blocked deletion that will continue behind the external sign-out fence. The adapter caches one `LiveProjection` per canonical projection key and bridges its synchronous `getSnapshot/subscribe` pair to `useSyncExternalStore`. Snapshot object identity remains stable until the local revision changes, preventing a subscription race between the first Dexie query and React render. Database-open and migration failures belong to `LocalFeedBootState`, before sync-status observation is possible. Hooks must not call Dexie or the Worker directly.
 
