@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 
-import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
@@ -55,11 +54,6 @@ export function TypeFilter() {
         <Separator orientation="vertical" />
         {statistics.kind === 'ready' && statistics.value.computation === 'rebuilding' && (
           <Spinner className="size-3.5 shrink-0 text-muted-foreground" />
-        )}
-        {statistics.kind === 'ready' && statistics.value.coverage === 'partial' && (
-          <Badge variant="outline" title="Counts cover locally available activity only">
-            Partial counts
-          </Badge>
         )}
         {sortedTypes.map(type => {
           const isActive = activeTypeSet.has(type)
