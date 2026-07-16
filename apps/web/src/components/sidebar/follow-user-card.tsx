@@ -9,6 +9,7 @@ import type { FollowUserData } from './follow-user-item'
 
 type FollowUserCardProps = {
   follow: FollowUserData
+  isLast: boolean
   isActive: boolean
   isFocused: boolean
   onToggle: (actorKey: string, multiSelect: boolean) => void
@@ -17,6 +18,7 @@ type FollowUserCardProps = {
 
 export function FollowUserCard({
   follow,
+  isLast,
   isActive,
   isFocused,
   onToggle,
@@ -51,7 +53,8 @@ export function FollowUserCard({
       }}
       aria-pressed={isActive}
       className={cn(
-        'group flex w-full items-center gap-2 border-b border-l px-3 py-2 text-left transition-all',
+        'group flex w-full items-center gap-2 border-l px-3 py-2 text-left transition-all',
+        !isLast && 'border-b',
         isFocused
           ? 'border-l-primary bg-sidebar-accent'
           : isActive

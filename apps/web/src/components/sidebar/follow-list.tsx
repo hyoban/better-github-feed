@@ -135,13 +135,14 @@ export function FollowList() {
   return (
     <ScrollArea className="min-h-0 flex-1">
       <div ref={listRef}>
-        {follows.map(follow => {
+        {follows.map((follow, index) => {
           const isActive = selectedActorKeySet.has(follow.actorKey)
           const isFocused = focusedPanel === 'sidebar' && canonicalSelection[0] === follow.actorKey
           return (
             <div key={follow.actorKey} data-actor-key={follow.actorKey}>
               <FollowUserItem
                 follow={follow}
+                isLast={index === follows.length - 1}
                 isActive={isActive}
                 isFocused={isFocused}
                 onToggle={toggleUser}
