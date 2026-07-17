@@ -15,6 +15,7 @@
     <script>
       if (new URLSearchParams(location.search).has('debug-scroll')) {
         const startedAt = performance.now()
+        window.__scrollProbe = []
         let previous = ''
         const sample = () => {
           const root = document.documentElement
@@ -41,6 +42,7 @@
           }
           const signature = JSON.stringify({ ...state, elapsed: 0 })
           if (signature !== previous) {
+            window.__scrollProbe.push(state)
             console.log('[DEBUG-scroll-probe]', JSON.stringify(state))
             previous = signature
           }
