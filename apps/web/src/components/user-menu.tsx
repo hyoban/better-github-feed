@@ -43,6 +43,7 @@ export default function UserMenu() {
   const pwaInstall = usePwaInstall()
   const [signOutOpen, setSignOutOpen] = useState(false)
   const [working, setWorking] = useState<'delete' | 'retain' | null>(null)
+  const [isSigningIn, setIsSigningIn] = useState(false)
   const [isDevSyncing, setIsDevSyncing] = useState(false)
   const [pwaDiagnostics, setPwaDiagnostics] = useState<PwaDiagnostics | null>(null)
 
@@ -57,6 +58,17 @@ export default function UserMenu() {
   async function handleSignOut(localData: 'delete' | 'retain-locked') {
     setWorking(localData === 'delete' ? 'delete' : 'retain')
     await account.signOut(localData)
+  }
+
+  async function handleSignIn() {
+    if (isSigningIn) return
+    setIsSigningIn(true)
+    try {
+      await account.signIn()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'GitHub sign in failed')
+      setIsSigningIn(false)
+    }
   }
 
   async function handleDevSync() {
@@ -82,6 +94,20 @@ export default function UserMenu() {
     } catch {
       toast.error('The app could not be installed.')
     }
+  }
+
+  if (account.status === 'signed-out') {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="min-w-0 flex-1 justify-start px-2 font-normal"
+        disabled={isSigningIn}
+        onClick={() => void handleSignIn()}
+      >
+        {isSigningIn ? 'Signing in…' : 'Sign in with GitHub'}
+      </Button>
+    )
   }
 
   return (

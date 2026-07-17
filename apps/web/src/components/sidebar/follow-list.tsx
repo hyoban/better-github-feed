@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
+import { useLocalFirstAccount } from '@/components/local-feed/local-first-account'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { canonicalizeActorSelection } from '@/hooks/actor-selection'
 import { userSelectionTransition } from '@/hooks/feed-selection-transition'
@@ -18,6 +19,7 @@ type FollowListProps = {
 }
 
 export function FollowList({ comfortable, onUserSelect }: FollowListProps = {}) {
+  const account = useLocalFirstAccount()
   const [sortBy] = useSortBy()
   const [activeUsers, setActiveUsers] = useActiveUsers()
   const [, setActiveId] = useActiveId()
@@ -126,11 +128,13 @@ export function FollowList({ comfortable, onUserSelect }: FollowListProps = {}) 
 
   if (snapshot.kind === 'failed' || follows.length === 0) {
     const message =
-      snapshot.kind === 'failed'
-        ? 'Local Following data could not be read.'
-        : coverage?.bootstrap === 'never-synced'
-          ? 'Your GitHub Following snapshot is syncing automatically.'
-          : 'Your GitHub Following snapshot is empty.'
+      account.status === 'signed-out'
+        ? 'Sign in to load your GitHub Following.'
+        : snapshot.kind === 'failed'
+          ? 'Local Following data could not be read.'
+          : coverage?.bootstrap === 'never-synced'
+            ? 'Your GitHub Following snapshot is syncing automatically.'
+            : 'Your GitHub Following snapshot is empty.'
     return (
       <div className="flex min-h-0 flex-1 items-start px-4 pt-4">
         <p className="text-muted-foreground">{message}</p>

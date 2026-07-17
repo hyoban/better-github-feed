@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { LocalFeedProvider } from '@/hooks/use-local-feed'
 import { authClient } from '@/lib/auth-client'
+import { signedOutFeed } from '@/local-feed/signed-out-feed'
 import {
   activateVerifiedLocalAccount,
   advanceAccountDeletionIntent,
@@ -408,8 +409,10 @@ type AccountShellState =
     }
 
 type LocalFirstAccountContextValue = {
-  ownerGithubId: string
+  status: 'signed-in' | 'signed-out'
+  ownerGithubId: string | null
   sessionProfile: SessionProfile | null
+  signIn(): Promise<void>
   signOut(localData?: 'delete' | 'retain-locked'): Promise<void>
   remoteAttention?: 'reauth-required' | 'account-mismatch'
   recoverRemoteSync(): Promise<void>
@@ -1566,6 +1569,22 @@ function RemoteAttentionNotice({
 
 export function LocalFirstAccountBoundary({ children }: { children: ReactNode }) {
   const controller = useLocalFirstAccountController()
+  if (controller.state.kind === 'signed-out') {
+    const context: LocalFirstAccountContextValue = {
+      status: 'signed-out',
+      ownerGithubId: null,
+      sessionProfile: null,
+      signIn: () => startGithubSignIn(),
+      signOut: async () => undefined,
+      recoverRemoteSync: () => startGithubSignIn(),
+    }
+    return (
+      <LocalFirstAccountContext.Provider value={context}>
+        <LocalFeedProvider feed={signedOutFeed}>{children}</LocalFeedProvider>
+      </LocalFirstAccountContext.Provider>
+    )
+  }
+
   if (controller.state.kind !== 'ready') {
     return (
       <AccountGate
@@ -1579,22 +1598,25 @@ export function LocalFirstAccountBoundary({ children }: { children: ReactNode })
     )
   }
 
+  const readyAccount = controller.state.account
   const context = {
-    ownerGithubId: controller.state.account.ownerGithubId,
+    status: 'signed-in' as const,
+    ownerGithubId: readyAccount.ownerGithubId,
     sessionProfile: controller.sessionProfile,
+    signIn: () => startGithubSignIn(readyAccount.ownerGithubId),
     signOut: controller.signOut,
     remoteAttention: controller.state.account.remoteAttention,
     recoverRemoteSync: controller.recoverRemoteSync,
   }
   return (
     <LocalFirstAccountContext.Provider value={context}>
-      {controller.state.account.remoteAttention ? (
+      {readyAccount.remoteAttention ? (
         <RemoteAttentionNotice
-          issue={controller.state.account.remoteAttention}
+          issue={readyAccount.remoteAttention}
           recover={controller.recoverRemoteSync}
         />
       ) : null}
-      <LocalFeedProvider feed={controller.state.account.feed}>{children}</LocalFeedProvider>
+      <LocalFeedProvider feed={readyAccount.feed}>{children}</LocalFeedProvider>
     </LocalFirstAccountContext.Provider>
   )
 }

@@ -3,6 +3,7 @@ import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { useLocalFirstAccount } from '@/components/local-feed/local-first-account'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -166,6 +167,7 @@ function FilterRulesList() {
 }
 
 export function FilterManagementDialog() {
+  const account = useLocalFirstAccount()
   const snapshot = useUserFilters()
   const filterCount = snapshot.kind === 'ready' ? snapshot.value.length : 0
 
@@ -177,6 +179,8 @@ export function FilterManagementDialog() {
             variant="outline"
             size="sm"
             className="h-9 gap-1.5 rounded-full px-3 font-normal text-muted-foreground hover:text-foreground"
+            disabled={account.status === 'signed-out'}
+            title={account.status === 'signed-out' ? 'Sign in to manage filters' : undefined}
           >
             Filters
             {filterCount > 0 && (

@@ -1,6 +1,7 @@
 import { useVirtualizer, useWindowVirtualizer } from '@tanstack/react-virtual'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { useLocalFirstAccount } from '@/components/local-feed/local-first-account'
 import { selectStableProjectionSnapshot } from '@/components/local-feed/stable-projection-state'
 import type { ReadyProjectionSnapshot } from '@/components/local-feed/stable-projection-state'
 import { shouldExtendLocalActivityWindow } from '@/components/feed/automatic-window'
@@ -23,6 +24,7 @@ function activityFrontierKey(items: readonly ActivitySummary[]) {
 }
 
 export function ActivityList() {
+  const account = useLocalFirstAccount()
   const hasInlineDetail = useHasInlineDetail()
   const [activeTypes] = useActiveTypes()
   const [activeUsers] = useActiveUsers()
@@ -76,17 +78,19 @@ export function ActivityList() {
   const showActor = !hasInlineDetail || !hasSingleActor
 
   const emptyMessage =
-    snapshot.kind === 'failed'
-      ? 'Local activity could not be read.'
-      : snapshot.kind === 'ready' && snapshot.value.rejectedActorKeys.length > 0
-        ? 'The selected people are not in your current GitHub Following snapshot.'
-        : coverage?.bootstrap === 'never-synced'
-          ? 'Your GitHub Following snapshot is syncing automatically.'
-          : hasActiveFilters
-            ? 'No locally available activity matches your filters yet.'
-            : coverage?.remoteWindow === 'exhausted'
-              ? 'No activity is available in your local or retained cloud history yet.'
-              : 'Activity will appear here as the local feed catches up.'
+    account.status === 'signed-out'
+      ? 'Sign in to load your GitHub activity.'
+      : snapshot.kind === 'failed'
+        ? 'Local activity could not be read.'
+        : snapshot.kind === 'ready' && snapshot.value.rejectedActorKeys.length > 0
+          ? 'The selected people are not in your current GitHub Following snapshot.'
+          : coverage?.bootstrap === 'never-synced'
+            ? 'Your GitHub Following snapshot is syncing automatically.'
+            : hasActiveFilters
+              ? 'No locally available activity matches your filters yet.'
+              : coverage?.remoteWindow === 'exhausted'
+                ? 'No activity is available in your local or retained cloud history yet.'
+                : 'Activity will appear here as the local feed catches up.'
 
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null)
   const scrollAreaRef = (node: HTMLDivElement | null) => {

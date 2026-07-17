@@ -1,6 +1,7 @@
 import NumberFlow from '@number-flow/react'
 import { CircleAlertIcon, CloudIcon, CloudOffIcon } from 'lucide-react'
 
+import { useLocalFirstAccount } from '@/components/local-feed/local-first-account'
 import { useLocalSyncStatus } from '@/hooks/use-local-feed'
 import { cn } from '@/lib/utils'
 
@@ -8,8 +9,16 @@ import { presentSyncStatusSnapshot } from './sync-status-presentation'
 import type { SyncStatusIcon } from './sync-status-presentation'
 
 export function SyncStatusIndicator({ compact = false }: { compact?: boolean }) {
+  const account = useLocalFirstAccount()
   const snapshot = useLocalSyncStatus()
-  const status = presentSyncStatusSnapshot(snapshot)
+  const status =
+    account.status === 'signed-out'
+      ? {
+          label: 'Sign in to sync',
+          title: 'Sign in with GitHub to sync your feed.',
+          icon: 'cloud-off' as const,
+        }
+      : presentSyncStatusSnapshot(snapshot)
   const presentation = {
     ...status,
     icon: getStatusIcon(status.icon, status.progress),
