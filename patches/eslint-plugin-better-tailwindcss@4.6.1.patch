@@ -1,0 +1,320 @@
+diff --git a/lib/async-utils/persistent-cache.js b/lib/async-utils/persistent-cache.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..a5d517c739fcc6d24a947d126d6df8f5ed61044f
+--- /dev/null
++++ b/lib/async-utils/persistent-cache.js
+@@ -0,0 +1,238 @@
++// Persistent cross-process cache for serializable Tailwind operation results.
++import { createHash } from "node:crypto";
++import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
++import { createRequire } from "node:module";
++import { tmpdir, userInfo } from "node:os";
++import { dirname, isAbsolute, join, parse, resolve } from "node:path";
++import { env, pid } from "node:process";
++import { pathToFileURL } from "node:url";
++const CACHE_SCHEMA = "better-tailwindcss-operation-cache-v1";
++const MAX_CACHE_ENTRIES = 5000;
++const STORES = new Map();
++const CONTEXT_STORES = new Map();
++const DIRTY_STORES = new Set();
++let flushTimer;
++process.once("exit", flushStores);
++export function withPersistentOperationCache(operation, ctx, input, callback) {
++    const store = getStore(ctx);
++    if (!store) {
++        return callback();
++    }
++    const key = digest(JSON.stringify({ operation, input }));
++    if (Object.hasOwn(store.entries, key)) {
++        debug("hit", operation);
++        return store.entries[key];
++    }
++    debug("miss", operation);
++    const value = callback();
++    store.entries[key] = value;
++    schedulePersist(store);
++    return value;
++}
++function getStore(ctx) {
++    if (env.BETTER_TAILWINDCSS_PERSISTENT_CACHE === "0" || ctx.version?.major !== 4) {
++        return;
++    }
++    const contextKey = `${ctx.tailwindConfigPath}:${JSON.stringify(ctx.version)}`;
++    const cachedContext = CONTEXT_STORES.get(contextKey);
++    if (cachedContext && contextIsFresh(cachedContext)) {
++        return cachedContext.store;
++    }
++    CONTEXT_STORES.delete(contextKey);
++    const fingerprintData = createFingerprint(ctx);
++    if (!fingerprintData) {
++        return;
++    }
++    const { dependencies, fingerprint } = fingerprintData;
++    const cachePath = join(getCacheDirectory(), `${fingerprint}.json`);
++    const existing = STORES.get(cachePath);
++    if (existing) {
++        CONTEXT_STORES.set(contextKey, createContextEntry(existing, dependencies));
++        return existing;
++    }
++    let entries = {};
++    try {
++        const parsed = JSON.parse(readFileSync(cachePath, "utf8"));
++        if (parsed.schema === CACHE_SCHEMA && parsed.entries && typeof parsed.entries === "object") {
++            entries = parsed.entries;
++        }
++    }
++    catch { }
++    const store = { entries, path: cachePath };
++    STORES.set(cachePath, store);
++    CONTEXT_STORES.set(contextKey, createContextEntry(store, dependencies));
++    return store;
++}
++function createFingerprint(ctx) {
++    const entryPoint = ctx.tailwindConfigPath;
++    if (!entryPoint || !isAbsolute(entryPoint) || !existsSync(entryPoint)) {
++        return;
++    }
++    const hash = createHash("sha256");
++    hash.update(CACHE_SCHEMA);
++    hash.update(JSON.stringify(ctx.version));
++    const dependencies = new Set();
++    hashCss(entryPoint, hash, dependencies);
++    const lockfile = findUp(dirname(entryPoint), "pnpm-lock.yaml");
++    if (lockfile) {
++        dependencies.add(lockfile);
++        hash.update(readFileSync(lockfile));
++    }
++    return { dependencies: [...dependencies], fingerprint: hash.digest("hex") };
++}
++function createContextEntry(store, dependencies) {
++    return {
++        checkedAt: Date.now(),
++        dependencies,
++        signature: dependencySignature(dependencies),
++        store
++    };
++}
++function contextIsFresh(entry) {
++    if (Date.now() - entry.checkedAt < 1000) {
++        return true;
++    }
++    entry.checkedAt = Date.now();
++    return entry.signature === dependencySignature(entry.dependencies);
++}
++function dependencySignature(dependencies) {
++    return dependencies.map(path => {
++        try {
++            const stats = statSync(path);
++            return `${path}:${stats.mtimeMs}:${stats.size}`;
++        }
++        catch {
++            return `${path}:missing`;
++        }
++    }).join("|");
++}
++function hashCss(filePath, hash, seen) {
++    const normalized = resolve(filePath);
++    if (seen.has(normalized) || !existsSync(normalized)) {
++        return;
++    }
++    seen.add(normalized);
++    const css = readFileSync(normalized, "utf8");
++    hash.update(normalized);
++    hash.update(css);
++    for (const match of css.matchAll(/@import\s+(?:url\()?\s*["']([^"']+)["']/g)) {
++        const specifier = match[1];
++        if (specifier.startsWith(".")) {
++            hashCss(resolve(dirname(normalized), specifier), hash, seen);
++            continue;
++        }
++        try {
++            const requireFromCss = createRequire(pathToFileURL(join(dirname(normalized), "__better_tailwindcss_cache__.mjs")));
++            const importedPath = requireFromCss.resolve(specifier);
++            if (importedPath.endsWith(".css")) {
++                hashCss(importedPath, hash, seen);
++            }
++        }
++        catch { }
++    }
++}
++function findUp(start, name) {
++    let current = start;
++    while (true) {
++        const candidate = join(current, name);
++        if (existsSync(candidate)) {
++            return candidate;
++        }
++        const parent = dirname(current);
++        if (parent === current || current === parse(current).root) {
++            return;
++        }
++        current = parent;
++    }
++}
++function getCacheDirectory() {
++    const configured = env.BETTER_TAILWINDCSS_PERSISTENT_CACHE_DIR;
++    if (configured) {
++        mkdirSync(configured, { mode: 0o700, recursive: true });
++        return configured;
++    }
++    let user = "unknown";
++    try {
++        user = String(userInfo().uid).replace(/[^a-zA-Z0-9_-]/g, "_");
++    }
++    catch { }
++    const directory = join(tmpdir(), `better-tailwindcss-operation-cache-${user}`);
++    mkdirSync(directory, { mode: 0o700, recursive: true });
++    return directory;
++}
++function persist(store) {
++    const lockPath = `${store.path}.lock`;
++    const lock = acquireLock(lockPath);
++    if (lock === undefined) {
++        return;
++    }
++    try {
++        try {
++            const parsed = JSON.parse(readFileSync(store.path, "utf8"));
++            if (parsed.schema === CACHE_SCHEMA && parsed.entries && typeof parsed.entries === "object") {
++                store.entries = { ...parsed.entries, ...store.entries };
++            }
++        }
++        catch { }
++        trimEntries(store.entries);
++        const temporary = `${store.path}.${pid}.${Date.now()}.tmp`;
++        writeFileSync(temporary, JSON.stringify({ schema: CACHE_SCHEMA, entries: store.entries }), { mode: 0o600 });
++        renameSync(temporary, store.path);
++    }
++    finally {
++        closeSync(lock);
++        try {
++            unlinkSync(lockPath);
++        }
++        catch { }
++    }
++}
++function schedulePersist(store) {
++    DIRTY_STORES.add(store);
++    if (flushTimer) {
++        clearTimeout(flushTimer);
++    }
++    flushTimer = setTimeout(flushStores, 250);
++    flushTimer.unref();
++}
++function flushStores() {
++    if (flushTimer) {
++        clearTimeout(flushTimer);
++        flushTimer = undefined;
++    }
++    const stores = [...DIRTY_STORES];
++    DIRTY_STORES.clear();
++    for (const store of stores) {
++        persist(store);
++    }
++}
++function trimEntries(entries) {
++    const keys = Object.keys(entries);
++    const excess = keys.length - MAX_CACHE_ENTRIES;
++    for (let index = 0; index < excess; index++) {
++        delete entries[keys[index]];
++    }
++}
++function acquireLock(lockPath) {
++    const waitBuffer = new Int32Array(new SharedArrayBuffer(4));
++    for (let attempt = 0; attempt < 100; attempt++) {
++        try {
++            return openSync(lockPath, "wx", 0o600);
++        }
++        catch (error) {
++            if (error?.code !== "EEXIST") {
++                return;
++            }
++            Atomics.wait(waitBuffer, 0, 0, 5);
++        }
++    }
++    return;
++}
++function digest(value) {
++    return createHash("sha256").update(value).digest("hex");
++}
++function debug(status, operation) {
++    if (env.BETTER_TAILWINDCSS_CACHE_DEBUG === "1") {
++        console.error(`[better-tailwindcss-cache] ${status} ${operation}`);
++    }
++}
+diff --git a/lib/tailwindcss/canonical-classes.js b/lib/tailwindcss/canonical-classes.js
+index 18436e30141cad67e748238d5297a4a0f63c2ebb..54845a977b5b1d94fabc1e20df011d8a31865f1c 100644
+--- a/lib/tailwindcss/canonical-classes.js
++++ b/lib/tailwindcss/canonical-classes.js
+@@ -1,12 +1,13 @@
+ import { resolve } from "node:path";
+ import { createSyncFn } from "synckit";
+ import { getWorkerOptions } from "../async-utils/worker.js";
++import { withPersistentOperationCache } from "../async-utils/persistent-cache.js";
+ export let getCanonicalClasses = () => { throw new Error("getCanonicalClasses() called before being initialized"); };
+ export function createGetCanonicalClasses(ctx) {
+     const workerPath = getWorkerPath(ctx);
+     const workerOptions = getWorkerOptions();
+     const runWorker = createSyncFn(workerPath, workerOptions);
+-    getCanonicalClasses = (ctx, classes, options) => runWorker("getCanonicalClasses", ctx, classes, options);
++    getCanonicalClasses = (ctx, classes, options) => withPersistentOperationCache("getCanonicalClasses", ctx, { classes, options }, () => runWorker("getCanonicalClasses", ctx, classes, options));
+     return getCanonicalClasses;
+ }
+ function getWorkerPath(ctx) {
+diff --git a/lib/tailwindcss/custom-component-classes.js b/lib/tailwindcss/custom-component-classes.js
+index 1a0c0ae061e14f8aafd223c8cd9d47c00901ad06..58fc95a48545c8db2f0eb3f758f4adeb394e14a4 100644
+--- a/lib/tailwindcss/custom-component-classes.js
++++ b/lib/tailwindcss/custom-component-classes.js
+@@ -2,12 +2,13 @@
+ import { resolve } from "node:path";
+ import { createSyncFn } from "synckit";
+ import { getWorkerOptions } from "../async-utils/worker.js";
++import { withPersistentOperationCache } from "../async-utils/persistent-cache.js";
+ export let getCustomComponentClasses = () => { throw new Error("getCustomComponentClasses() called before being initialized"); };
+ export function createGetCustomComponentClasses(ctx) {
+     const workerPath = getWorkerPath(ctx);
+     const workerOptions = getWorkerOptions();
+     const runWorker = createSyncFn(workerPath, workerOptions);
+-    getCustomComponentClasses = ctx => runWorker("getCustomComponentClasses", ctx);
++    getCustomComponentClasses = ctx => withPersistentOperationCache("getCustomComponentClasses", ctx, null, () => runWorker("getCustomComponentClasses", ctx));
+     return getCustomComponentClasses;
+ }
+ function getWorkerPath(ctx) {
+diff --git a/lib/tailwindcss/prefix.js b/lib/tailwindcss/prefix.js
+index bbe22d89d6c1e285a52b0344d618eb601c61b999..705a826474ffdd0ecbb1763527545ea506ba6f1d 100644
+--- a/lib/tailwindcss/prefix.js
++++ b/lib/tailwindcss/prefix.js
+@@ -1,12 +1,13 @@
+ import { resolve } from "node:path";
+ import { createSyncFn } from "synckit";
+ import { getWorkerOptions } from "../async-utils/worker.js";
++import { withPersistentOperationCache } from "../async-utils/persistent-cache.js";
+ export let getPrefix = () => { throw new Error("getPrefix() called before being initialized"); };
+ export function createGetPrefix(ctx) {
+     const workerPath = getWorkerPath(ctx);
+     const workerOptions = getWorkerOptions();
+     const runWorker = createSyncFn(workerPath, workerOptions);
+-    getPrefix = ctx => runWorker("getPrefix", ctx);
++    getPrefix = ctx => withPersistentOperationCache("getPrefix", ctx, null, () => runWorker("getPrefix", ctx));
+     return getPrefix;
+ }
+ function getWorkerPath(ctx) {
+diff --git a/lib/tailwindcss/unknown-classes.js b/lib/tailwindcss/unknown-classes.js
+index b8365aa4da529e1da6353c86620ae28323a8e91a..ba02b0f59cb8bbb37fcd1a4eb9f3d578cc053d08 100644
+--- a/lib/tailwindcss/unknown-classes.js
++++ b/lib/tailwindcss/unknown-classes.js
+@@ -1,12 +1,13 @@
+ import { resolve } from "node:path";
+ import { createSyncFn } from "synckit";
+ import { getWorkerOptions } from "../async-utils/worker.js";
++import { withPersistentOperationCache } from "../async-utils/persistent-cache.js";
+ export let getUnknownClasses = () => { throw new Error("getUnknownClasses() called before being initialized"); };
+ export function createGetUnknownClasses(ctx) {
+     const workerPath = getWorkerPath(ctx);
+     const workerOptions = getWorkerOptions();
+     const runWorker = createSyncFn(workerPath, workerOptions);
+-    getUnknownClasses = (ctx, classes) => runWorker("getUnknownClasses", ctx, classes);
++    getUnknownClasses = (ctx, classes) => withPersistentOperationCache("getUnknownClasses", ctx, classes, () => runWorker("getUnknownClasses", ctx, classes));
+     return getUnknownClasses;
+ }
+ function getWorkerPath(ctx) {

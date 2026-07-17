@@ -76,3 +76,6 @@ peerDependencyRules:
     vite: '*'
 
 shellEmulator: true
+
+patchedDependencies:
+  eslint-plugin-better-tailwindcss@4.6.1: patches/eslint-plugin-better-tailwindcss@4.6.1.patch
