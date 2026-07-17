@@ -19,7 +19,8 @@
     "cf-typegen": "vp run --filter web cf-typegen",
     "prepare": "vp config --no-agent",
     "lint": "vp lint",
-    "lint:fix": "vp lint --fix"
+    "lint:fix": "vp lint --fix",
+    "test:tailwind-cache": "node scripts/test-tailwind-cache.mjs"
   },
   "devDependencies": {
     "@better-github-feed/config": "workspace:*",
