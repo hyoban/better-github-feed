@@ -1,6 +1,11 @@
 if (new URLSearchParams(location.search).has('debug-scroll')) {
   const startedAt = performance.now()
-  window.__scrollProbe = []
+  const samples = []
+  const output = document.createElement('script')
+  output.id = 'debug-scroll-probe-data'
+  output.type = 'application/json'
+  output.hidden = true
+  document.body.append(output)
   let previous = ''
 
   const describe = element =>
@@ -20,6 +25,7 @@ if (new URLSearchParams(location.search).has('debug-scroll')) {
     const scrollPanel = document.querySelector('.scroll-panel')
     const state = {
       elapsed: Math.round(performance.now() - startedAt),
+      visibility: document.visibilityState,
       viewportScrollbar: window.innerWidth - root.clientWidth,
       stylesheets: document.styleSheets.length,
       root: describe(root),
@@ -29,11 +35,13 @@ if (new URLSearchParams(location.search).has('debug-scroll')) {
     }
     const signature = JSON.stringify({ ...state, elapsed: 0 })
     if (signature !== previous) {
-      window.__scrollProbe.push(state)
+      samples.push(state)
+      output.textContent = JSON.stringify(samples)
       previous = signature
     }
-    if (performance.now() - startedAt < 15_000) requestAnimationFrame(sample)
   }
 
-  requestAnimationFrame(sample)
+  sample()
+  const timer = setInterval(sample, 25)
+  setTimeout(() => clearInterval(timer), 60_000)
 }
