@@ -3,7 +3,7 @@
     "target": "ES2022",
     "jsx": "react-jsx",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "rootDirs": [".", "./.react-router/types"],
+    "rootDirs": ["."],
     "module": "ES2022",
     "moduleResolution": "bundler",
     "paths": {
@@ -17,5 +17,5 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true
   },
-  "include": ["**/*", "**/.server/**/*", "**/.client/**/*", ".react-router/types/**/*"]
+  "include": ["**/*", "**/.server/**/*", "**/.client/**/*"]
 }

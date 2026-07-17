@@ -1,15 +1,17 @@
-import { NuqsAdapter } from 'nuqs/adapters/react-router'
-import { isRouteErrorResponse, Outlet, useRouteError } from 'react-router-dom'
+import { NuqsAdapter } from 'nuqs/adapters/react'
+import { Component } from 'react'
+import type { ReactNode } from 'react'
 
 import { LocalFirstAccountBoundary } from './components/local-feed/local-first-account'
 import { Toaster } from './components/ui/sonner'
+import { Home } from './pages/home'
 
 export function App() {
   return (
     <NuqsAdapter>
       <LocalFirstAccountBoundary>
         <div className="min-h-svh md:h-svh md:overflow-hidden">
-          <Outlet />
+          <Home />
         </div>
       </LocalFirstAccountBoundary>
       <Toaster richColors />
@@ -17,31 +19,37 @@ export function App() {
   )
 }
 
-export function ErrorBoundary() {
-  const error = useRouteError()
+interface ErrorBoundaryProps {
+  children: ReactNode
+}
 
-  let message = 'Oops!'
-  let details = 'An unexpected error occurred.'
-  let stack: string | undefined
+interface ErrorBoundaryState {
+  error: Error | null
+}
 
-  if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? '404' : 'Error'
-    details =
-      error.status === 404 ? 'The requested page could not be found.' : error.statusText || details
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
-    details = error.message
-    stack = error.stack
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { error: null }
+
+  static getDerivedStateFromError(error: unknown): ErrorBoundaryState {
+    return {
+      error: error instanceof Error ? error : new Error('An unexpected error occurred.'),
+    }
   }
 
-  return (
-    <main className="container mx-auto p-4 pt-16">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre className="w-full overflow-x-auto p-4">
-          <code>{stack}</code>
-        </pre>
-      )}
-    </main>
-  )
+  render() {
+    const { error } = this.state
+    if (!error) return this.props.children
+
+    return (
+      <main className="container mx-auto p-4 pt-16">
+        <h1>Oops!</h1>
+        <p>{import.meta.env.DEV ? error.message : 'An unexpected error occurred.'}</p>
+        {import.meta.env.DEV && error.stack && (
+          <pre className="w-full overflow-x-auto p-4">
+            <code>{error.stack}</code>
+          </pre>
+        )}
+      </main>
+    )
+  }
 }
