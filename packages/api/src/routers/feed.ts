@@ -69,7 +69,7 @@ export async function cleanupOldFeedItems(maxItemsPerUser = 200) {
 }
 
 export async function reconcileLegacyFeedItems() {
-  return activityReconciliation.reconcile()
+  return activityReconciliation.reconcileIfNeeded()
 }
 
 /**

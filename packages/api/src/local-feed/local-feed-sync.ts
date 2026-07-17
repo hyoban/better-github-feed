@@ -1169,7 +1169,9 @@ export function createLocalFeedSync({
       const scopeCondition =
         resolvedScope.actorKeys.length === 0
           ? sql`false`
-          : sql`
+          : input.scope.kind === 'actors'
+            ? sql`unlikely(${inArray(feedItem.actorKey, resolvedScope.actorKeys)})`
+            : sql`
               ${feedItem.actorKey}
               in (select value from json_each(${JSON.stringify(resolvedScope.actorKeys)}))
             `
@@ -1306,7 +1308,9 @@ export function createLocalFeedSync({
       const scopeCondition =
         resolvedScope.actorKeys.length === 0
           ? sql`false`
-          : sql`
+          : input.scope.kind === 'actors'
+            ? sql`unlikely(${inArray(activityChange.actorKey, resolvedScope.actorKeys)})`
+            : sql`
               ${activityChange.actorKey}
               in (select value from json_each(${JSON.stringify(resolvedScope.actorKeys)}))
             `

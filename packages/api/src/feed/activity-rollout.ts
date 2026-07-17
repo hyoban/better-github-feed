@@ -143,13 +143,8 @@ export async function getActivityCleanupGate(database: Database) {
       dataEpoch: state?.dataEpoch ?? null,
     }
   }
-  const audit = await auditActivitySyncIntegrity(database)
-  return audit.ready
-    ? { enabled: true as const, dataEpoch: state.dataEpoch, audit }
-    : {
-        enabled: false as const,
-        reason: 'integrity-audit' as const,
-        dataEpoch: state.dataEpoch,
-        audit,
-      }
+  // The reconciliation proof is refreshed periodically. Trust it between
+  // refreshes instead of running five full-table integrity scans before every
+  // cleanup. Rotating the data epoch clears both proof columns in SQLite.
+  return { enabled: true as const, dataEpoch: state.dataEpoch }
 }

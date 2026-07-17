@@ -5,14 +5,23 @@ import {
   activitySyncState,
   feedItem,
   githubUser,
+  localFeedServerState,
 } from '@better-github-feed/db/schema/github'
 import { eq, sql } from 'drizzle-orm'
 
 import { markActivityReconciled } from './activity-rollout'
 
+const reconciliationProofMaxAgeMs = 24 * 60 * 60 * 1000
+
 export function createActivityReconciliation(database: Database) {
-  return {
+  const reconciliation = {
     async reconcile(reconciledAt = new Date()) {
+      // Close the cleanup fence before refreshing its proof. A failed or
+      // interrupted reconciliation must not leave an older proof active.
+      await database
+        .update(localFeedServerState)
+        .set({ activityReconciledAt: null, activityCleanupEnabledAt: null })
+        .where(eq(localFeedServerState.id, 1))
       const results = await database.batch([
         database
           .update(feedItem)
@@ -184,5 +193,32 @@ export function createActivityReconciliation(database: Database) {
         audit,
       }
     },
+    async reconcileIfNeeded(reconciledAt = new Date()) {
+      const rows = await database
+        .select({
+          reconciledAt: localFeedServerState.activityReconciledAt,
+          cleanupEnabledAt: localFeedServerState.activityCleanupEnabledAt,
+        })
+        .from(localFeedServerState)
+        .where(eq(localFeedServerState.id, 1))
+        .limit(1)
+      const proof = rows[0]
+      if (
+        proof?.reconciledAt &&
+        proof.cleanupEnabledAt &&
+        proof.reconciledAt.getTime() >= reconciledAt.getTime() - reconciliationProofMaxAgeMs
+      ) {
+        return {
+          normalized: 0,
+          repairedChanges: 0,
+          sequenced: 0,
+          repairedOrphanChanges: 0,
+          skipped: 'recent-proof' as const,
+          audit: { ready: true as const },
+        }
+      }
+      return reconciliation.reconcile(reconciledAt)
+    },
   }
+  return reconciliation
 }

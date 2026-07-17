@@ -13,7 +13,9 @@ const migrationsDirectory = resolve(
 )
 const schema = { ...authSchema, ...githubSchema }
 
-export async function createTestDatabase(options: { throughMigration?: string } = {}) {
+export async function createTestDatabase(
+  options: { throughMigration?: string; onQuery?: (query: string) => void } = {},
+) {
   const miniflare = new Miniflare({
     modules: true,
     script: 'export default { fetch() { return new Response("ok") } }',
@@ -36,7 +38,16 @@ export async function createTestDatabase(options: { throughMigration?: string } 
   }
 
   return {
-    database: drizzle(binding, { schema }),
+    database: drizzle(binding, {
+      schema,
+      logger: options.onQuery
+        ? {
+            logQuery(query) {
+              options.onQuery?.(query)
+            },
+          }
+        : undefined,
+    }),
     dispose: () => miniflare.dispose(),
   }
 }

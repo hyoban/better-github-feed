@@ -16,7 +16,7 @@ import {
 } from '@better-github-feed/db/schema/github'
 import { emptyFilterGroup } from '@better-github-feed/shared'
 import type { FilterGroup } from '@better-github-feed/shared'
-import { asc, eq, sql } from 'drizzle-orm'
+import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { afterEach, describe, it } from 'vite-plus/test'
 
 import { createFeedRefresh } from '../feed/feed-refresh.ts'
@@ -698,6 +698,66 @@ describe('Local Feed Sync', () => {
     assert.deepEqual(delta.gap, { compactedThroughSeq: '1' })
   })
 
+  it('reuses a recent reconciliation proof instead of rescanning the activity tables', async () => {
+    const testDatabase = await createTestDatabase()
+    disposers.push(testDatabase.dispose)
+    const { database } = testDatabase
+    const now = new Date('2026-07-16T12:00:00.000Z')
+    let reconciliationBatches = 0
+    const measuredDatabase = new Proxy(database, {
+      get(target, property, receiver) {
+        if (property === 'batch') {
+          return async (queries: Parameters<typeof database.batch>[0]) => {
+            reconciliationBatches += 1
+            return database.batch(queries)
+          }
+        }
+        const value = Reflect.get(target, property, receiver)
+        return typeof value === 'function' ? value.bind(target) : value
+      },
+    })
+    const reconciliation = createActivityReconciliation(measuredDatabase)
+
+    assert.equal((await reconciliation.reconcileIfNeeded(now)).audit.ready, true)
+    assert.equal(reconciliationBatches, 1)
+
+    const recent = await reconciliation.reconcileIfNeeded(
+      new Date(now.getTime() + 23 * 60 * 60 * 1000),
+    )
+    assert.equal(recent.audit.ready, true)
+    assert.equal('skipped' in recent ? recent.skipped : null, 'recent-proof')
+    assert.equal(reconciliationBatches, 1)
+
+    assert.equal(
+      (await reconciliation.reconcileIfNeeded(new Date(now.getTime() + 25 * 60 * 60 * 1000))).audit
+        .ready,
+      true,
+    )
+    assert.equal(reconciliationBatches, 2)
+  })
+
+  it('closes the cleanup gate when a refreshed reconciliation proof fails', async () => {
+    const testDatabase = await createTestDatabase()
+    disposers.push(testDatabase.dispose)
+    const { database } = testDatabase
+    const now = new Date('2026-07-16T12:00:00.000Z')
+    const reconciliation = createActivityReconciliation(database)
+    assert.equal((await reconciliation.reconcileIfNeeded(now)).audit.ready, true)
+    await database.insert(activityChange).values({
+      source: 'github-atom-v1',
+      activityId: 'unattributable-orphan',
+      actorKey: '',
+    })
+
+    const failed = await reconciliation.reconcileIfNeeded(
+      new Date(now.getTime() + 25 * 60 * 60 * 1000),
+    )
+
+    assert.equal(failed.audit.ready, false)
+    const cleanup = await createActivityCleanup(database).cleanup(1)
+    assert.equal('skipped' in cleanup ? cleanup.skipped : null, 'rollout-gate')
+  })
+
   it('only batches over-limit actors and uses the actor retention index', async () => {
     const testDatabase = await createTestDatabase()
     disposers.push(testDatabase.dispose)
@@ -796,6 +856,69 @@ describe('Local Feed Sync', () => {
     )
     assert.ok(
       plan.some(step => step.detail.includes('feed_item_hidden_published_at_id_idx')),
+      JSON.stringify(plan),
+    )
+  })
+
+  it('uses an indexable static predicate for a single-actor history scope', async () => {
+    const queries: string[] = []
+    const testDatabase = await createTestDatabase({ onQuery: query => queries.push(query) })
+    disposers.push(testDatabase.dispose)
+    const { database } = testDatabase
+    const now = new Date('2026-07-16T12:00:00.000Z')
+    await database.insert(user).values({
+      id: 'viewer',
+      name: 'Viewer',
+      email: 'viewer@example.com',
+    })
+    await database.insert(account).values({
+      id: 'github-account',
+      accountId: '38493346',
+      providerId: 'github',
+      userId: 'viewer',
+      updatedAt: now,
+    })
+    await createFollowingSync({
+      database,
+      getAccessToken: async () => 'secret-token',
+      getFollowing: async () => [{ id: '1', login: 'alice' }],
+    }).sync('viewer')
+    await createFeedRefresh({
+      database,
+      now: () => now,
+      getActivity: async () => ({ githubId: '1', items: [] }),
+    }).refreshOne('viewer', 'alice')
+    const sync = createLocalFeedSync({ database })
+    const manifest = await sync.getManifest('viewer')
+    assert.ok(manifest.following.revision)
+    queries.length = 0
+
+    await sync.getActivityHistoryPage('viewer', {
+      scope: { kind: 'actors', actorKeys: ['github:1'] },
+    })
+
+    const historyQuery = queries.find(
+      query => query.includes('from "activity_change"') && query.includes('inner join "feed_item"'),
+    )
+    assert.ok(historyQuery)
+    assert.match(historyQuery, /"feed_item"\."actor_key" in \(/)
+    assert.doesNotMatch(historyQuery, /json_each/)
+
+    const plan = await database.all<{ detail: string }>(sql`
+      explain query plan
+      select ${feedItem.id}
+      from ${feedItem}
+      inner join ${activityChange}
+        on ${activityChange.source} = ${feedItem.source}
+        and ${activityChange.activityId} = ${feedItem.id}
+      where unlikely(${inArray(feedItem.actorKey, ['github:1', 'legacy-atom-login:alice'])})
+        and ${feedItem.hidden} = 0
+        and ${activityChange.seq} <= 100
+      order by ${feedItem.publishedAt} desc, ${feedItem.id} desc
+      limit 251
+    `)
+    assert.ok(
+      plan.some(step => step.detail.includes('feed_item_hidden_actor_key_published_at_id_idx')),
       JSON.stringify(plan),
     )
   })
