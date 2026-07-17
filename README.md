@@ -1,59 +1,82 @@
+<div align="center">
+
 # Better GitHub Feed
 
-A modern web application that turns the activity of the developers you follow on GitHub into a unified, filterable feed.
+**Your GitHub Following, organized into a fast local-first feed.**
 
-## Features
+[Open the app](https://better-github-feed.langgenius.app/) · [Run locally](#local-development) · [Deploy](#deployment)
 
-- **GitHub Feed Aggregation** - Collect activity from the developers you follow
-- **Advanced Filtering** - Focus on the events that matter to you
-- **GitHub Following Sync** - Keep the feed aligned with your GitHub following list
-- **Scheduled Refresh** - Sync following lists and refresh feeds every 20 minutes with a Cron Trigger
-- **GitHub OAuth** - Authenticate securely with GitHub
-- **Responsive UI** - Use the feed comfortably on desktop and mobile
+</div>
+
+<table>
+  <tr>
+    <td width="72%">
+      <img src="docs/assets/desktop-feed.jpg" alt="Better GitHub Feed on desktop" />
+    </td>
+    <td width="28%">
+      <img src="docs/assets/mobile-feed.jpg" alt="Better GitHub Feed on mobile" />
+    </td>
+  </tr>
+</table>
+
+Better GitHub Feed collects the public activity of the developers you follow on GitHub and turns it into one unified, filterable feed. The browser keeps a complete local replica in IndexedDB, so navigation and filtering stay immediate while cloud synchronization runs separately.
+
+## Highlights
+
+- **Local-first by default** — the interface reads from IndexedDB instead of waiting for network queries.
+- **Automatic GitHub Following sync** — your feed follows the same people you follow on GitHub.
+- **Powerful filters** — hide activity by actor, repository, event type, or nested filter rules.
+- **Cross-device state** — filters and feed preferences synchronize through a durable local outbox.
+- **Incremental updates** — the browser downloads only remote changes after the initial replica is created.
+- **Desktop, mobile, and PWA** — responsive layouts, install support, and offline access to local data.
+- **Background refresh** — a Cloudflare Cron Trigger refreshes GitHub Following and Activity every 20 minutes.
+
+## How synchronization works
+
+```mermaid
+flowchart LR
+  GitHub["GitHub API + Atom feeds"] --> Worker["Cloudflare Worker"]
+  Worker <--> D1[("Cloudflare D1")]
+  D1 -->|"incremental activity + state"| Local[("IndexedDB replica")]
+  Local --> UI["React UI"]
+  UI -->|"filter and feed-state outbox"| D1
+```
+
+1. The Worker reconciles each account's GitHub Following and stores shared GitHub Activity in D1.
+2. A newly registered account immediately refreshes followed users that have never been fetched, up to the first 50; scheduled refreshes continue the remainder.
+3. The browser creates an account-scoped IndexedDB database and pulls the complete current revision.
+4. Later sync cycles transfer only new activity, Following revisions, and user-state changes.
+5. The UI always queries the local database. Starting the app, returning to it, reconnecting, and a five-minute foreground interval trigger cloud checks.
+
+There is no manual refresh flow. Remote sync status and progress are shown globally without blocking local navigation.
 
 ## Architecture
 
-The application is deployed as one Cloudflare Worker:
+The project deploys as one Cloudflare Worker and serves the SPA and API from the same origin.
 
-- React 19, React Router, Tailwind CSS, and Vite for the SPA
-- Hono and oRPC for the API
-- Better Auth with GitHub OAuth
-- Cloudflare D1 with Drizzle ORM
-- Workers Static Assets for the frontend
-- A Worker Cron Trigger for background refreshes
+| Layer          | Technology                                           |
+| -------------- | ---------------------------------------------------- |
+| Web            | React 19, React Router, Tailwind CSS, Vite, PWA      |
+| Local data     | Dexie and IndexedDB                                  |
+| API            | Hono and oRPC                                        |
+| Authentication | Better Auth and GitHub OAuth                         |
+| Cloud data     | Cloudflare D1 and Drizzle ORM                        |
+| Runtime        | Cloudflare Workers, Static Assets, and Cron Triggers |
+| Tooling        | Vite+ and pnpm workspaces                            |
 
-The SPA and API share one origin. API routes live under `/api/*`, while every other navigation request falls back to the SPA.
+API routes live under `/api/*`; every other navigation request falls back to the SPA.
 
-## Prerequisites
+## Local development
 
-Install the Vite+ CLI, then open a new terminal:
+### Prerequisites
+
+- A [GitHub OAuth App](https://github.com/settings/developers)
+- [Vite+](https://viteplus.dev/guide/)
+
+Install Vite+ and the workspace dependencies:
 
 ```sh
 curl -fsSL https://vite.plus | bash
-vp help
-```
-
-On Windows, install it from PowerShell with `irm https://vite.plus/ps1 | iex`. Vite+ reads the repository's `.node-version` and manages the matching Node.js runtime automatically.
-
-## Vite+ Workflow
-
-This repository has already been migrated to Vite+. For another existing Vite project, first upgrade it to Vite 8+ and Vitest 4.1+, then run the one-time migration from the workspace root:
-
-```sh
-vp migrate --no-interactive
-vp install
-vp check
-vp test
-vp build apps/web
-```
-
-Vite+ built-in commands and package scripts are intentionally separate: `vp build apps/web` runs the built-in Vite build for the Web app, while `vp run build` runs this repository's root `build` script. Because this is a monorepo, pass `apps/web` to built-in `vp dev`, `vp build`, and `vp preview` commands when running from the workspace root.
-
-## Local Development
-
-Install dependencies:
-
-```sh
 vp install
 ```
 
@@ -63,7 +86,7 @@ Copy the local secrets template:
 cp apps/web/.dev.vars.example apps/web/.dev.vars
 ```
 
-Fill in these values:
+Configure the OAuth credentials in `apps/web/.dev.vars`:
 
 ```dotenv
 BETTER_AUTH_URL=http://localhost:5173
@@ -72,68 +95,77 @@ BETTER_AUTH_GITHUB_CLIENT_ID=<github-oauth-client-id>
 BETTER_AUTH_GITHUB_CLIENT_SECRET=<github-oauth-client-secret>
 ```
 
-Create a development GitHub OAuth App with this callback URL:
+Use this callback URL in the development GitHub OAuth App:
 
 ```txt
 http://localhost:5173/api/auth/callback/github
 ```
 
-Start the application:
+Start the full application:
 
 ```sh
 vp run dev
 ```
 
-Wrangler creates a local D1 database, applies pending migrations, and Vite serves both the SPA and Worker at [http://localhost:5173](http://localhost:5173).
+The command applies local D1 migrations before starting the SPA and Worker at [http://localhost:5173](http://localhost:5173).
 
-`vp run dev` is the recommended local command because it applies D1 migrations before starting the app. Use `vp dev apps/web` when you only need the built-in development server.
+### Validation
 
-## Deploy from a GitHub Repository
+```sh
+vp check
+vp test
+vp run build
+```
 
-The repository is ready for Cloudflare Workers Builds and does not need a separate GitHub Actions workflow.
+## Project structure
 
-1. In Cloudflare, open **Workers & Pages**, select **Create application**, then **Import a repository**.
-2. Select this repository and use the following settings:
+```txt
+better-github-feed/
+├── apps/
+│   ├── web/           # React SPA, PWA, Worker configuration, and deployment scripts
+│   └── server/        # Hono Worker entrypoint and scheduled maintenance
+├── packages/
+│   ├── api/           # Sync protocol, feed ingestion, routers, and domain logic
+│   ├── auth/          # Better Auth configuration
+│   ├── contract/      # Shared oRPC contracts
+│   ├── db/            # Drizzle schema and D1 migrations
+│   ├── env/           # Typed Cloudflare bindings
+│   └── shared/        # Shared types and utilities
+└── docs/assets/       # README screenshots
+```
 
-   ```txt
-   Worker name: better-github-feed
-   Production branch: main
-   Root directory: apps/web
-   Build command: pnpm build
-   Deploy command: pnpm run deploy
-   ```
+## Deployment
 
-   If this account already contains the Alchemy deployment, complete [Migrating an Existing Alchemy Deployment](#migrating-an-existing-alchemy-deployment) before selecting **Save and Deploy**.
+The repository is ready for [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/). Import it in **Workers & Pages** with these settings:
 
-3. In **Build variables and secrets**, add `DEPLOY_BETTER_AUTH_URL` as a variable and the other three values as encrypted build secrets:
+```txt
+Production branch: main
+Root directory: apps/web
+Build command: pnpm build
+Deploy command: pnpm run deploy
+```
 
-   ```txt
-   DEPLOY_BETTER_AUTH_URL=https://better-github-feed.<workers-subdomain>.workers.dev
-   DEPLOY_BETTER_AUTH_SECRET=<openssl rand -base64 32>
-   DEPLOY_BETTER_AUTH_GITHUB_CLIENT_ID=<github-oauth-client-id>
-   DEPLOY_BETTER_AUTH_GITHUB_CLIENT_SECRET=<github-oauth-client-secret>
-   ```
+Add the following build variables and encrypted secrets:
 
-   The `DEPLOY_` prefix prevents Vite from treating these values as application runtime variables. The deployment script maps them to the corresponding encrypted Worker secrets; they are never stored in the repository or printed in build logs.
+```txt
+DEPLOY_BETTER_AUTH_URL=https://your-worker.example.com
+DEPLOY_BETTER_AUTH_SECRET=<openssl rand -base64 32>
+DEPLOY_BETTER_AUTH_GITHUB_CLIENT_ID=<github-oauth-client-id>
+DEPLOY_BETTER_AUTH_GITHUB_CLIENT_SECRET=<github-oauth-client-secret>
+```
 
-4. Select a custom user API token with at least **Workers Scripts: Edit**, **D1: Edit**, and the standard account/user read permissions. The default Workers Builds token does not currently include D1 access.
-5. Create a production GitHub OAuth App. For a Worker deployed at `https://better-github-feed.<workers-subdomain>.workers.dev`, configure:
+Use a custom Cloudflare API token with **Workers Scripts: Edit**, **D1: Edit**, and the standard account and user read permissions. Configure the production GitHub OAuth App callback as:
 
-   ```txt
-   Homepage URL:
-   https://better-github-feed.<workers-subdomain>.workers.dev
+```txt
+https://your-worker.example.com/api/auth/callback/github
+```
 
-   Authorization callback URL:
-   https://better-github-feed.<workers-subdomain>.workers.dev/api/auth/callback/github
-   ```
+The deploy script uploads an inactive Worker version, provisions the D1 binding, applies migrations, and then publishes the SPA, API, and Cron Trigger together.
 
-6. Select **Save and Deploy**. Disable non-production branch deployments unless you configure a separate preview D1 database and OAuth App. Preview versions otherwise share the production bindings.
+<details>
+<summary>Migrating an existing Alchemy deployment</summary>
 
-The deploy script first uploads an inactive Worker version so Wrangler can provision and bind a new D1 database without changing production traffic. It then applies migrations from `packages/db/src/migrations` and publishes the SPA and API together with the 20-minute Cron Trigger.
-
-### Migrating an Existing Alchemy Deployment
-
-Do not run the old `pnpm destroy` command. It can delete the production D1 database.
+Do not run the old `pnpm destroy` command; it can delete the production D1 database.
 
 Before the first Wrangler deployment, copy the existing D1 database ID from the Cloudflare dashboard into the `DB` binding in `apps/web/wrangler.jsonc`:
 
@@ -146,35 +178,21 @@ Before the first Wrangler deployment, copy the existing D1 database ID from the 
 }
 ```
 
-Wrangler uses the same `d1_migrations` table as the previous deployment and only applies pending migrations. After the combined Worker is verified, remove the old Web and Server Workers separately so the old Cron Trigger cannot continue running.
+Wrangler reuses the existing `d1_migrations` table and applies only pending migrations. After verifying the combined Worker, remove the old Web and Server Workers separately so the old Cron Trigger stops running.
 
-## Project Structure
+</details>
 
-```txt
-better-github-feed/
-├── apps/
-│   ├── web/           # React SPA and Cloudflare Vite build
-│   │   └── wrangler.jsonc # Worker, assets, D1, secrets, and Cron configuration
-│   └── server/        # Hono Worker entrypoint
-├── packages/
-│   ├── api/           # API routers and business logic
-│   ├── auth/          # Better Auth configuration
-│   ├── config/        # Shared TypeScript configuration
-│   ├── contract/      # oRPC contracts
-│   ├── db/            # Drizzle schema and D1 migrations
-│   ├── env/           # Typed Cloudflare binding access
-│   └── shared/        # Shared types and utilities
-```
+## Useful commands
 
-## Scripts
-
-- `vp run dev` - Apply local migrations and start the full application
-- `vp check` - Format, lint, and type-check the workspace
-- `vp test` - Run the Vitest test suite
-- `vp run build` - Build the SPA and Worker deployment bundle
-- `vp run preview` - Preview the production bundle locally
-- `vp run db:generate` - Generate a new Drizzle migration
-- `vp run db:migrate:local` - Apply migrations to local D1
-- `vp run db:migrate:remote` - Apply migrations to production D1
-- `vp run deploy` - Provision bindings, apply production migrations, and deploy the built Worker
-- `vp run cf-typegen` - Regenerate Cloudflare runtime and binding types
+| Command                    | Purpose                                               |
+| -------------------------- | ----------------------------------------------------- |
+| `vp run dev`               | Apply local migrations and start the full application |
+| `vp check`                 | Format, lint, and type-check the workspace            |
+| `vp test`                  | Run the test suite                                    |
+| `vp run build`             | Build and verify the SPA, Worker, and PWA             |
+| `vp run preview`           | Preview the production bundle locally                 |
+| `vp run db:generate`       | Generate a Drizzle migration                          |
+| `vp run db:migrate:local`  | Apply migrations to local D1                          |
+| `vp run db:migrate:remote` | Apply migrations to production D1                     |
+| `vp run deploy`            | Migrate and deploy the production Worker              |
+| `vp run cf-typegen`        | Regenerate Cloudflare binding types                   |
