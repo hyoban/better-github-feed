@@ -14,8 +14,14 @@ function ResizablePanelGroup({ className, ...props }: ResizablePrimitive.GroupPr
   )
 }
 
-function ResizablePanel({ ...props }: ResizablePrimitive.PanelProps) {
-  return <ResizablePrimitive.Panel data-slot="resizable-panel" {...props} />
+function ResizablePanel({ className, ...props }: ResizablePrimitive.PanelProps) {
+  return (
+    <ResizablePrimitive.Panel
+      data-slot="resizable-panel"
+      className={cn('min-h-0 overflow-hidden', className)}
+      {...props}
+    />
+  )
 }
 
 function ResizableHandle({

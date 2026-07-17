@@ -31,6 +31,7 @@ if (new URLSearchParams(location.search).has('debug-scroll')) {
       root: describe(root),
       body: describe(document.body),
       sidebar: describe(sidebar),
+      panelContent: describe(sidebar?.parentElement),
       scrollPanel: describe(scrollPanel),
     }
     const signature = JSON.stringify({ ...state, elapsed: 0 })
