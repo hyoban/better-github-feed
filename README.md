@@ -11,10 +11,10 @@
 <table>
   <tr>
     <td width="72%">
-      <img src="docs/assets/desktop-feed.jpg" alt="Better GitHub Feed on desktop" />
+      <img src="apps/web/public/screenshots/desktop-feed.jpg" alt="Better GitHub Feed on desktop" />
     </td>
     <td width="28%">
-      <img src="docs/assets/mobile-feed.jpg" alt="Better GitHub Feed on mobile" />
+      <img src="apps/web/public/screenshots/mobile-feed.jpg" alt="Better GitHub Feed on mobile" />
     </td>
   </tr>
 </table>
@@ -123,6 +123,7 @@ vp run build
 better-github-feed/
 ├── apps/
 │   ├── web/           # React SPA, PWA, Worker configuration, and deployment scripts
+│   │   └── public/    # PWA icons, screenshots, manifest, and static headers
 │   └── server/        # Hono Worker entrypoint and scheduled maintenance
 ├── packages/
 │   ├── api/           # Sync protocol, feed ingestion, routers, and domain logic
@@ -131,7 +132,7 @@ better-github-feed/
 │   ├── db/            # Drizzle schema and D1 migrations
 │   ├── env/           # Typed Cloudflare bindings
 │   └── shared/        # Shared types and utilities
-└── docs/assets/       # README screenshots
+└── docs/              # Architecture and implementation research
 ```
 
 ## Deployment

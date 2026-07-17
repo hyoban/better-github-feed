@@ -15,6 +15,19 @@ describe('PWA configuration', () => {
     assert.equal(manifest.display, 'standalone')
     assert.equal(manifest.lang, 'en')
     assert.deepEqual(
+      manifest.screenshots.map(
+        (screenshot: { src: string; sizes: string; form_factor?: string }) => [
+          screenshot.src,
+          screenshot.sizes,
+          screenshot.form_factor ?? null,
+        ],
+      ),
+      [
+        ['/screenshots/desktop-feed.jpg', '1800x1224', 'wide'],
+        ['/screenshots/mobile-feed.jpg', '1179x2556', null],
+      ],
+    )
+    assert.deepEqual(
       manifest.icons.map((icon: { src: string; purpose: string }) => [icon.src, icon.purpose]),
       [
         ['/icon-192.png', 'any'],

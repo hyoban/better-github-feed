@@ -18,6 +18,7 @@ const [worker, manifestSource, headers, index] = await Promise.all([
   readFile(new URL('index.html', output), 'utf8'),
 ])
 const manifest = JSON.parse(manifestSource)
+const screenshots = await readdir(new URL('screenshots/', output))
 
 assert.doesNotMatch(worker, /__WB_MANIFEST/, 'The Workbox manifest must be injected at build time')
 assert.match(worker, /index\.html/, 'The offline shell must include index.html')
@@ -31,6 +32,17 @@ assert.doesNotMatch(
 
 assert.equal(manifest.id, '/')
 assert.equal(manifest.display, 'standalone')
+assert.equal(
+  manifest.screenshots.some(screenshot => screenshot.form_factor === 'wide'),
+  true,
+  'A wide desktop install screenshot must be present',
+)
+assert.equal(
+  manifest.screenshots.some(screenshot => screenshot.form_factor !== 'wide'),
+  true,
+  'A mobile install screenshot must be present',
+)
+assert.deepEqual(screenshots.sort(), ['desktop-feed.jpg', 'mobile-feed.jpg'])
 assert.equal(
   manifest.icons.filter(icon => icon.purpose === 'maskable').length,
   2,

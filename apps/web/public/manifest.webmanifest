@@ -9,6 +9,21 @@
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-feed.jpg",
+      "sizes": "1800x1224",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Better GitHub Feed on desktop"
+    },
+    {
+      "src": "/screenshots/mobile-feed.jpg",
+      "sizes": "1179x2556",
+      "type": "image/jpeg",
+      "label": "Better GitHub Feed on mobile"
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
