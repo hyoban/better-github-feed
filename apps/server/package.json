@@ -8,7 +8,6 @@
   "dependencies": {
     "@better-github-feed/api": "workspace:*",
     "@better-github-feed/auth": "workspace:*",
-    "@better-github-feed/env": "workspace:*",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",

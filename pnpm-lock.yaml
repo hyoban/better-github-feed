@@ -191,9 +191,6 @@ importers:
       '@better-github-feed/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@better-github-feed/env':
-        specifier: workspace:*
-        version: link:../../packages/env
       '@orpc/openapi':
         specifier: 'catalog:'
         version: 1.14.8(ws@8.21.1)
@@ -367,21 +364,12 @@ importers:
       '@better-github-feed/shared':
         specifier: workspace:*
         version: link:../shared
-      '@orpc/openapi':
-        specifier: 'catalog:'
-        version: 1.14.8(ws@8.21.1)
       '@orpc/server':
         specifier: 'catalog:'
         version: 1.14.8(ws@8.21.1)
-      '@orpc/zod':
-        specifier: 'catalog:'
-        version: 1.14.8(@orpc/contract@1.14.8)(@orpc/server@1.14.8(ws@8.21.1))(ws@8.21.1)(zod@4.4.3)
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@cloudflare/workers-types@5.20260715.1)(@libsql/client@0.17.0)(kysely@0.29.3)
-      zod:
-        specifier: 'catalog:'
-        version: 4.4.3
     devDependencies:
       '@better-github-feed/config':
         specifier: workspace:*
