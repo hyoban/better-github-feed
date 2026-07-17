@@ -51,7 +51,7 @@ export function TypeFilter() {
 
   return (
     <ScrollArea className="w-full">
-      <div className="flex items-center gap-2 p-2">
+      <div className="flex items-center gap-2 px-2 py-1.5">
         <FilterManagementDialog />
         <Button
           size="sm"
