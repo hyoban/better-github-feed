@@ -16,6 +16,45 @@ afterEach(async () => {
 })
 
 describe('Feed Refresh', () => {
+  it('refreshes only GitHub Following that has never been refreshed', async () => {
+    const testDatabase = await createTestDatabase()
+    disposers.push(testDatabase.dispose)
+    const { database } = testDatabase
+    const refreshedAt = new Date('2026-07-15T11:00:00.000Z')
+    await database.insert(githubUser).values([
+      { id: '1', login: 'fresh' },
+      { id: '2', login: 'existing', lastRefreshedAt: refreshedAt },
+      { id: '3', login: 'unfollowed' },
+    ])
+    await database.insert(subscription).values([
+      {
+        id: 'sub-fresh',
+        userId: 'viewer',
+        githubUserLogin: 'fresh',
+      },
+      {
+        id: 'sub-existing',
+        userId: 'viewer',
+        githubUserLogin: 'existing',
+      },
+    ])
+    const requests: string[] = []
+    const feedRefresh = createFeedRefresh({
+      database,
+      getActivity: async login => {
+        requests.push(login)
+        return { githubId: login === 'fresh' ? '1' : null, items: [] }
+      },
+    })
+
+    assert.deepEqual(await feedRefresh.refreshUninitializedFollowing('viewer'), {
+      attempted: 1,
+      succeeded: 1,
+      failed: 0,
+    })
+    assert.deepEqual(requests, ['fresh'])
+  })
+
   it('reports transport-neutral outcomes for a Following refresh', async () => {
     const testDatabase = await createTestDatabase()
     disposers.push(testDatabase.dispose)

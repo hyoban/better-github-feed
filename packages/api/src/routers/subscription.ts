@@ -4,6 +4,7 @@ import { account } from '@better-github-feed/db/schema/auth'
 import { ORPCError } from '@orpc/server'
 import { eq } from 'drizzle-orm'
 
+import { createFeedRefresh } from '../feed/feed-refresh'
 import { createVisibleFeed } from '../feed/visible-feed'
 import {
   createFollowingSync,
@@ -12,8 +13,10 @@ import {
   FollowingSyncInProgressError,
   FollowingUnavailableError,
 } from '../following/following-sync'
+import { initializeGithubFollowing } from '../following/initial-following'
 import { protectedProcedure } from '../index'
 import { fetchGithubFollowing, GithubFollowingError } from './github-following'
+import { fetchGithubActivity } from './utils'
 
 const FOLLOWING_SYNC_CONCURRENCY = 3
 const FOLLOWING_SYNC_RETRY_ATTEMPTS = 70
@@ -61,9 +64,14 @@ const followingSync = createFollowingSync({
   getAccessToken: getGithubAccessToken,
   getFollowing: getGithubFollowing,
 })
+const initialFeedRefresh = createFeedRefresh({ database: db, getActivity: fetchGithubActivity })
 
 export function ensureInitialGithubFollowing(userId: string) {
-  return followingSync.sync(userId)
+  return initializeGithubFollowing(userId, {
+    syncFollowing: currentUserId => followingSync.sync(currentUserId),
+    refreshUninitializedFollowing: currentUserId =>
+      initialFeedRefresh.refreshUninitializedFollowing(currentUserId),
+  })
 }
 
 function mapFollowingSyncError(error: unknown): never {

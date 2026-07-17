@@ -12,6 +12,7 @@ import { and, asc, eq, isNull, lt, or, sql } from 'drizzle-orm'
 const REFRESH_COOLDOWN_MS = 5 * 60 * 1000
 const REFRESH_CLAIM_TIMEOUT_MS = 10 * 60 * 1000
 const REFRESH_WRITE_CHUNK_SIZE = 8
+const INITIAL_REFRESH_LIMIT = 50
 const D1_JSON_CHUNK_MAX_BYTES = 1_800_000
 const textEncoder = new TextEncoder()
 
@@ -257,6 +258,42 @@ export function createFeedRefresh({
   }
 
   return {
+    async refreshUninitializedFollowing(userId: string) {
+      const users = await database
+        .select({
+          login: githubUser.login,
+          githubId: githubUser.id,
+          lastRefreshedAt: githubUser.lastRefreshedAt,
+          refreshClaimedAt: githubUser.refreshClaimedAt,
+        })
+        .from(subscription)
+        .innerJoin(githubUser, eq(subscription.githubUserLogin, githubUser.login))
+        .where(and(eq(subscription.userId, userId), isNull(githubUser.lastRefreshedAt)))
+        .orderBy(asc(githubUser.createdAt))
+        .limit(INITIAL_REFRESH_LIMIT)
+      const claimedAt = now()
+      const claimedUsers: RefreshCandidate[] = []
+
+      try {
+        for (const user of users) {
+          // Claims are serialized so earlier successes can be released if a later claim fails.
+          // oxlint-disable-next-line react-doctor/async-await-in-loop
+          if (await claim(user, claimedAt)) claimedUsers.push(user)
+        }
+      } catch (error) {
+        await Promise.all(claimedUsers.map(user => release(user, claimedAt)))
+        throw error
+      }
+
+      const results = await Promise.allSettled(claimedUsers.map(user => refresh(user, claimedAt)))
+      const succeeded = results.filter(result => result.status === 'fulfilled').length
+      return {
+        attempted: claimedUsers.length,
+        succeeded,
+        failed: results.length - succeeded,
+      }
+    },
+
     async *refreshFollowing(userId: string): AsyncGenerator<FeedRefreshOutcome> {
       const users = await getFollowingCandidates(userId)
       const claimedAt = now()
