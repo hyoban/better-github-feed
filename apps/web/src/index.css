@@ -64,6 +64,15 @@ body {
   padding-left: env(safe-area-inset-left);
 }
 
+@media (min-width: 48rem) {
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
 @media (display-mode: standalone) {
   body {
     padding-bottom: env(safe-area-inset-bottom);
