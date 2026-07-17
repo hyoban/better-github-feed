@@ -23,7 +23,7 @@ describe('PWA configuration', () => {
         ],
       ),
       [
-        ['/screenshots/desktop-feed.jpg', '1800x1224', 'wide'],
+        ['/screenshots/desktop-feed.jpg', '2860x2270', 'wide'],
         ['/screenshots/mobile-feed.jpg', '1179x2556', null],
       ],
     )

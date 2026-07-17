@@ -12,7 +12,7 @@
   "screenshots": [
     {
       "src": "/screenshots/desktop-feed.jpg",
-      "sizes": "1800x1224",
+      "sizes": "2860x2270",
       "type": "image/jpeg",
       "form_factor": "wide",
       "label": "Better GitHub Feed on desktop"
