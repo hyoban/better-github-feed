@@ -76,10 +76,9 @@ export function FollowUserCard({
         />
         <AvatarFallback>{follow.login.slice(0, 2).toUpperCase()}</AvatarFallback>
       </Avatar>
-      <p className="min-w-0 flex-1 truncate">
-        <span>{follow.login}</span>
-        <span className="text-muted-foreground">
-          {' '}
+      <p className="flex min-w-0 flex-1 items-center gap-1">
+        <span className="min-w-0 flex-1 truncate">{follow.login}</span>
+        <span className="shrink-0 text-muted-foreground">
           {formatRelativeTime(
             follow.latestEntryAt === null ? null : new Date(follow.latestEntryAt),
           )}
