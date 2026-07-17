@@ -57,11 +57,9 @@ export function FollowUserCard({
         'feed-row group flex w-full items-center border-l text-left transition-colors',
         comfortable ? 'min-h-12 gap-3 px-4 py-2.5' : 'gap-2.5 px-3 py-2',
         !isLast && 'border-b',
-        isFocused
-          ? 'border-l-primary bg-sidebar-accent'
-          : isActive
-            ? 'border-l-primary/80 bg-sidebar-accent/80'
-            : 'border-l-transparent hover:bg-sidebar-accent/50',
+        isFocused || isActive
+          ? 'border-l-foreground bg-muted'
+          : 'border-l-transparent hover:bg-muted/50',
       )}
     >
       <Avatar className={comfortable ? 'size-7' : 'size-6'}>

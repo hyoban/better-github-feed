@@ -64,11 +64,9 @@ export const ActivitySummaryItem = memo(
           'w-full border-b border-l px-4 text-left',
           showActor ? 'feed-row-double' : 'feed-row',
           showActor ? 'py-3' : 'py-2',
-          isFocused
-            ? 'border-l-foreground/50 bg-foreground/9'
-            : isActive
-              ? 'border-l-foreground/40 bg-foreground/7'
-              : 'border-l-transparent hover:bg-foreground/4',
+          isFocused || isActive
+            ? 'border-l-foreground bg-muted'
+            : 'border-l-transparent hover:bg-muted/50',
         )}
         title={item.link ? 'Double-click to open on GitHub' : undefined}
       >
