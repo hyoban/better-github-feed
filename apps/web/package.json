@@ -50,6 +50,7 @@
     "nuqs": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "react-resizable-panels": "catalog:",
     "react-router-dom": "catalog:",
     "shadcn": "catalog:",
     "sonner": "catalog:",
