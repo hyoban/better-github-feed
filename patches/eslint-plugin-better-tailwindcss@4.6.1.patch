@@ -235,18 +235,46 @@ index 0000000000000000000000000000000000000000..263ad2989610c3986f999bb2667d51cb
 +}
 diff --git a/lib/async-utils/persistent-cache/fingerprint.js b/lib/async-utils/persistent-cache/fingerprint.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..3582f40e82b7f8624bcefc9e5db0a7d5faf77327
+index 0000000000000000000000000000000000000000..ebd820a8488058a8e5c242b21f5d744b7e96b156
 --- /dev/null
 +++ b/lib/async-utils/persistent-cache/fingerprint.js
-@@ -0,0 +1,162 @@
+@@ -0,0 +1,202 @@
 +import { createHash } from "node:crypto";
-+import { existsSync, readFileSync, realpathSync } from "node:fs";
++import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 +import { dirname, isAbsolute, join, parse, resolve } from "node:path";
 +import { resolveCss, resolveJs, resolveJson } from "../resolvers.js";
 +
 +const MAX_DEPENDENCIES = 512;
++const MAX_MEMOIZED_AGE = 1000;
++const MAX_MEMOIZED_FINGERPRINTS = 16;
 +const CSS_DIRECTIVE = /@(import|reference|plugin|config)\s+(?:url\()?\s*["']([^"']+)["']/g;
 +const JS_IMPORT = /(?:\b(?:import|export)\s+(?:[^"'()]*?\sfrom\s*)?|\brequire\s*\(|\bimport\s*\()\s*["']([^"']+)["']/g;
++const FINGERPRINTS = new Map();
++
++export function createMemoizedContextFingerprint(ctx, schema) {
++    const key = JSON.stringify({
++        cwd: ctx.cwd,
++        installation: ctx.installation,
++        schema,
++        tailwindConfigPath: ctx.tailwindConfigPath,
++        tsconfigPath: ctx.tsconfigPath,
++        version: ctx.version
++    });
++    const cached = FINGERPRINTS.get(key);
++    if (cached && Date.now() - cached.verifiedAt < MAX_MEMOIZED_AGE && cached.signature === dependencySignature(cached.data.dependencies)) {
++        return cached.data;
++    }
++    const data = createContextFingerprint(ctx, schema);
++    if (!data) {
++        FINGERPRINTS.delete(key);
++        return;
++    }
++    FINGERPRINTS.set(key, { data, signature: dependencySignature(data.dependencies), verifiedAt: Date.now() });
++    while (FINGERPRINTS.size > MAX_MEMOIZED_FINGERPRINTS) {
++        FINGERPRINTS.delete(FINGERPRINTS.keys().next().value);
++    }
++    return data;
++}
 +
 +export function createContextFingerprint(ctx, schema) {
 +    try {
@@ -277,6 +305,18 @@ index 0000000000000000000000000000000000000000..3582f40e82b7f8624bcefc9e5db0a7d5
 +        return { dependencies: [...dependencies], fingerprint: hash.digest("hex") };
 +    }
 +    catch { }
++}
++
++function dependencySignature(dependencies) {
++    return dependencies.map(filePath => {
++        try {
++            const stats = statSync(filePath, { bigint: true });
++            return `${filePath}:${stats.dev}:${stats.ino}:${stats.size}:${stats.mtimeNs}:${stats.ctimeNs}`;
++        }
++        catch {
++            return `${filePath}:missing`;
++        }
++    }).join("|");
 +}
 +
 +function hashTsconfig(filePath, hash, seen) {
@@ -597,7 +637,7 @@ index 18436e30141cad67e748238d5297a4a0f63c2ebb..54845a977b5b1d94fabc1e20df011d8a
  }
  function getWorkerPath(ctx) {
 diff --git a/lib/tailwindcss/context.async.v4.js b/lib/tailwindcss/context.async.v4.js
-index e72a01958d10bcac629ff2f5b1ca3287b40e8f65..cae1dd971d79bce403409d2812cfc5057fc2cc9c 100644
+index e72a01958d10bcac629ff2f5b1ca3287b40e8f65..88d8d3872a55d6ffea3979075903f56d47bb13cc 100644
 --- a/lib/tailwindcss/context.async.v4.js
 +++ b/lib/tailwindcss/context.async.v4.js
 @@ -2,10 +2,16 @@ import { readFile } from "node:fs/promises";
@@ -607,12 +647,12 @@ index e72a01958d10bcac629ff2f5b1ca3287b40e8f65..cae1dd971d79bce403409d2812cfc505
 -import { withCache } from "../async-utils/cache.js";
  import { normalize } from "../async-utils/path.js";
 +import { CACHE_SCHEMA } from "../async-utils/persistent-cache.js";
-+import { createContextFingerprint } from "../async-utils/persistent-cache/fingerprint.js";
++import { createMemoizedContextFingerprint } from "../async-utils/persistent-cache/fingerprint.js";
  import { resolveCss, resolveJs } from "../async-utils/resolvers.js";
 -export const createTailwindContext = async (ctx) => withCache("tailwind-context", ctx.tailwindConfigPath, async () => {
 +const CONTEXTS = new Map();
 +export const createTailwindContext = async (ctx) => {
-+    const fingerprint = createContextFingerprint(ctx, CACHE_SCHEMA)?.fingerprint;
++    const fingerprint = createMemoizedContextFingerprint(ctx, CACHE_SCHEMA)?.fingerprint;
 +    if (fingerprint && CONTEXTS.has(fingerprint)) {
 +        return CONTEXTS.get(fingerprint);
 +    }
@@ -636,18 +676,42 @@ index e72a01958d10bcac629ff2f5b1ca3287b40e8f65..cae1dd971d79bce403409d2812cfc505
      const cacheKey = `${+Date.now()}`;
      async function loadFile(id, base, resourceType) {
 diff --git a/lib/tailwindcss/custom-component-classes.async.v4.js b/lib/tailwindcss/custom-component-classes.async.v4.js
-index ba211464be43f4fa412161c68dc00989a8997a2d..5b045dcdc60ae5b1556b56fb78d4069ad1a79cd4 100644
+index ba211464be43f4fa412161c68dc00989a8997a2d..567fd7479dd3fa4f1cf0c2e1e009edd781031e52 100644
 --- a/lib/tailwindcss/custom-component-classes.async.v4.js
 +++ b/lib/tailwindcss/custom-component-classes.async.v4.js
-@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
+@@ -2,16 +2,29 @@ import { readFile } from "node:fs/promises";
  import { dirname } from "node:path";
  import { fork } from "@eslint/css-tree";
  import { tailwind4 } from "tailwind-csstree";
 -import { withCache } from "../async-utils/cache.js";
++import { CACHE_SCHEMA } from "../async-utils/persistent-cache.js";
++import { createMemoizedContextFingerprint } from "../async-utils/persistent-cache/fingerprint.js";
  import { resolveCss } from "../async-utils/resolvers.js";
  const { findAll, generate, parse, walk } = fork(tailwind4);
++const COMPONENT_CLASSES = new Map();
  export async function getCustomComponentClasses(ctx) {
-@@ -28,7 +27,7 @@ async function parseCssFilesDeep(ctx, resolvedPath) {
++    const fingerprint = createMemoizedContextFingerprint(ctx, CACHE_SCHEMA)?.fingerprint;
++    if (fingerprint && COMPONENT_CLASSES.has(fingerprint)) {
++        return COMPONENT_CLASSES.get(fingerprint);
++    }
+     const resolvedPath = resolveCss(ctx, ctx.tailwindConfigPath);
+     if (!resolvedPath) {
+         return [];
+     }
+     const files = await parseCssFilesDeep(ctx, resolvedPath);
+-    return getCustomComponentUtilities(files, resolvedPath);
++    const classes = getCustomComponentUtilities(files, resolvedPath);
++    if (fingerprint) {
++        COMPONENT_CLASSES.set(fingerprint, classes);
++        while (COMPONENT_CLASSES.size > 4) {
++            COMPONENT_CLASSES.delete(COMPONENT_CLASSES.keys().next().value);
++        }
++    }
++    return classes;
+ }
+ async function parseCssFilesDeep(ctx, resolvedPath) {
+     const cssFiles = {};
+@@ -28,7 +41,7 @@ async function parseCssFilesDeep(ctx, resolvedPath) {
      }
      return cssFiles;
  }
@@ -656,7 +720,7 @@ index ba211464be43f4fa412161c68dc00989a8997a2d..5b045dcdc60ae5b1556b56fb78d4069a
      try {
          const content = await readFile(resolvedPath, "utf-8");
          const ast = parse(content);
-@@ -60,7 +59,7 @@ const parseCssFile = async (ctx, resolvedPath) => withCache("css-file", resolved
+@@ -60,7 +73,7 @@ const parseCssFile = async (ctx, resolvedPath) => withCache("css-file", resolved
          };
      }
      catch { }

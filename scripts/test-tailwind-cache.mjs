@@ -152,18 +152,25 @@ function count(value, needle) {
 
 async function testDependencyInvalidation() {
   const entryPath = join(fixtureDirectory, 'entry.css')
+  const componentsPath = join(fixtureDirectory, 'components.css')
   const themePath = join(fixtureDirectory, 'theme.css')
   const pluginPath = join(fixtureDirectory, 'plugin.js')
   const baseTsconfigPath = join(fixtureDirectory, 'tsconfig.base.json')
   const tsconfigPath = join(fixtureDirectory, 'tsconfig.json')
   writeFileSync(themePath, '@theme { --color-brand: red; }')
+  writeFileSync(componentsPath, '@layer components { .cache-a {} }')
   writeFileSync(pluginPath, 'export default function plugin() {}')
   writeFileSync(baseTsconfigPath, JSON.stringify({ compilerOptions: {} }))
   writeFileSync(tsconfigPath, JSON.stringify({ extends: './tsconfig.base.json' }))
-  writeFileSync(entryPath, '@import "tailwindcss";\n@import "./theme.css";\n@plugin "./plugin.js";')
+  writeFileSync(
+    entryPath,
+    '@import "tailwindcss";\n@import "./theme.css";\n@import "./components.css";\n@plugin "./plugin.js";',
+  )
 
   const { createTailwindContext } =
     await import('../node_modules/eslint-plugin-better-tailwindcss/lib/tailwindcss/context.async.v4.js')
+  const { getCustomComponentClasses } =
+    await import('../node_modules/eslint-plugin-better-tailwindcss/lib/tailwindcss/custom-component-classes.async.v4.js')
   const { CACHE_SCHEMA } =
     await import('../node_modules/eslint-plugin-better-tailwindcss/lib/async-utils/persistent-cache.js')
   const { createContextFingerprint } =
@@ -178,6 +185,14 @@ async function testDependencyInvalidation() {
 
   const initialFingerprint = createContextFingerprint(context, CACHE_SCHEMA)?.fingerprint
   const initialDesign = await createTailwindContext(context)
+  const initialComponentClasses = await getCustomComponentClasses(context)
+  assert.ok(initialComponentClasses.includes('cache-a'))
+
+  writeFileSync(componentsPath, '@layer components { .cache-b {} }')
+  const changedComponentClasses = await getCustomComponentClasses(context)
+  assert.ok(changedComponentClasses.includes('cache-b'))
+  assert.equal(changedComponentClasses.includes('cache-a'), false)
+
   writeFileSync(themePath, '@theme { --color-brand: blue; }')
   const cssFingerprint = createContextFingerprint(context, CACHE_SCHEMA)?.fingerprint
   const changedDesign = await createTailwindContext(context)
